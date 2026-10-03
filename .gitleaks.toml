@@ -7,9 +7,22 @@
 # ⚠️ Paths are matched with `(^|/)` rather than `^` because `gitleaks dir <path>` reports them
 # with the scanned directory in front, while `gitleaks git` reports them repository-relative.
 #
-# There is nothing to allow yet: this repository holds no test fixtures that look like
-# credentials, and the Sparkle public key in project.yml is a placeholder until the
-# release key is generated (a Sparkle public key is public by design in any case).
+# This repository holds no test fixtures that look like credentials. The one entry below is
+# a public key.
 
 [extend]
 useDefault = true
+
+# Sparkle's `SUPublicEDKey` in project.yml: the PUBLIC half of the Developer ID build's
+# update-signing key (Ed25519, base64), shipped in every copy's Info.plist so Sparkle can
+# check an update's signature. Public by design; the private half lives only in the release
+# lane's secret store. The rule matches it only because of the key name beside it.
+# ⛔ The exact value: rotating the key (which strands every installed copy) means editing
+# this regex in the same commit, and the old value stays because history keeps it.
+[[allowlists]]
+description = "Sparkle SUPublicEDKey in project.yml (a public key)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|/)project\.yml$''']
+regexTarget = "secret"
+regexes = ['''^2WeJT5IvJAjXbzYQufEbGBqNu5SSZ5B9to10em8H7QQ=$''']
