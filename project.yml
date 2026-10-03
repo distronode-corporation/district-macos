@@ -182,6 +182,7 @@ targetTemplates:
     settings:
       base:
         # ⛔ THE iOS APP'S BUNDLE ID, and the server's APNs topic. See the note at the top.
+        # ⚠️ RELEASE ONLY: Debug overrides it with a `.dev` suffix under `configs` below.
         PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district
         # ⛔ BOTH TARGETS BUILD `District AI.app`, the name a user sees in /Applications
         # and in the menu bar, so no packaging step renames a bundle. The module keeps
@@ -213,6 +214,18 @@ targetTemplates:
       configs:
         Debug:
           APS_ENVIRONMENT: development
+          # ⛔ A DEBUG BUILD IS NOT THE INSTALLED APP. The sandbox container (and so the
+          # defaults holding the device id, the selected workspace and the push token) is
+          # keyed by bundle id, and the test host is this app launched in full. Under the
+          # release id a local `xcodebuild test`, or any Debug run, would read and write
+          # the container of an installed copy of District AI (and could settle its
+          # fresh-install wipe). The suffix gives every Debug build its own container.
+          # ⚠️ RELEASE KEEPS `com.distronode.district`, which is what every archive (both
+          # release lanes build `-configuration Release`), the APNs topic, the Sign in
+          # with Apple audience and the provisioning profiles name. A Debug build signed
+          # with a team therefore cannot receive push or use Sign in with Apple; prove
+          # those on a Release build. PORTING.md, "Tests never touch an installed copy".
+          PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district.dev
         Release:
           APS_ENVIRONMENT: production
 

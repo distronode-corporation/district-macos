@@ -36,6 +36,10 @@ not copied: they are shared.
 | 6 | Rooms (lobby, meeting record, the room, its engine and tiles) | `4777c40` | `App/Sources/Features/Rooms/` |
 | 6 | Contacts: the Video call row (`ContactVideoCallModel`) | `4777c40` | `App/Sources/Features/Contacts/` |
 | 6 | Tests: `DialerDestinationLineTests`, `LiveMediaReattachTests`, `RoomGridTests`, `RoomMediaToggleTests`, the dial half of `MicrophoneAccessTests` | `4777c40` | `App/Tests/` |
+| 7 | District HQ (the console, the confirm card) | `4777c40` | `App/Sources/Features/HQ/` |
+| 7 | Analytics (the window, the cards, the usage cards) | `4777c40` | `App/Sources/Features/Analytics/` |
+| 7 | Billing (read-only: plan, overage, usage meter, Stripe half) | `4777c40` | `App/Sources/Features/Billing/` |
+| 7 | Tests: `StoreCopyTests` (the 3.1.1 gate, Mac allowlist), `A11ySpokenFormTests` | `4777c40` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -49,6 +53,11 @@ district-linux's desktop ringing, the one client that rang a desktop before this
 
 The sections not listed here are still placeholders (`ComingLaterView`); the wave that
 ports each one is `SidebarItem.portedInWave`.
+
+Wave 7 adds Mac-only tests with no iOS original: `MacBillingReadOnlyTests` (nothing under
+`Features/Billing` may open a URL, see "Billing" below), `MacAnalyticsBillingFormatTests`
+(the figures a bill is read in) and `MacTestIsolationTests` (see "Tests never touch an
+installed copy").
 
 ## Left out on purpose, and where it goes
 
@@ -82,10 +91,51 @@ Copied as is, then:
   call log and contacts (the Inbox keeps the iPad's rows), menu commands with keyboard
   shortcuts (File > New Message and New Contact, Edit > Search Messages, View > Refresh,
   Go), a toolbar Refresh button standing in for pull-to-refresh, and an Attach file
-  button (the Finder's open panel) beside the Photos picker in a reply.
+  button (the Finder's open panel) beside the Photos picker in a reply. District HQ's
+  Send takes ⌘↩ (asking writes nothing); its Confirm takes no shortcut, like every
+  control that deletes, places a call or spends money.
 - Em and en dashes are taken out of comments (the public-hygiene check forbids them). A
   string the user reads that holds one keeps it as an escape (`"\u{2014}"`), so the copy
   stays byte-identical to iOS.
+
+## Billing: read-only, in both Mac builds
+
+The iOS billing screen states what is billed and offers nothing else: no upgrade, no plan
+picker, no cancel, no card editor, no Stripe portal and no hosted-invoice link (App Store
+Review Guideline 3.1.3(b)), and no sentence that names somewhere else to go (3.1.1's
+anti-steering clause; `StoreCopyTests` reads every string literal under `Features` and
+`Navigation`). The Mac keeps exactly that behaviour, and keeps it in the Developer ID build
+too: both builds compile the same `App/Sources` under the same bundle id, so a hand-off
+added "for the .dmg only" would ship to App Review as well. A Mac has one-line ways out of
+the app that iOS does not (`NSWorkspace.open`, `BrowserHandOff`, `Link`), so
+`MacBillingReadOnlyTests` fails on any of them under `Features/Billing`. The app is free;
+no copy says "on sale".
+
+The `StoreCopyTests` allowlist is iOS's minus the entries for files not ported yet (the
+Marketplace's A2P website field, Wave 8; the Desk's logo sentence arrives with the Desk) and
+minus the sign-in button's "Opens your browser" disclosure, which the Mac sign-in screen
+does not carry. Its file-count floor is a ratchet below iOS's 150, raised as sections land.
+
+## Tests never touch an installed copy
+
+The test host is the app itself, launched in full: at launch it reads and writes the
+standard defaults (the device id, the fresh-install ledger, the selected workspace, the
+push token) and asks the keychain for a session. Under `com.distronode.district` that is
+the sandbox container of an installed release copy, so a local `xcodebuild test` (or any
+Debug run, or the screenshot harness) could read and rewrite a real installation's state.
+
+The Debug configuration therefore builds `com.distronode.district.dev` (project.yml,
+`settings.configs.Debug`), for both targets; the scheme tests in Debug, so the host gets a
+container of its own. This was chosen over injecting an isolated `UserDefaults` suite into
+every test because the risk is the launch itself, not only what a test persists: the app
+delegate, the container and the revoke drain all run before any test can inject anything.
+Nothing a test relies on reads the bundle id (the keychain service and defaults keys are
+literals, and the ad-hoc test signature carries no keychain group). Release is unchanged:
+both lanes archive `-configuration Release`, and `ExportOptions-AppStore.plist`,
+`archive.sh` (its profile map is keyed by the release id) and `direct-package.sh` never
+see a Debug build. The cost: a Debug build signed with a team gets no push and no Sign in
+with Apple (the APNs topic and the Apple audience are the release id), so those are proved
+on Release builds, as Wave 4.2 did. `MacTestIsolationTests` pins the id and the container.
 
 ## How the call path is adapted
 
@@ -137,7 +187,8 @@ a Mac, the line carries a `⚠️` comment saying why, and the matching test is 
 it. So far: the notifications line and the dialler's microphone refusal say "System
 Settings" where iOS says "iOS Settings" or "Settings"; the emergency-number hand-off says
 "Use a phone to call for help." where iOS names "the Phone app" (a Mac has none); and the
-call-backs' empty state says "one click" where iOS says "one tap".
+call-backs' empty state says "one click" where iOS says "one tap". Wave 7's screens needed
+no change of words.
 
 Mac-only copy (no iOS original) comes from district-linux where it has one, and is in the
 iOS sentences' shape otherwise (a room left because the Mac went to sleep): "Ring on this

@@ -307,13 +307,26 @@ struct ShellView: View {
 ///
 /// ⚠️ THE `.partial` CAPTION IS A BADGE, which is where a sidebar puts a row's secondary
 /// text; it says what the Overview's caption says, in the same word.
+///
+/// ⛔ THE ICON CARRIES AN EXPLICIT COLOUR, THE BRAND ACCENT FOR THE SCHEME. Left to the
+/// sidebar, a symbol is drawn with the list's vibrant tertiary style, which against the
+/// dark palette's near-black teal read as almost invisible (the Wave 5 screenshots). A
+/// fixed colour opts the image out of that blending. The brand accent is the iPad
+/// sidebar's icon colour (it inherits the root `districtTheme()` tint there).
 private struct SidebarRow: View {
     let entry: SidebarEntry
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        Label(entry.item.title, systemImage: entry.item.symbol)
-            .badge(caption.map { Text($0) })
-            .accessibilityIdentifier(entry.item.accessibilityID)
+        Label {
+            Text(entry.item.title)
+        } icon: {
+            Image(systemName: entry.item.symbol)
+                .foregroundStyle(DistrictColors.resolve(colorScheme).district)
+        }
+        .badge(caption.map { Text($0) })
+        .accessibilityIdentifier(entry.item.accessibilityID)
     }
 
     private var caption: String? {

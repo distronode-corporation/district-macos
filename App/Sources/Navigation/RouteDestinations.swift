@@ -77,7 +77,21 @@ enum RouteDestinations {
                 FailureView(failure: RoomsCopy.unusableName)
             }
 
-        case .hq, .analytics, .marketplace, .billing, .workflows,
+        case let .hq(workspaceId, role):
+            HQView(container: container, workspaceId: workspaceId, role: role)
+
+        // ⚠️ CARRIES NO ROLE: both routes behind it admit every role. See `Route.analytics`.
+        case let .analytics(workspaceId):
+            AnalyticsView(container: container, workspaceId: workspaceId)
+
+        // ⛔ READ-ONLY, IN BOTH MAC BUILDS. App Store Review Guideline 3.1.3(b) keeps plan
+        // changes, payment methods and cancellations out of the app, and 3.1.1 keeps every
+        // sentence from naming somewhere else to go (`StoreCopyTests`). The Developer ID
+        // build is not exempt: it is the same bundle id and the same screens.
+        case let .billing(workspaceId, role):
+            BillingView(container: container, workspaceId: workspaceId, role: role)
+
+        case .marketplace, .workflows,
              .workspaceSettings, .scheduling, .support, .supportRequest, .desk, .deskTicket:
             ComingLaterView(item: ShellPaths.listSection(of: route))
         }
