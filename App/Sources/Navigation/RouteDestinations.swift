@@ -91,8 +91,28 @@ enum RouteDestinations {
         case let .billing(workspaceId, role):
             BillingView(container: container, workspaceId: workspaceId, role: role)
 
-        case .marketplace, .workflows,
-             .workspaceSettings, .scheduling, .support, .supportRequest, .desk, .deskTicket:
+        // ⚠️ A MONITOR RATHER THAN A SETTINGS SECTION: three of its four routes admit
+        // `viewer` and nothing on it is authored. See `Route.workflows`.
+        case let .workflows(workspaceId, role):
+            WorkflowsView(container: container, workspaceId: workspaceId, role: role)
+
+        // ⛔ SUPPORT AND THE DESK ARE OPPOSITE SURFACES that share every noun: Support is
+        // this tenant writing to Distronode, the Desk is their own customers writing to
+        // them. ⚠️ As list sections, their roots are drawn by ``ShellView``'s content
+        // column with a selection; these arms are the same screens without one.
+        case let .support(workspaceId, role):
+            SupportView(container: container, workspaceId: workspaceId, role: role)
+
+        case let .supportRequest(workspaceId, role, key):
+            SupportThreadView(container: container, workspaceId: workspaceId, role: role, key: key)
+
+        case let .desk(workspaceId, role):
+            DeskView(container: container, workspaceId: workspaceId, role: role)
+
+        case let .deskTicket(workspaceId, role, ticketId):
+            DeskTicketView(container: container, workspaceId: workspaceId, ticketId: ticketId, role: role)
+
+        case .marketplace, .workspaceSettings, .scheduling:
             ComingLaterView(item: ShellPaths.listSection(of: route))
         }
     }

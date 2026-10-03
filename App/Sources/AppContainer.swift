@@ -79,9 +79,16 @@ final class AppContainer {
 
     let inbox: InboxRepository
 
-    /// This workspace's own support requests WITH DISTRONODE. Wave 5 uses it only for
-    /// reporting a message or a call (`ReportContentModel`); the Support section is Wave 7.
+    /// This workspace's own support requests WITH DISTRONODE (`district/support/*`): the
+    /// Support section, and reporting a message or a call (`ReportContentModel`).
+    /// ⛔ NOT ``desk``: the two share every noun and differ by one path segment, and the
+    /// reply field differs too (support takes `body`, desk takes `message`).
     let support: SupportRepository
+
+    /// District Desk: the tenant's OWN customers' ticket queue (`district/desk/*`).
+    /// ⛔ NOT ``support``; the direction is reversed. ⚠️ `deskEnabled` is `Bool?` and null
+    /// is not false: it means the question could not be asked.
+    let desk: DeskRepository
     let devices: DevicesRepository
 
     /// The analytics window and the two metered-usage reads. ⚠️ Each method answers its own
@@ -98,6 +105,11 @@ final class AppContainer {
     /// a portal URL in-app breaches App Store Review Guideline 3.1.3(b), in both Mac builds
     /// (they ship under one bundle id, and the store one is reviewed).
     let billing: BillingRepository
+
+    /// The automation monitor: the workflow list, one workflow's runs, and the always-on
+    /// SDR campaign. ⚠️ Each method answers its own `Result`, so a campaign read that failed
+    /// cannot blank a workflow list that answered.
+    let workflows: WorkflowsRepository
 
     /// The core's push repository, registering this Mac's ALERT token with
     /// `platform: "macos"`, unregistering it and forgetting it on sign-out. Built by
@@ -160,10 +172,12 @@ final class AppContainer {
         blockedContacts = BlockedContactsStore(contacts: contacts)
         inbox = InboxRepository(client: api)
         support = SupportRepository(client: api)
+        desk = DeskRepository(client: api)
         devices = DevicesRepository(client: api)
         analytics = AnalyticsRepository(client: api)
         hq = HQRepository(client: api)
         billing = BillingRepository(client: api)
+        workflows = WorkflowsRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)

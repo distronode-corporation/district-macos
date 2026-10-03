@@ -176,8 +176,14 @@ struct ShellView: View {
             case .contacts:
                 ContactsView(container: container, workspaceId: workspaceId, role: role, selection: selection)
                     .navigationSplitViewColumnWidth(min: 460, ideal: 640)
+            case .desk:
+                DeskView(container: container, workspaceId: workspaceId, role: role, selection: selection)
+                    .navigationSplitViewColumnWidth(min: 340, ideal: 440)
+            case .support:
+                SupportView(container: container, workspaceId: workspaceId, role: role, selection: selection)
+                    .navigationSplitViewColumnWidth(min: 340, ideal: 440)
             default:
-                // Desk and Support, the two list sections that are hubs, arrive in Wave 7.
+                // ⚠️ UNREACHABLE TODAY: the five list sections are the five arms above.
                 ComingLaterView(item: item)
                     .navigationSplitViewColumnWidth(min: 280, ideal: 340)
             }

@@ -40,6 +40,11 @@ not copied: they are shared.
 | 7 | Analytics (the window, the cards, the usage cards) | `4777c40` | `App/Sources/Features/Analytics/` |
 | 7 | Billing (read-only: plan, overage, usage meter, Stripe half) | `4777c40` | `App/Sources/Features/Billing/` |
 | 7 | Tests: `StoreCopyTests` (the 3.1.1 gate, Mac allowlist), `A11ySpokenFormTests` | `4777c40` | `App/Tests/` |
+| 7 | Workflows (the SDR campaign card, the workflow list, a workflow's runs) | `4777c40` | `App/Sources/Features/Workflows/` |
+| 7 | Desk (the queue, a ticket, settings with the public name and logo, the compose sheet) | `4777c40` | `App/Sources/Features/Desk/` |
+| 7 | Support (requests to Distronode, a request's thread, inline compose) | `4777c40` | `App/Sources/Features/Support/Support*.swift` |
+| 7 | `SettingsChrome.swift` whole (replacing Wave 5's `SettingsField.swift`), `SettingsConfigState.swift`, `SettingsCopy.swift` | `4777c40` | `App/Sources/Features/Settings/` |
+| 7 | Tests: `DeskModelCreateTests`, `SettingsTestSupport` | `4777c40` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -56,14 +61,21 @@ ports each one is `SidebarItem.portedInWave`.
 
 Wave 7 adds Mac-only tests with no iOS original: `MacBillingReadOnlyTests` (nothing under
 `Features/Billing` may open a URL, see "Billing" below), `MacAnalyticsBillingFormatTests`
-(the figures a bill is read in) and `MacTestIsolationTests` (see "Tests never touch an
-installed copy").
+(the figures a bill is read in), `MacDeskSupportWorkflowsTests` (status wording, the
+support write states, trigger labels) and `MacTestIsolationTests` (see "Tests never touch
+an installed copy").
 
 ## Left out on purpose, and where it goes
 
-- **`SettingsChrome.swift`**: only `SettingsField` came over, because the compose sheet
-  uses it. Wave 8 ports the rest of that file without it (or deletes
-  `SettingsField.swift`), so there is one definition.
+- **The rest of `Features/Settings`** (the hub and its sections): Wave 8. Wave 7 already
+  brought `SettingsChrome.swift` whole (the Desk's settings sheet is built from it),
+  `SettingsConfigState.swift` and `SettingsCopy.swift`, and deleted Wave 5's
+  `SettingsField.swift`, so there is one definition. Wave 8 adds `SettingsCopy+*.swift` and
+  the screens.
+- **A "New ticket" entry point on the Desk**: iOS at `4777c40` declares the compose sheet
+  and its `composing` flag but nothing sets the flag, so the sheet is unreachable there.
+  The Mac keeps the same code and the same absence; adding a button or a menu command is a
+  product change for both apps, not a port.
 - **App links and push taps** (`AppLinkRouting`, `PushRouting`, `ShellView+Routing`):
   a tapped notification or a `www.distronode.com` link does not open a section yet. The
   incoming-call notification's Answer and Decline buttons do work (Wave 6).
@@ -93,7 +105,15 @@ Copied as is, then:
   Go), a toolbar Refresh button standing in for pull-to-refresh, and an Attach file
   button (the Finder's open panel) beside the Photos picker in a reply. District HQ's
   Send takes ⌘↩ (asking writes nothing); its Confirm takes no shortcut, like every
-  control that deletes, places a call or spends money.
+  control that deletes, places a call or spends money. Support's Send request and Send
+  reply take ⌘↩ (they go to Distronode); the Desk's reply goes to a customer and, like the
+  Inbox's, takes none. The Desk's logo gets a Choose file button (the Finder's open panel)
+  beside the Photos picker, as a reply does. Desk and Support keep the iPad's rows rather
+  than a `Table`: like the Inbox, each list is interleaved with state cards (desk off,
+  settings unreadable, inline compose, status chips), which a table cannot hold.
+- A `Toggle` that the iPad draws as a switch gets `.toggleStyle(.switch)`: the macOS
+  default is a checkbox, which beside a row reads as "select this" (Workflows, the Desk's
+  settings, and Account's availability row).
 - Em and en dashes are taken out of comments (the public-hygiene check forbids them). A
   string the user reads that holds one keeps it as an escape (`"\u{2014}"`), so the copy
   stays byte-identical to iOS.
@@ -188,7 +208,7 @@ it. So far: the notifications line and the dialler's microphone refusal say "Sys
 Settings" where iOS says "iOS Settings" or "Settings"; the emergency-number hand-off says
 "Use a phone to call for help." where iOS names "the Phone app" (a Mac has none); and the
 call-backs' empty state says "one click" where iOS says "one tap". Wave 7's screens needed
-no change of words.
+no change of words; its one Mac-only string is the Desk logo's "Choose file".
 
 Mac-only copy (no iOS original) comes from district-linux where it has one, and is in the
 iOS sentences' shape otherwise (a room left because the Mac went to sleep): "Ring on this
