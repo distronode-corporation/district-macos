@@ -312,8 +312,7 @@ private struct DeviceCard: View {
     }
 
     private var platform: String {
-        let trimmed = device.platform.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Unknown platform" : trimmed
+        DevicePlatformName.display(device.platform)
     }
 
     /// ⛔ "Last active", NEVER "last used", see the ⚠️ on the screen. A device
@@ -322,7 +321,9 @@ private struct DeviceCard: View {
     /// an empty line.
     private var lastActive: String {
         guard let stamp = device.lastUsedAt else { return "Signed in recently" }
-        return "Last active \(stamp)"
+        // ⚠️ MAC: AS A PERSON READS IT. The iPad (`4777c40`) prints the wire instant
+        // ("2026-08-15T14:30:00.000Z"); ``WireDate`` falls back to it when it cannot parse.
+        return "Last active \(WireDate.display(stamp))"
     }
 }
 
@@ -350,4 +351,25 @@ private struct DeviceNotice: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .districtCardSurface(bordered: false)
     }
+}
+
+/// A device's platform as a person reads it.
+///
+/// ⚠️ MAC ONLY: the iPad (district-ios `4777c40`) prints the wire value as it arrives
+/// ("macos", "ios", "linux"), which reads as a fault beside a device's real name. The four
+/// values the clients send get their proper names; anything else is shown as sent, because
+/// a platform this app does not know is still the truth about the device.
+enum DevicePlatformName {
+    static func display(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Unknown platform" }
+        return known[trimmed.lowercased()] ?? trimmed
+    }
+
+    private static let known = [
+        "macos": "macOS",
+        "ios": "iOS",
+        "android": "Android",
+        "linux": "Linux",
+    ]
 }

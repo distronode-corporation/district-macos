@@ -64,6 +64,7 @@ struct DistrictMacApp: App {
                 }
         }
         .commands {
+            // ⚠️ View > Show Sidebar / Hide Sidebar (⌃⌘S) is one of these, the shell's own.
             DistrictCommands(session: session)
         }
 

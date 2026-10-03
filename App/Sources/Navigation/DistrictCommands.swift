@@ -73,6 +73,9 @@ struct ShellCommandActions {
     let newContact: () -> Void
     let search: () -> Void
     let refresh: () -> Void
+    /// Whether the sidebar is on screen, for the menu item's words.
+    let sidebarShown: Bool
+    let toggleSidebar: () -> Void
 }
 
 private struct ShellCommandActionsKey: FocusedValueKey {
@@ -131,6 +134,16 @@ struct DistrictCommands: Commands {
                 .keyboardShortcut("f")
                 .disabled(!availability.canSearch)
         }
+        // ⛔ THE SHELL'S OWN COMMAND, NOT `SidebarCommands`: that one's action has to find the
+        // split view controller through the responder chain, and the shell swaps between two
+        // split views (see ``ShellView``). ⌃⌘S is the system's shortcut for it.
+        CommandGroup(before: .toolbar) {
+            Button(ShellColumns.commandTitle(sidebarShown: shell?.sidebarShown ?? true)) {
+                shell?.toggleSidebar()
+            }
+            .keyboardShortcut("s", modifiers: [.command, .control])
+            .disabled(shell == nil)
+        }
         CommandGroup(after: .toolbar) {
             Button("Refresh") { shell?.refresh() }
                 .keyboardShortcut("r")
@@ -169,6 +182,7 @@ extension View {
     func shellCommands(
         _ center: ShellCommandCenter,
         paths: Binding<ShellPaths>,
+        sidebarShown: Binding<Bool>,
         workspaceId: String?,
         role: WorkspaceRole?
     ) -> some View {
@@ -206,6 +220,10 @@ extension View {
             refresh: {
                 guard availability.canRefresh else { return }
                 Task { await center.refresh() }
+            },
+            sidebarShown: sidebarShown.wrappedValue,
+            toggleSidebar: {
+                withAnimation { sidebarShown.wrappedValue.toggle() }
             }
         )
         return environment(center)

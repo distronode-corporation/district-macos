@@ -37,11 +37,15 @@ import SwiftUI
 /// it GREEDY, and greed only decides who takes the SURPLUS. Under a shortfall the frame
 /// passes the reduced proposal straight through to the `Text`s inside it.
 ///
-/// So: `layoutPriority(1)` on the trailing slot, which makes `HStack` size it first
-/// against the full available width and hand the remainder to the text column; and
-/// `lineLimit(1)` on both `Text`s, so the column that yields TRUNCATES rather than
-/// growing the row. ``DistrictBadge`` holds the other half, keeping one pill's label on
-/// one line.
+/// So: the trailing slot is sized first against the full available width and the
+/// remainder goes to the text column; and `lineLimit(1)` on both `Text`s, so the column
+/// that yields TRUNCATES rather than growing the row. ``DistrictBadge`` holds the other
+/// half, keeping one pill's label on one line.
+///
+/// ⚠️ MAC: THE ARRANGEMENT IS ``DistrictRowLayout``, NOT AN `HStack` WITH
+/// `layoutPriority(1)` AS ON THE iPad. It keeps that ordering while the title fits beside
+/// the trailing slot, and moves the slot under the text when it does not, so a narrow list
+/// column truncates neither the name nor (with `subtitleMustFit`) the date.
 ///
 /// ⛔ AND THE TRAILING SLOT IS DELIBERATELY NOT `fixedSize`. That would pin it to its
 /// ideal width against any proposal, which is right for two pills and wrong for
@@ -55,6 +59,7 @@ struct DistrictListRow<Leading: View, Trailing: View>: View {
     private let subtitle: String?
     private let leading: Leading
     private let trailing: Trailing
+    private let subtitleMustFit: Bool
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -71,63 +76,61 @@ struct DistrictListRow<Leading: View, Trailing: View>: View {
     /// on a stored property does hand the synthesised initialiser a builder closure,
     /// but leaning on that subtlety makes a failure an inference error inside every
     /// call site rather than here.
+    ///
+    /// - Parameter subtitleMustFit: whether the subtitle, as well as the title, must read in
+    ///   full before the trailing slot may sit beside them: true where the subtitle is an
+    ///   identifier and a date (Support, the Overview's calls), false where it is a preview
+    ///   that may truncate (the Inbox). See ``DistrictRowLayout``.
     init(
         title: String,
         subtitle: String? = nil,
+        subtitleMustFit: Bool = false,
         @ViewBuilder leading: () -> Leading,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.subtitleMustFit = subtitleMustFit
         self.leading = leading()
         self.trailing = trailing()
     }
 
     var body: some View {
-        // ⛔ `AnyLayout` RATHER THAN AN `if`, SO THE SUBTREE KEEPS ITS IDENTITY. Two
-        // branches returning different containers would make SwiftUI tear down and
-        // rebuild the row on every size change, losing scroll position and any
-        // in-flight animation; `AnyLayout` swaps the ARRANGEMENT around the same views.
-        //
-        // ⚠️ AT AN ACCESSIBILITY SIZE THE TRAILING SLOT GOES UNDERNEATH rather than
-        // beside. It holds badges and chevrons, and at AX5 a `layoutPriority(1)`
-        // trailing view takes the width it needs and leaves the title three words.
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DistrictSpacing.tight))
-            : AnyLayout(HStackLayout(spacing: DistrictSpacing.row))
-        return layout {
+        // ⚠️ ONE LAYOUT FOR BOTH SIZES, SO THE SUBTREE KEEPS ITS IDENTITY (it was an
+        // `AnyLayout` swap for the same reason): ``DistrictRowLayout`` stacks every slot at an
+        // accessibility size, and otherwise puts the trailing slot beside the text when the
+        // title fits beside it and underneath when it does not. See the type.
+        DistrictRowLayout(
+            mode: dynamicTypeSize.isAccessibilitySize ? .vertical : .adaptive,
+            subtitleMustFit: subtitleMustFit
+        ) {
             leading
-            VStack(alignment: .leading, spacing: 2) {
-                // ⛔ ONE LINE EACH. This is the half of the fix that decides HOW the
-                // text column yields: without it a narrow proposal is absorbed by
-                // wrapping, which both breaks the 56pt rhythm and hides that the row
-                // ran out of width. Truncating says the same thing and keeps the row.
-                // ⚠️ THE LIMIT IS LIFTED AT AN ACCESSIBILITY SIZE, which is the
-                // opposite of the ⛔ above and does not contradict it: truncating is
-                // right when the row is losing a few characters and wrong when it is
-                // losing the sentence. Apple's own bar is that text WRAPS rather than
-                // truncating to a line at the accessibility sizes.
-                Text(title)
-                    .font(DistrictType.titleSmall)
-                    .foregroundStyle(colors.foreground)
+                .layoutValue(key: DistrictRowSlotKey.self, value: .leading)
+            // ⛔ ONE LINE EACH. This is the half of the fix that decides HOW the
+            // text column yields: without it a narrow proposal is absorbed by
+            // wrapping, which both breaks the 56pt rhythm and hides that the row
+            // ran out of width. Truncating says the same thing and keeps the row.
+            // ⚠️ THE LIMIT IS LIFTED AT AN ACCESSIBILITY SIZE, which is the
+            // opposite of the ⛔ above and does not contradict it: truncating is
+            // right when the row is losing a few characters and wrong when it is
+            // losing the sentence. Apple's own bar is that text WRAPS rather than
+            // truncating to a line at the accessibility sizes.
+            Text(title)
+                .font(DistrictType.titleSmall)
+                .foregroundStyle(colors.foreground)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .truncationMode(.tail)
+                .layoutValue(key: DistrictRowSlotKey.self, value: .title)
+            if let subtitle {
+                Text(subtitle)
+                    .font(DistrictType.caption)
+                    .foregroundStyle(colors.mutedForeground)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.tail)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(DistrictType.caption)
-                        .foregroundStyle(colors.mutedForeground)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                        .truncationMode(.tail)
-                }
+                    .layoutValue(key: DistrictRowSlotKey.self, value: .subtitle)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // ⛔ SIZED BEFORE THE TEXT COLUMN. See the ⛔ on the type: at equal
-            // priority the pills and the subtitle both wrapped.
-            // ⚠️ THE PRIORITY IS DROPPED WHEN STACKED. In a VStack it would make the
-            // badge claim vertical space ahead of the wrapped title, which is the
-            // same crush one axis over.
             trailing
-                .layoutPriority(dynamicTypeSize.isAccessibilitySize ? 0 : 1)
+                .layoutValue(key: DistrictRowSlotKey.self, value: .trailing)
         }
         .padding(.horizontal, DistrictSpacing.gutter)
         .padding(.vertical, DistrictSpacing.row)
@@ -172,8 +175,19 @@ struct DistrictListRow<Leading: View, Trailing: View>: View {
 // `leading: { … }` or `trailing: { … }`.
 
 extension DistrictListRow where Leading == EmptyView {
-    init(title: String, subtitle: String? = nil, @ViewBuilder trailing: () -> Trailing) {
-        self.init(title: title, subtitle: subtitle, leading: { EmptyView() }, trailing: trailing)
+    init(
+        title: String,
+        subtitle: String? = nil,
+        subtitleMustFit: Bool = false,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.init(
+            title: title,
+            subtitle: subtitle,
+            subtitleMustFit: subtitleMustFit,
+            leading: { EmptyView() },
+            trailing: trailing
+        )
     }
 }
 
@@ -218,6 +232,12 @@ struct DistrictRowDivider: View {
 /// ⚠️ FALLS BACK TO A SINGLE GLYPH RATHER THAN RENDERING EMPTY. An unnamed contact
 /// is common (the voice agent writes "Unknown" for an unidentified caller) and an
 /// empty circle looks like a loading failure rather than an absence of data.
+///
+/// ⚠️ MAC ONLY: INITIALS COME FROM LETTERS, AND A NAME WITH NONE GETS THE PERSON GLYPH.
+/// The iPad (district-ios `4777c40`) takes the first character of each word, so a caller
+/// known only by number drew "+" and one with no caller ID a lone "·" (Sean's first build,
+/// 20019). A number is not a name, so it gets the silhouette Contacts and Messages draw for
+/// someone unnamed. ``initials(for:)`` decides it; `DistrictAvatarTests` pins it.
 struct DistrictAvatar: View {
     let name: String
     var tone: Tone = .district
@@ -239,19 +259,30 @@ struct DistrictAvatar: View {
             .fill(tone.fill(colors, increasedContrast: increased))
             .frame(width: 36, height: 36)
             .overlay {
-                Text(initials)
-                    .font(DistrictType.label)
-                    .foregroundStyle(tone.ink(colors, increasedContrast: increased))
+                Group {
+                    if let initials = Self.initials(for: name) {
+                        Text(initials)
+                            .font(DistrictType.label)
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 15, weight: .medium))
+                            .accessibilityHidden(true)
+                    }
+                }
+                .foregroundStyle(tone.ink(colors, increasedContrast: increased))
             }
     }
 
-    private var initials: String {
+    /// Up to two initials, from the first two words that start with a letter, or nil when
+    /// no word does (a phone number, an empty name).
+    static func initials(for name: String) -> String? {
         let letters = name
-            .split(separator: " ")
-            .prefix(2)
+            .split(whereSeparator: \.isWhitespace)
             .compactMap(\.first)
+            .filter(\.isLetter)
+            .prefix(2)
             .map { String($0).uppercased() }
             .joined()
-        return letters.isEmpty ? "·" : letters
+        return letters.isEmpty ? nil : letters
     }
 }

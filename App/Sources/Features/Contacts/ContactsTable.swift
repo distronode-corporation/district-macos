@@ -86,7 +86,7 @@ struct ContactsTable: View {
                 nameCell(row)
                     .onAppear { reached(row, in: rows) }
             }
-            .width(min: 140, ideal: 180)
+            .width(min: 150, ideal: 150)
             TableColumn("Phone", value: \.phone) { row in
                 if row.hasNoIdentifier {
                     Text(ContactsTableRow.noIdentifiers)
@@ -98,35 +98,49 @@ struct ContactsTable: View {
                         .lineLimit(1)
                 }
             }
-            .width(min: 100, ideal: 120)
+            .width(min: 110, ideal: 110)
             TableColumn("Email", value: \.email) { row in
                 Text(row.email)
                     .lineLimit(1)
             }
-            .width(min: 120, ideal: 170)
+            .width(min: 150, ideal: 150)
+            // ⚠️ THE DAY, NOT THE MINUTE: the whole stamp needs 170pt, which this column cannot
+            // have beside the other three in a list column at the 1000pt window minimum
+            // (Sean's first build, 20019, cut it to "Aug 15, 2026 at"). The contact's own
+            // screen keeps the full stamp.
             TableColumn("Added", value: \.instant) { row in
-                Text(WireDate.display(row.contact.createdAt))
+                Text(WireDate.displayDay(row.contact.createdAt))
                     .monospacedDigit()
                     .lineLimit(1)
             }
-            .width(min: 100, ideal: 130)
+            .width(min: 90, ideal: 90)
         }
         .contextMenu(forSelectionType: String.self) { ids in
             menu(for: ids)
         }
     }
 
-    /// The name, and the iPad row's two badges beside it.
+    /// The name, and the iPad row's two badges under it.
+    ///
+    /// ⚠️ MAC: UNDER THE NAME, NOT BESIDE IT. Beside it, "Building dossier…" took the column
+    /// and left "+1647..." of the name (Sean's first build, 20019); a row with a badge grows
+    /// a line instead.
     private func nameCell(_ row: ContactsTableRow) -> some View {
-        HStack(spacing: DistrictSpacing.hairline) {
+        let isBlocked = blocked.isBlocked(row.id, in: workspaceId)
+        let building = DgiStatus.isInProgress(row.contact.dgiStatus)
+        return VStack(alignment: .leading, spacing: 2) {
             Text(row.name)
                 .lineLimit(1)
                 .accessibilityIdentifier(A11yID.Contacts.row(row.id))
-            if blocked.isBlocked(row.id, in: workspaceId) {
-                BlockedBadge(identifier: A11yID.Contacts.blockedRow(row.id))
-            }
-            if DgiStatus.isInProgress(row.contact.dgiStatus) {
-                DistrictBadge(text: "Building dossier…", tone: .district)
+            if isBlocked || building {
+                HStack(spacing: DistrictSpacing.hairline) {
+                    if isBlocked {
+                        BlockedBadge(identifier: A11yID.Contacts.blockedRow(row.id))
+                    }
+                    if building {
+                        DistrictBadge(text: "Building dossier…", tone: .district)
+                    }
+                }
             }
         }
     }

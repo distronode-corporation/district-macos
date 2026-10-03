@@ -277,6 +277,20 @@ struct MeetingRow: View {
         return isLive ? RoomsCopy.noMinutesYet : RoomsCopy.noMinutes
     }
 
+    /// Whether the row offers "Read the minutes".
+    ///
+    /// ⚠️ MAC ONLY: ONLY WHEN THERE ARE MINUTES TO READ. The iPad (district-ios `4777c40`)
+    /// offers it on every row, so it sat directly under "No minutes were saved for this
+    /// meeting." (Sean's first build, 20019). The list's `summaryPreview` is null exactly
+    /// when the meeting has no summary (see ``MeetingSummary``), so the row hides the
+    /// button then. The cost, accepted: a meeting whose minutes failed to generate can
+    /// still hold a transcript the list cannot see, and that transcript is no longer
+    /// reachable from this row. `RoomsMinutesActionTests` pins the rule.
+    static func offersMinutes(_ meeting: MeetingSummary) -> Bool {
+        let preview = meeting.summaryPreview?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !preview.isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.tight) {
             HStack {
@@ -289,16 +303,22 @@ struct MeetingRow: View {
             Text(subtitle)
                 .font(DistrictType.bodySmall)
                 .foregroundStyle(colors.mutedForeground)
-            HStack(spacing: DistrictSpacing.tight) {
-                Button(RoomsCopy.openMeeting, action: onOpen)
-                    .buttonStyle(DistrictButtonStyle(variant: .ghost, size: .small))
-                if isLive, let room = rejoinRoom {
-                    NavigationLink(
-                        value: Route.activeRoom(workspaceId: workspaceId, role: role, roomName: room.value)
-                    ) {
-                        Text(RoomsCopy.rejoin)
+            // ⚠️ NO EMPTY ROW OF ACTIONS: the stack's spacing would still open a gap.
+            let rejoin = isLive ? rejoinRoom : nil
+            if Self.offersMinutes(meeting) || rejoin != nil {
+                HStack(spacing: DistrictSpacing.tight) {
+                    if Self.offersMinutes(meeting) {
+                        Button(RoomsCopy.openMeeting, action: onOpen)
+                            .buttonStyle(DistrictButtonStyle(variant: .ghost, size: .small))
                     }
-                    .buttonStyle(DistrictButtonStyle(variant: .secondary, size: .small))
+                    if let room = rejoin {
+                        NavigationLink(
+                            value: Route.activeRoom(workspaceId: workspaceId, role: role, roomName: room.value)
+                        ) {
+                            Text(RoomsCopy.rejoin)
+                        }
+                        .buttonStyle(DistrictButtonStyle(variant: .secondary, size: .small))
+                    }
                 }
             }
         }

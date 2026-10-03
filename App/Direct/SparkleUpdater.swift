@@ -70,7 +70,9 @@ struct AutomaticUpdatesToggle: View {
     @State private var enabled = DistrictUpdater.controller.updater.automaticallyChecksForUpdates
 
     var body: some View {
+        // ⚠️ A SWITCH, as "Ring on this computer" above it is: one window, one control.
         Toggle("Check for updates automatically", isOn: $enabled)
+            .toggleStyle(.switch)
             .onChange(of: enabled) { _, value in
                 DistrictUpdater.controller.updater.automaticallyChecksForUpdates = value
             }

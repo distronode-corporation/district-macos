@@ -171,10 +171,23 @@ Copied as is, then:
   app becomes active again, where iOS re-reads when its sheet closes.
 - A `Toggle` that the iPad draws as a switch gets `.toggleStyle(.switch)`: the macOS
   default is a checkbox, which beside a row reads as "select this" (Workflows, the Desk's
-  settings, and Account's availability row).
+  settings, and Account's availability row). The Mac-only "Ring on this computer" and the
+  Settings window's update check are switches too, so no setting is a checkbox.
 - The persona audition (`PersonaPreviewEngine`) has no `setSpeakerphone`: iOS asks for the
   loudspeaker over the earpiece and a Mac has none; the engine applies the speaker picker's
   choice at the join, as a room does. A preview ended by sleep gets its own sentence.
+- A list row (``DistrictListRow``) puts its badges under the text when the title does not
+  fit beside them (``DistrictRowLayout``), where the iPad always puts them beside it and
+  truncates the title; Support's and the Overview's rows also keep the date whole. In the
+  contacts table a contact's badges sit under the name, a transfer outcome stacks over the
+  status in the call log, and the Added column shows the day (Sean's first build, 20019).
+- Four Mac-only differences in what a screen shows, each from that build: an avatar takes
+  initials from letters only and draws a person glyph for a number or no name (the iPad
+  draws "+" or "·"); Rooms offers "Read the minutes" only when the meeting has minutes (the
+  iPad offers it under "No minutes were saved", and the cost is that a transcript whose
+  minutes failed to generate is not reachable from the row); Devices names the platform
+  ("macOS", not "macos") and formats "Last active" as a date (the iPad prints both as
+  sent); the booking link's `ShareLink` takes its sibling's button style.
 - Em and en dashes are taken out of comments (the public-hygiene check forbids them). A
   string the user reads that holds one keeps it as an escape (`"\u{2014}"`), so the copy
   stays byte-identical to iOS. Inside a raw JSON test string the escape is JSON's
@@ -205,6 +218,44 @@ Settings window and the ring panel), because a window is its own root and does n
 the main window's environment. Without it, SwiftUI's own controls (switches, prominent
 buttons, progress, the sidebar's symbols) drew the system accent beside correctly themed
 custom components.
+
+## The sidebar on a Mac
+
+The shell keeps the iPad's shape: a three-column `NavigationSplitView` for a list section
+and a two-column one for everything else, swapped by an `if`. Sean's first real build
+(20019) showed what that costs in a real Mac window, and each point below was read off the
+live `NSSplitView` and `NSToolbar` with the harness described in the next paragraph:
+
+- **The sidebar vanished in every list section, with no way back.** The shell reset the
+  visibility to `.automatic` on every change of column count. On macOS `.automatic` is
+  `.doubleColumn` (it prints as `kind: doubleColumn, isAutomatic: true`, and `==` compares
+  the kind alone), and in three columns `.doubleColumn` is content and detail with no
+  sidebar. The shell now stores the person's choice as a `Bool` (`@SceneStorage`) and
+  `ShellColumns` translates it for each split view: shown is `.all`, hidden is
+  `.doubleColumn` in three columns and `.detailOnly` in two.
+- **The window keeps one `NSToolbar` across the swap.** After the first swap the split
+  view's own sidebar button was an empty 10pt item, and the title sat over the collapsed
+  sidebar in a box of its colour. The system button is removed
+  (`.toolbar(removing: .sidebarToggle)`, which must come before the sidebar's column width
+  or the width is lost) and the shell draws its own, and View > Show Sidebar (Control-
+  Command-S) is the shell's command rather than `SidebarCommands`.
+- **A stack replaced by a non-stack leaves its pushed screen on display.** A contact
+  opened from a call stayed beside the Contacts table after switching section (this was
+  on `main` too). The open-row column is now always a `NavigationStack`, the placeholder
+  included, identified by section and row.
+- **One two-column split view with an `HSplitView` for the list and the open row was
+  built and rejected**: the split view adopts every `NavigationStack` in its detail column,
+  so a screen pushed in the open row covered the list.
+
+The tables' widths are measured the same way (`ListColumnWidth`): a table needs its
+columns' minimums plus 17pt of cell spacing each and 15pt of row inset, or it scrolls
+sideways, and it does not shrink its columns to the frame it is first drawn in.
+
+These were verified with a temporary harness (never committed) that draws the real
+`ShellView` in the app's real `WindowGroup`, fed by the core's contract fixtures, launched
+in the background (`open -g`) so it never takes focus, and captured with
+`screencapture -l`. The offscreen harness of Waves 5 to 9 rendered the shell into a
+window of its own outside the scene, and saw none of this.
 
 ## A list section reads once
 
@@ -360,14 +411,14 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | 6 | Analytics | 7 | None. |
 | 7 | Phone numbers | 8 | No purchase, as on iOS (Guideline 3.1.1); nothing opens a URL. |
 | 8 | Billing | 7 | Read-only, as on iOS (3.1.3(b)); nothing opens a URL, in both Mac builds. |
-| 9 | Rooms | 6 | No Flip camera and no speaker toggle (one camera, no earpiece); device pickers instead. |
+| 9 | Rooms | 6 | No Flip camera and no speaker toggle (one camera, no earpiece); device pickers instead. "Read the minutes" only for a meeting with minutes. |
 | 10 | Workflows | 7 | None. |
 | 11 | Desk | 7 | No "New ticket" entry point, as on iOS (unreachable there too). |
 | 12 | Dial | 6 | No CallKit; the emergency hand-off says "Use a phone to call for help." |
 | 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet; scheduling links (`SchedulingRoutingTests` `_01` to `_09`) wait for app links. |
 | 14 | Support | 7 | None (reporting a message or a call came in Wave 5). |
 | 15 | Workspace settings | 8 | The persona audition has no loudspeaker request (no earpiece). |
-| 16 | Account | 5 | "Ring on this computer" added (Wave 6); devices are Wave 5. |
+| 16 | Account | 5 | "Ring on this computer" added (Wave 6); devices are Wave 5, with platform names and dates where the iPad prints the wire values. |
 
 Across every section: no CallKit or VoIP push (the Mac rings over the telemetry socket while
 open), and app links and push taps do not open a section yet (see "Left out on purpose").

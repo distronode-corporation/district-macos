@@ -231,6 +231,9 @@ struct SupportView: View {
                 DistrictListRow(
                     title: request.subject,
                     subtitle: subtitle(for: request),
+                    // ⚠️ MAC: THE KEY AND THE DATE MUST READ IN FULL, so the chips go
+                    // underneath before the date truncates. See ``DistrictRowLayout``.
+                    subtitleMustFit: true,
                     trailing: {
                         HStack(spacing: DistrictSpacing.hairline) {
                             SupportChips(source: request.source, region: request.region)

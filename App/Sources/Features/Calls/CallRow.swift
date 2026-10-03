@@ -26,6 +26,8 @@ struct CallRow: View {
             // where the detail screen spells the word; see the ⛔ on
             // ``CallDisplay/rowSubtitle``.
             subtitle: display.rowSubtitle,
+            // ⚠️ MAC: THE WHEN MUST READ IN FULL, so the pills go underneath before it truncates.
+            subtitleMustFit: true,
             // ⛔ BOTH SLOTS LABELLED. A trailing closure here is `ambiguous use of
             // 'init'` against the two single-slot initialisers.
             leading: { DistrictAvatar(name: display.displayName ?? "", tone: display.avatarTone) },
