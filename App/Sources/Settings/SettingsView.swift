@@ -3,8 +3,8 @@ import SwiftUI
 /// The app's Settings window (District AI > Settings..., ⌘,).
 ///
 /// ⚠️ APP PREFERENCES ONLY. Workspace settings are a sidebar section, as on the iPad; this
-/// window holds what belongs to this Mac: its notifications and, in the Developer ID
-/// build, updates. Ringing on this Mac joins it in Wave 6.
+/// window holds what belongs to this Mac: whether calls ring here and on which microphone
+/// and speaker, its notifications and, in the Developer ID build, updates.
 ///
 /// ⚠️ THE NOTIFICATIONS LINE IS ACCOUNT'S (``PushStatusCopy``), word for word, so the two
 /// places that report it cannot disagree.
@@ -12,9 +12,14 @@ struct SettingsView: View {
     let container: AppContainer
     let session: SessionModel
     let push: PushRegistrar
+    let live: DesktopLive
 
     var body: some View {
         Form {
+            Section("Calls") {
+                RingHereToggle(live: live)
+                AudioDevicePickers(devices: container.callStack.devices)
+            }
             Section(PushStatusCopy.title) {
                 Text(PushStatusCopy.subtitle(authorization: push.authorization, registration: push.registration))
                     .fixedSize(horizontal: false, vertical: true)

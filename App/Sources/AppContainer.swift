@@ -44,6 +44,13 @@ final class AppContainer {
 
     let calls: CallsRepository
 
+    /// The answer route for a call ringing on this Mac.
+    let inboundCalls: InboundCallRepository
+
+    /// The platform half of a live call: the engine, the call and room claims, and the
+    /// microphone and speaker. ⛔ ONE PER PROCESS. `calls` above is the call LOG.
+    let callStack: CallStack
+
     let contacts: ContactsRepository
 
     /// Who this account has blocked.
@@ -77,7 +84,9 @@ final class AppContainer {
     /// The single sign-out orchestrator: unregister, revoke (with its outbox), wipe.
     let signOutCoordinator: SignOutCoordinator
 
-    init(baseURL: URL = ApiClient.productionBaseURL) {
+    /// - Parameter microphone: the permission both call models ask. ⚠️ The live one everywhere
+    ///   but a test, which passes a fake so no system alert can stop the run.
+    init(baseURL: URL = ApiClient.productionBaseURL, microphone: any MicrophoneAccess = LiveMicrophoneAccess()) {
         let transport = URLSessionHTTPTransport()
         // ⛔ THE LEDGER FIRST, BEFORE `DeviceIdentity.current()` MINTS AN ID: a missing id
         // is how a fresh install is recognised. See ``FreshInstallTokenStore``.
@@ -110,6 +119,8 @@ final class AppContainer {
         callHandling = CallHandlingRepository(client: api)
         overview = OverviewRepository(client: api)
         calls = CallsRepository(client: api)
+        inboundCalls = InboundCallRepository(client: api)
+        callStack = CallStack(microphone: microphone)
         contacts = ContactsRepository(client: api)
         // ⚠️ FROM THE ONE `contacts` ABOVE, never a fresh repository.
         blockedContacts = BlockedContactsStore(contacts: contacts)

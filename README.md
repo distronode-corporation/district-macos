@@ -5,9 +5,16 @@ receptionist service by Distronode. It is being built to match the iPad app sect
 section: calls placed and answered on the Mac, the inbox, contacts, meeting rooms and the
 settings of a District AI workspace.
 
-**Status: in development, not released.** This build signs in and shows the Overview and
-your Account and devices; the other sections say which later wave ports them. Nothing
-is on the Mac App Store or in a GitHub Release yet. See [CHANGELOG.md](CHANGELOG.md).
+**Status: in development, not released.** This build signs in, shows the Overview, the
+Inbox, Calls, Contacts and your Account and devices, and rings for calls handed to you
+and answers them; the other sections say which later wave ports them. Nothing is on the
+Mac App Store or in a GitHub Release yet. See [CHANGELOG.md](CHANGELOG.md).
+
+**How calls reach a Mac.** While District AI is open and you are signed in, a call handed
+to you rings on this Mac: a small call window, a notification with Answer and Decline,
+and a ring. Turn that off with Ring on this computer (in Account, and in Settings). When
+the app is closed, or the Mac is asleep, you get the notification only. The Mac does not
+use CallKit or VoIP push.
 
 This repository is the client's complete source, under the Apache License 2.0. The
 District AI service it talks to is not open source; signing in needs a District AI
@@ -102,7 +109,9 @@ anywhere in the tree.
 App/
   Sources/              The SwiftUI app, compiled into both targets: Navigation/ (the
                         sidebar, routes and menu commands), Features/<Name>/,
-                        DesignSystem/, Session/, Platform/ (push, Sentry, AppKit)
+                        DesignSystem/, Session/, Platform/ (push, Sentry, AppKit,
+                        Calls/ for the LiveKit engine and audio devices, Live/ for
+                        the telemetry socket and ringing)
   Direct/               Sparkle. Compiled into DistrictMacDirect only
   Resources/            The notification strings
   Tests/                DistrictMacTests
