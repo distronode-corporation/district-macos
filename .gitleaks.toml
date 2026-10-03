@@ -50,3 +50,15 @@ condition = "AND"
 paths = ['''(^|/)scripts/asc-key\.test\.sh$''']
 regexTarget = "secret"
 regexes = ['''^-----BEGIN PRIVATE KEY-----\s+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQg\s+-----END PRIVATE KEY-----$''']
+
+# The LiveKit end-to-end-encryption key in the persona audition's tests, copied from
+# district-ios with the same allowlist. It is base64(HMAC-SHA256("contract-e2ee-master-secret",
+# roomName)) for room `preview_ws-contract-test_00000000-0000-4000-8000-000000000000`, the
+# server contract suite's fixed test secret, so it protects no real room.
+[[allowlists]]
+description = "LiveKit E2EE key in PersonaPreviewStateTests (test data)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|/)App/Tests/PersonaPreviewStateTests\.swift$''']
+regexTarget = "secret"
+regexes = ['''^YfxKDUkaaGp2WrLLGHCHbe2nn5ArCWBd\+x\+k7EzDr/8=$''']
