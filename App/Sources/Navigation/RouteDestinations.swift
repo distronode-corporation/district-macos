@@ -30,12 +30,30 @@ enum RouteDestinations {
         accountSession: SessionModel
     ) -> some View {
         switch route {
+        case let .callDetail(workspaceId, callId):
+            CallDetailView(container: container, workspaceId: workspaceId, callId: callId)
+
+        // ⛔ THE SET IS CARRIED WHOLE AND NOT NARROWED HERE. `Route.thread` holds every
+        // channel the thread can be answered on, best first, and the composer is what
+        // offers the choice. An EMPTY array means no reply box at all.
+        case let .thread(workspaceId, role, threadKey, replyTargets, title):
+            ThreadView(
+                container: container,
+                workspaceId: workspaceId,
+                role: role,
+                threadKey: threadKey,
+                replyTargets: replyTargets,
+                title: title
+            )
+
+        case let .contactDetail(workspaceId, role, contactId):
+            ContactDetailView(container: container, workspaceId: workspaceId, role: role, contactId: contactId)
+
         case .devices:
             DevicesView(container: container, session: accountSession)
 
-        case .callDetail, .thread, .contactDetail, .hq, .analytics, .marketplace, .billing,
-             .workflows, .rooms, .activeRoom, .dialer, .workspaceSettings, .scheduling,
-             .support, .supportRequest, .desk, .deskTicket:
+        case .hq, .analytics, .marketplace, .billing, .workflows, .rooms, .activeRoom, .dialer,
+             .workspaceSettings, .scheduling, .support, .supportRequest, .desk, .deskTicket:
             ComingLaterView(item: ShellPaths.listSection(of: route))
         }
     }

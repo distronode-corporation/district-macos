@@ -49,3 +49,14 @@ enum BrowserHandOff {
         return true
     }
 }
+
+extension View {
+    /// The size a sheet opens at on the Mac.
+    ///
+    /// ⚠️ A MAC SHEET HAS NO SIZE OF ITS OWN: it takes its content's ideal size, which for
+    /// a form of flexible fields is either a sliver or the whole window. Each ported sheet
+    /// states one at its presentation site; the iPad's sheets need none.
+    func macSheetSize(width: CGFloat, height: CGFloat) -> some View {
+        frame(minWidth: width, idealWidth: width, minHeight: height, idealHeight: height)
+    }
+}

@@ -54,11 +54,13 @@ defaults:
     shell: bash
 
 env:
-  # ⚠️ BLANK UNTIL THE MAC APP HAS ITS OWN SENTRY PROJECT. Blank means both builds ship
-  # with Sentry off (no DSN) and no dSYM is uploaded, and each run says so. Set it to the
-  # project's slug once MACOS_SENTRY_DSN exists in Secret Manager and the release service
-  # account can read it; from then on a missing DSN fails the run instead.
-  SENTRY_PROJECT: ""
+  # ⛔ THE MAC APP'S OWN SENTRY PROJECT (EU org, platform apple-macos), as district-ios
+  # names its own. With it set, both lanes read MACOS_SENTRY_DSN from Secret Manager, bake
+  # it into the build (`SENTRY_DSN`, which project.yml carries into the Info.plist) and
+  # upload the dSYMs; a missing or empty DSN fails the run (scripts/gsm-secret.sh) rather
+  # than shipping a build with Sentry off. Blanking it again switches both builds' Sentry
+  # off, and each run says so.
+  SENTRY_PROJECT: district-macos
   SENTRY_ORG: distronode-corporation-eu
   SENTRY_CLI_VERSION: 3.8.0
   SENTRY_CLI_SHA256: 2c26914636c47ab9bf9e710484ad7b44d371cbec8bd29cafb36b3cf877bf4285

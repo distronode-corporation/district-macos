@@ -18,6 +18,12 @@ not copied: they are shared.
 | 5 | Account (with Calls to you) | `4777c40` | `App/Sources/Features/Account/` |
 | 5 | Workspaces (header, picker, region and role copy) | `4777c40` | `App/Sources/Features/Workspaces/` |
 | 5 | Devices | `4777c40` | `App/Sources/Features/Devices/` |
+| 5 | Inbox (list, search, compose, thread, drafts, moderation) | `4777c40` | `App/Sources/Features/Inbox/` |
+| 5 | Calls (the call log and one call; live calling is Wave 6) | `4777c40` | `App/Sources/Features/Calls/` |
+| 5 | Contacts (list, create, detail, dossier, block) | `4777c40` | `App/Sources/Features/Contacts/` |
+| 5 | Reporting a message or a call (from Support) | `4777c40` | `App/Sources/Features/Support/Report*.swift` |
+| 5 | `SettingsField` only (from `Features/Settings/SettingsChrome.swift`) | `4777c40` | `App/Sources/Features/Settings/SettingsField.swift` |
+| 5 | Paged feeds, unread badge, photo MIME types | `4777c40` | `App/Sources/Platform/` |
 | 5 | Design system | `4777c40` | `App/Sources/DesignSystem/` |
 | 5 | Routes, role gates, list/detail paths, menu commands | `4777c40` | `App/Sources/Navigation/` |
 | 5 | Accessibility identifiers | `4777c40` | `App/Sources/Accessibility/` |
@@ -28,6 +34,18 @@ district-core-swift 2.0.0").
 
 The sections not listed here are still placeholders (`ComingLaterView`); the wave that
 ports each one is `SidebarItem.portedInWave`.
+
+## Left out on purpose, and where it goes
+
+- **Contacts: the Video call row** (`ContactVideoCallModel`). It sends the contact a
+  guest link (a metered message) and then opens the room; rooms are Wave 6, and
+  inviting a customer to a room this app cannot open would strand them. It is ported
+  with Rooms.
+- **`SettingsChrome.swift`**: only `SettingsField` came over, because the compose sheet
+  uses it. Wave 8 ports the rest of that file without it (or deletes
+  `SettingsField.swift`), so there is one definition.
+- **App links and push taps** (`AppLinkRouting`, `PushRouting`, `ShellView+Routing`):
+  a tapped notification or a `www.distronode.com` link does not open a section yet.
 
 ## How a file is adapted
 
@@ -45,10 +63,11 @@ Copied as is, then:
 - UIKit bridges are rewritten in AppKit. `SafariView` has no Mac equivalent: a page the
   app itself claims (`applinks:`) opens in the default browser, named explicitly
   (`BrowserHandOff`), so it cannot be routed back into the app.
-- Mac idioms are added where they are natural: `Table` with sortable columns for long
-  lists, menu commands with keyboard shortcuts (File > New Message, Edit > Search
-  Messages, View > Refresh, Go), and a toolbar Refresh button standing in for
-  pull-to-refresh.
+- Mac idioms are added where they are natural: `Table` with sortable columns for the
+  call log and contacts (the Inbox keeps the iPad's rows), menu commands with keyboard
+  shortcuts (File > New Message and New Contact, Edit > Search Messages, View > Refresh,
+  Go), a toolbar Refresh button standing in for pull-to-refresh, and an Attach file
+  button (the Finder's open panel) beside the Photos picker in a reply.
 - Em and en dashes are taken out of comments (the public-hygiene check forbids them). A
   string the user reads that holds one keeps it as an escape (`"\u{2014}"`), so the copy
   stays byte-identical to iOS.

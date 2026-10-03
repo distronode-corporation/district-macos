@@ -26,8 +26,8 @@ enum PushRegistrationStatus: Equatable, Sendable {
 
 /// The sequencing of push registration: after sign-in, on a token from APNs, and before
 /// the sign-out's revoke. Ported from district-ios, without PushKit, CallKit or the
-/// silent-push badge refresh (the Mac has no VoIP push by decision, and the unread badge
-/// arrives with the Inbox in Wave 5).
+/// silent-push badge refresh (the Mac has no VoIP push by decision; the unread badge is
+/// set by the Inbox when it reads, and cleared here on sign-out).
 ///
 /// ⛔ IT NEVER THROWS INTO SIGN-IN OR SIGN-OUT. Push is a courtesy channel; a failed
 /// registration must not fail the thing it was attached to.
@@ -86,6 +86,10 @@ final class PushRegistrar {
     func forget() {
         container.pushTokens.forgetRegistration()
         registration = .notAttempted
+        // ⛔ AND THE BADGE GOES WITH THE MEMORY: a number left on the Dock icon is a count
+        // of the previous account's unread messages. Here because this runs on EVERY
+        // transition into signed-out, including the one the server ends.
+        UnreadBadge.clear()
     }
 
     static func status(for result: Result<PushRegistrationOutcome, ApiError>) -> PushRegistrationStatus {

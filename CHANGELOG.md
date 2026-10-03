@@ -14,10 +14,16 @@ Store and the direct download.
   words: the workspace header and switcher, the four headline figures and recent
   activity, Finish setting up, Calls to you, notifications status, signing devices out,
   and account deletion.
+- The Inbox, Calls and Contacts screens of the iPad app: conversations, search, new
+  messages, threads with drafts and image attachments, reporting and blocking; the call
+  log and each call's detail; contacts, adding one, and each contact's dossier.
+- The call log and contacts are tables you can sort by any column.
+- The unread count on the Dock icon.
 - The sidebar offers what your role can open, as on the iPad, and marks read-only
   sections.
-- Menu commands: View > Refresh (Command-R) and a Refresh button in the toolbar, and the
-  Go menu follows the sidebar.
+- Menu commands: File > New Message (Command-N) and New Contact (Shift-Command-N),
+  Edit > Search Messages (Command-F), View > Refresh (Command-R) and a Refresh button in
+  the toolbar, and the Go menu follows the sidebar.
 
 ### Changed
 
