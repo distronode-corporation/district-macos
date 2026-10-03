@@ -2,7 +2,7 @@
 import XCTest
 
 /// The sidebar is the iPad-parity checklist, so its count, order and wording are pinned.
-final class SidebarItemTests: XCTestCase {
+final class MacSidebarItemTests: XCTestCase {
     func testSixteenSectionsInTheiPadOrder() {
         XCTAssertEqual(SidebarItem.allCases.map(\.title), [
             "Overview", "Inbox", "Calls", "Contacts",
@@ -12,7 +12,8 @@ final class SidebarItemTests: XCTestCase {
         ])
     }
 
-    func testOnlyOverviewAndAccountArePortedInThisWave() {
+    /// The parity checklist: which sections this build draws for real.
+    func testTheSectionsPortedSoFar() {
         let ported = SidebarItem.allCases.filter { $0.portedInWave == nil }
         XCTAssertEqual(ported, [.overview, .account])
     }
@@ -27,14 +28,6 @@ final class SidebarItemTests: XCTestCase {
         for item in SidebarItem.allCases {
             XCTAssertFalse(item.symbol.isEmpty, "\(item)")
         }
-    }
-}
-
-final class DevicesCopyTests: XCTestCase {
-    func testPlatformNamesIncludeTheMac() {
-        XCTAssertEqual(DevicesModel.platformName("macos"), "Mac")
-        XCTAssertEqual(DevicesModel.platformName("ios"), "iPhone or iPad")
-        XCTAssertEqual(DevicesModel.platformName("plan9"), "plan9", "an unknown platform is shown as sent")
     }
 }
 

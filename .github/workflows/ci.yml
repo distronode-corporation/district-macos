@@ -271,22 +271,21 @@ jobs:
             grep -q '\*\* BUILD SUCCEEDED \*\*' "xcodebuild-$scheme.log"
           done
 
+      # ⚠️ THE STORE SCHEME ONLY: `DistrictMacDirect` has no test action (project.yml says
+      # why), and the step above has already compiled it.
       - name: Build for testing
         run: |
           set -o pipefail
-          for scheme in DistrictMac DistrictMacDirect; do
-            echo "=== $scheme ==="
-            xcodebuild build-for-testing \
-              -project DistrictMac.xcodeproj \
-              -scheme "$scheme" \
-              -destination 'platform=macOS' \
-              -derivedDataPath DerivedData \
-              -clonedSourcePackagesDirPath SourcePackages \
-              CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
-              CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
-              2>&1 | tee "xcodebuild-testing-$scheme.log" | xcbeautify --renderer github-actions
-            grep -q '\*\* TEST BUILD SUCCEEDED \*\*' "xcodebuild-testing-$scheme.log"
-          done
+          xcodebuild build-for-testing \
+            -project DistrictMac.xcodeproj \
+            -scheme DistrictMac \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            -clonedSourcePackagesDirPath SourcePackages \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
+            2>&1 | tee xcodebuild-testing-DistrictMac.log | xcbeautify --renderer github-actions
+          grep -q '\*\* TEST BUILD SUCCEEDED \*\*' xcodebuild-testing-DistrictMac.log
 
       - name: DistrictMacTests
         run: |
@@ -303,12 +302,12 @@ jobs:
             2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
 
       # ⛔ A BUNDLE THAT DISCOVERS NOTHING REPORTS SUCCESS. The floor is a ratchet, set at
-      # the count (15 on 2026-10-03): raise it when tests are added, and lower it only in
-      # the commit that deletes tests on purpose, saying so. (Lowered from 19 when the
-      # platform shim went: its status-map tests now live in district-core-swift.)
+      # the count (97 on 2026-10-03, with Overview, Account, Workspaces and Devices
+      # ported): raise it when tests are added, and lower it only in the commit that
+      # deletes tests on purpose, saying so.
       - name: DistrictMacTests were discovered
         run: |
-          minimum=15
+          minimum=97
           executed=$(sed -n 's/.*Executed \([0-9]*\) tests\{0,1\}, with.*/\1/p' xcodebuild-test.log | sort -n | tail -1)
           echo "app-target tests executed - ${executed:-0} (at least $minimum expected)"
           if [ -z "$executed" ] || [ "$executed" -lt "$minimum" ]; then

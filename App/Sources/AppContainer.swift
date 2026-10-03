@@ -31,6 +31,15 @@ final class AppContainer {
     // MARK: - Repositories (each wraps the one `api`, so all share one coordinator)
 
     let workspaces: WorkspaceRepository
+
+    /// Who answers a call, and whether THIS person can be rung for one (Account's
+    /// "Calls to you" card).
+    ///
+    /// ⛔ NOT PART OF ``workspaces`` DESPITE THE SHARED PATH PREFIX: the seam is the SCOPE.
+    /// `workspace/availability` writes the CALLER'S OWN membership row and takes no identity
+    /// to do it with.
+    let callHandling: CallHandlingRepository
+
     let overview: OverviewRepository
     let devices: DevicesRepository
 
@@ -80,6 +89,7 @@ final class AppContainer {
         )
 
         workspaces = WorkspaceRepository(client: api)
+        callHandling = CallHandlingRepository(client: api)
         overview = OverviewRepository(client: api)
         devices = DevicesRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())

@@ -7,7 +7,7 @@
 #     DIRECT_IDENTITY="Developer ID Application: ..." scripts/direct-package.sh
 #
 # Called by .github/workflows/release.yml's direct job after scripts/archive.sh exported
-# DistrictMacDirect.app into $BUILD_DIR/export. Writes into $BUILD_DIR/out:
+# "District AI.app" into $BUILD_DIR/export. Writes into $BUILD_DIR/out:
 #   DistrictAI-<version>-<build>.dmg   signed, notarised and stapled
 # scripts/sparkle-sign.sh then adds the update signature and the checksums.
 #
@@ -21,11 +21,10 @@
 set -euo pipefail
 
 TEAM_ID="R935BA6767"
-APP_NAME="DistrictMacDirect"
-# ⚠️ THE NAME A USER SEES IN /Applications. The bundle is named after its target; the
-# .dmg carries it under the app's display name. A bundle's directory name is not covered
-# by its signature or by the notarisation ticket, so the rename changes neither.
-DMG_APP_NAME="District AI"
+# ⛔ THE NAME A USER SEES IN /Applications, AND THE BUNDLE'S OWN NAME: project.yml sets
+# `PRODUCT_NAME: District AI` for both targets, so the export already carries it and the
+# .dmg holds the exported bundle unrenamed. It is also the executable's name. Quote it.
+APP_NAME="District AI"
 
 die() {
   echo "FATAL - $*" >&2
@@ -121,7 +120,7 @@ echo "== build, sign, notarise and staple the .dmg"
 # the way HFS+ does, and nothing here needs APFS. UDZO is the compressed read-only format.
 stage="$WORK/stage"
 mkdir -p "$stage"
-ditto "$APP" "$stage/$DMG_APP_NAME.app"
+ditto "$APP" "$stage/$APP_NAME.app"
 ln -s /Applications "$stage/Applications"
 hdiutil create -volname "District AI" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$DMG"
 codesign --sign "$DIRECT_IDENTITY" --timestamp "$DMG"
@@ -136,9 +135,9 @@ mnt="$WORK/mnt"
 mkdir -p "$mnt"
 hdiutil attach -nobrowse -readonly -noautoopen -mountpoint "$mnt" "$DMG" >/dev/null
 trap 'hdiutil detach "$mnt" -quiet >/dev/null 2>&1 || true' EXIT
-check_app "$mnt/$DMG_APP_NAME.app" "the app in the .dmg"
-xcrun stapler validate "$mnt/$DMG_APP_NAME.app"
-spctl -a -t exec -vv "$mnt/$DMG_APP_NAME.app"
+check_app "$mnt/$APP_NAME.app" "the app in the .dmg"
+xcrun stapler validate "$mnt/$APP_NAME.app"
+spctl -a -t exec -vv "$mnt/$APP_NAME.app"
 hdiutil detach "$mnt" -quiet
 trap - EXIT
 
