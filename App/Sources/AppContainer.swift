@@ -121,6 +121,12 @@ final class AppContainer {
     /// `accountId` mints a fresh account, and the probe calls a third party per request.
     let messaging: MessagingRepository
 
+    /// Phone numbers: what the workspace holds, a carrier's inventory, the registrations and
+    /// the carrier account. ⛔ NO PURCHASE METHOD EXISTS IN THE CORE (Guideline 3.1.1), so
+    /// buying a number is unconstructible here, not merely undrawn. ⚠️ Each read answers its
+    /// own `Result`, so a failed search cannot blank the owned list.
+    let numbers: NumbersRepository
+
     /// The core's push repository, registering this Mac's ALERT token with
     /// `platform: "macos"`, unregistering it and forgetting it on sign-out. Built by
     /// ``pushTokenRepository(client:memory:)``.
@@ -199,6 +205,7 @@ final class AppContainer {
         workflows = WorkflowsRepository(client: api)
         knowledge = KnowledgeRepository(client: api)
         messaging = MessagingRepository(client: api)
+        numbers = NumbersRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)

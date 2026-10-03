@@ -47,6 +47,8 @@ not copied: they are shared.
 | 7 | Tests: `DeskModelCreateTests`, `SettingsTestSupport` | `4777c40` | `App/Tests/` |
 | 8 | Workspace settings: the hub and its eight sections (persona with its engine and the audition, capabilities, how calls are answered, transfer directory, dynamic persona rules, knowledge base, messaging with the carrier-account sheet, members), `SettingsCopy+*.swift`, `SettingsDestinations`, `SettingsWireDisplay` | `4777c40` | `App/Sources/Features/Settings/` |
 | 8 | Tests: `PersonaEngineDraftTests`, `PersonaPreviewStateTests`, `RoutingEditorTests`, `SettingsPersonaCopyTests` | `4777c40` | `App/Tests/` |
+| 8 | Phone numbers (my numbers, the carrier search, registrations, the carrier account and compliance, one number's actions and the confirmations) | `4777c40` | `App/Sources/Features/Marketplace/` |
+| 8 | Tests: `StoreCopyTests`' Marketplace allowance and its two direct assertions (the purchase boundary, the trunk sentence) | `4777c40` | `App/Tests/StoreCopyTests.swift` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -62,13 +64,17 @@ The sections not listed here are still placeholders (`ComingLaterView`); the wav
 ports each one is `SidebarItem.portedInWave`.
 
 Wave 7 adds Mac-only tests with no iOS original: `MacBillingReadOnlyTests` (nothing under
-`Features/Billing` may open a URL, see "Billing" below), `MacAnalyticsBillingFormatTests`
+`Features/Billing` may open a URL, see "Billing and Phone numbers" below), `MacAnalyticsBillingFormatTests`
 (the figures a bill is read in), `MacDeskSupportWorkflowsTests` (status wording, the
 support write states, trigger labels) and `MacTestIsolationTests` (see "Tests never touch
 an installed copy").
 
 Wave 8 adds Mac-only tests with no iOS original: `MacListSectionLoadTests` (see "A list
-section reads once" below).
+section reads once" below), `MacMarketplaceTests` (the role's wording and provisioning gate,
+and that opening Phone numbers reads only the owned list), and two Phone numbers cases in
+`MacBillingReadOnlyTests` (see "Billing and Phone numbers" below).
+
+Every section is now ported except Scheduling (Wave 9).
 
 ## Left out on purpose, and where it goes
 
@@ -163,7 +169,7 @@ screenshot harness on every shot, which opens a section before the list arrives.
 now draws nothing for a list section, and `MacListSectionLoadTests` renders the shell with
 a delayed workspace list and counts the requests (it reads two without the fix).
 
-## Billing: read-only, in both Mac builds
+## Billing and Phone numbers: no purchase, no way out, in both Mac builds
 
 The iOS billing screen states what is billed and offers nothing else: no upgrade, no plan
 picker, no cancel, no card editor, no Stripe portal and no hosted-invoice link (App Store
@@ -176,10 +182,19 @@ the app that iOS does not (`NSWorkspace.open`, `BrowserHandOff`, `Link`), so
 `MacBillingReadOnlyTests` fails on any of them under `Features/Billing`. The app is free;
 no copy says "on sale".
 
-The `StoreCopyTests` allowlist is iOS's minus the entries for files not ported yet (the
-Marketplace's A2P website field, Wave 8; the Desk's logo sentence arrives with the Desk) and
-minus the sign-in button's "Opens your browser" disclosure, which the Mac sign-in screen
-does not carry. Its file-count floor is a ratchet below iOS's 150, raised as sections land.
+Phone numbers follows iOS exactly. Releasing, reconfiguring, the paperwork (brand,
+campaign, toll-free verification), the carrier account and the billed lookup are in the
+app behind confirmations; buying a number is absent, because it is a recurring charge for a
+service used in the app (3.1.1), and the core has no purchase method to call. The one
+sentence about it (`MarketplaceCopy.purchaseElsewhere`) states the limit and names nowhere.
+`MacBillingReadOnlyTests` applies the same no-URL rule to every file under
+`Features/Marketplace`, not only its read tabs: a hand-off from any of them would be the
+purchase path iOS leaves out. The Mac additions are a Close button (Esc) on a number's
+sheet and Esc on a confirmation's Cancel; no submit there takes a shortcut.
+
+The `StoreCopyTests` allowlist is iOS's minus the sign-in button's "Opens your browser"
+disclosure, which the Mac sign-in screen does not carry. Its file-count floor is a ratchet
+raised as sections land (180 with all of Wave 8).
 
 ## Tests never touch an installed copy
 

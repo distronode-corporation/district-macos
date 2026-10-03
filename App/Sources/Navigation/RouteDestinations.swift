@@ -11,11 +11,9 @@ import SwiftUI
 /// runtime coin toss rather than a compile error. A new ``Route`` case fails to compile
 /// here until someone decides what it shows. Never reach for a `default`.
 ///
-/// ⚠️ UNLIKE iOS, A ROUTE WHOSE SCREEN IS NOT PORTED YET LANDS ON ``ComingLaterView``,
-/// named after the sidebar section that owns it. iOS forbids a placeholder arm because
-/// that build goes to external testers (App Store Review Guideline 2.1); the Mac app
-/// ships nothing until every section is ported (plan Wave 10), and each wave replaces
-/// arms here with the real screen.
+/// ⚠️ NO ARM IS A PLACEHOLDER ANY MORE (Wave 8 ported the last two), as iOS requires for a
+/// build external testers see (App Store Review Guideline 2.1). Scheduling's routes show
+/// the hand-off screen the sidebar shows until Wave 9 ports the section.
 ///
 /// ⛔ TWO SESSIONS, AND THEY ARE NOT INTERCHANGEABLE. ``session`` is the WORKSPACE session;
 /// ``accountSession`` is the process's one ``SessionModel``, which `Route.devices` needs:
@@ -125,8 +123,12 @@ enum RouteDestinations {
             SchedulingHandoffView(container: container, workspaceId: workspaceId)
                 .id(workspaceId)
 
-        case .marketplace:
-            ComingLaterView(item: ShellPaths.listSection(of: route))
+        // ⛔ NO PURCHASE, IN BOTH MAC BUILDS, AND NOTHING ON IT OPENS A URL. Buying a number is
+        // a recurring charge for a service used in the app (Guideline 3.1.1), so it is absent
+        // rather than linked; the role only words the read-only caption.
+        // `MacMarketplaceNoExitTests`.
+        case let .marketplace(workspaceId, role):
+            MarketplaceView(container: container, workspaceId: workspaceId, role: role)
         }
     }
 }
