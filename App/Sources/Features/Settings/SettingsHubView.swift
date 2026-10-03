@@ -127,7 +127,10 @@ struct SettingsHubView: View {
     /// ⚠️ ITS VISIBILITY STILL COMES FROM THE SETTINGS-SECTION GATE ABOVE, which is
     /// `.partial` rather than hidden: every read behind it admits a viewer. See the ⛔ in
     /// ``RouteGate/settingsGate(for:)``.
-    private func destination(_ section: SettingsSection) -> Route {
+    ///
+    /// ⚠️ NOT `private` ON THE MAC, so `MacSchedulingTests` can pin that this row reaches
+    /// the scheduling hub (iOS declares it `private`).
+    func destination(_ section: SettingsSection) -> Route {
         guard section == .scheduling else {
             return .workspaceSettings(workspaceId: workspaceId, role: role, section: section)
         }

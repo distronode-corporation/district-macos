@@ -32,6 +32,12 @@ Store and the direct download.
 - Rooms: start or rejoin a meeting room, with video tiles, your camera and microphone,
   the note-taking Companion shown, a guest link to share, and past meetings' minutes.
 - A contact's Video call button, which sends them a guest link and opens the room.
+- Scheduling, as on the iPad: the booking page's state and Enable, the register, event
+  types, hours, bookings with each booking's answers, notes and transcript, calendar
+  connections, the team, recordings with their consent, settings and the developer tab.
+  Bookings and event types are tables you can sort by any column, and the week's hours
+  are laid out as a week. "Open in browser" opens the scheduler in your browser, signed
+  in.
 - Menu commands: File > New Message (Command-N) and New Contact (Shift-Command-N),
   Edit > Search Messages (Command-F), View > Refresh (Command-R) and a Refresh button in
   the toolbar, and the Go menu follows the sidebar.

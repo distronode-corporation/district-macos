@@ -12,13 +12,18 @@ final class MacSidebarItemTests: XCTestCase {
         ])
     }
 
-    /// The parity checklist: which sections this build draws for real.
-    func testTheSectionsPortedSoFar() {
-        let ported = SidebarItem.allCases.filter { $0.portedInWave == nil }
-        XCTAssertEqual(ported, [
-            .overview, .inbox, .calls, .contacts, .hq, .analytics, .marketplace, .billing, .rooms, .workflows, .desk,
-            .dialer, .support, .settings, .account,
-        ])
+    /// The parity checklist: every section is drawn for real (Wave 9 ported the last,
+    /// Scheduling). A section the shell draws through ``RouteDestinations`` must have a root
+    /// route, or ``ShellView`` would draw nothing for it.
+    func testEverySectionIsPorted() {
+        let drawnByRoute = SidebarItem.allCases.filter { $0 != .overview && $0 != .account && !$0.isListSection }
+        for item in drawnByRoute {
+            XCTAssertNotNil(item.rootRoute(workspaceId: "ws_1", role: .viewer), "\(item)")
+        }
+        XCTAssertEqual(
+            SidebarItem.scheduling.rootRoute(workspaceId: "ws_1", role: .client),
+            .scheduling(workspaceId: "ws_1", role: .client, section: .hub)
+        )
     }
 
     func testCommandDigitsAreTheiPadTabOrder() {
@@ -51,19 +56,5 @@ final class DistrictSentryTests: XCTestCase {
 
     func testTheTestHostCarriesNoDSN() {
         XCTAssertNil(DistrictSentry.configuredValue(.main, forKey: DistrictSentry.dsnInfoKey))
-    }
-}
-
-final class SchedulingHandoffNoticeTests: XCTestCase {
-    func testTheServersNonceSentenceWins() {
-        XCTAssertEqual(SchedulingHandoffModel.notice(for: .nonceRequired(message: "Server words.")), "Server words.")
-        XCTAssertEqual(
-            SchedulingHandoffModel.notice(for: .nonceRequired(message: nil)),
-            "Update the app to open the website from it."
-        )
-        XCTAssertEqual(
-            SchedulingHandoffModel.notice(for: .api(.http(status: 409, message: nil))),
-            "Scheduling is not ready yet. Turn it on, or wait for setup to finish."
-        )
     }
 }

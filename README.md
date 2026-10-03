@@ -5,11 +5,13 @@ receptionist service by Distronode. It is being built to match the iPad app sect
 section: calls placed and answered on the Mac, the inbox, contacts, meeting rooms and the
 settings of a District AI workspace.
 
-**Status: in development, not released.** This build signs in, shows the Overview, the
-Inbox, Calls, Contacts, Rooms and your Account and devices, places calls from Dial, and
-rings for calls handed to you and answers them; the other sections say which later wave
-ports them. Nothing is on the
-Mac App Store or in a GitHub Release yet. See [CHANGELOG.md](CHANGELOG.md).
+**Status: in development, not released.** This build has every section of the iPad app:
+it signs in, shows the Overview, the Inbox, Calls, Contacts and the workspace's sections
+(District HQ, Analytics, Billing, Phone numbers, Workflows, Desk, Support, Scheduling and
+Workspace settings), places calls from Dial, joins Rooms, and rings for calls handed to you
+and answers them. Scheduling shows everything and changes nothing yet; its editing is the
+next part of the port. Nothing is on the Mac App Store or in a GitHub Release yet. See
+[CHANGELOG.md](CHANGELOG.md).
 
 **How calls reach a Mac.** While District AI is open and you are signed in, a call handed
 to you rings on this Mac: a small call window, a notification with Answer and Decline,

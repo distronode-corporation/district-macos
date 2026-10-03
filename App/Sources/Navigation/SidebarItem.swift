@@ -78,17 +78,6 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
         }
     }
 
-    /// The wave of the macOS plan that ports this section's screens, or nil when this
-    /// build already shows the real section.
-    var portedInWave: Int? {
-        switch self {
-        case .overview, .account, .inbox, .calls, .contacts, .rooms, .dialer, .hq, .analytics, .billing,
-             .workflows, .desk, .support, .settings, .marketplace:
-            nil
-        case .scheduling: 9
-        }
-    }
-
     /// The row's identifier, the iPad's (`A11yID.Sidebar`).
     var accessibilityID: String {
         switch self {

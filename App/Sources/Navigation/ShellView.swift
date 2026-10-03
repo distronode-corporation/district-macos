@@ -192,9 +192,8 @@ struct ShellView: View {
                 SupportView(container: container, workspaceId: workspaceId, role: role, selection: selection)
                     .navigationSplitViewColumnWidth(min: 340, ideal: 440)
             default:
-                // ⚠️ UNREACHABLE TODAY: the five list sections are the five arms above.
-                ComingLaterView(item: item)
-                    .navigationSplitViewColumnWidth(min: 280, ideal: 340)
+                // ⚠️ UNREACHABLE: the five list sections are the five arms above.
+                Color.clear
             }
         }
         .districtBackground()
@@ -211,6 +210,7 @@ struct ShellView: View {
                 destination(first)
                     .navigationDestination(for: Route.self) { destination($0) }
             }
+            .shellNavigator(tail(for: item))
             .id(first)
         } else if let placeholder = item.detailPlaceholder {
             DetailPlaceholder(title: placeholder.title, symbol: placeholder.symbol)
@@ -250,6 +250,8 @@ struct ShellView: View {
                 .districtBackground()
                 .navigationDestination(for: Route.self) { destination($0) }
         }
+        // ⚠️ THE STACK'S OWN PATH, for a `Table` row to open (``ShellNavigator``).
+        .shellNavigator(path(for: item))
         .id(item)
     }
 
@@ -276,9 +278,6 @@ struct ShellView: View {
                 onSelectTab: { paths.select(SidebarItem(tab: $0)) }
             )
             .hidingEntryPoints()
-        case .scheduling:
-            SchedulingHandoffView(container: container, workspaceId: workspaceId)
-                .id(workspaceId)
         // ⛔ A LIST SECTION IS NEVER BUILT HERE. It reaches this whole-column layout only
         // while the workspace list is loading (the three-column one needs a workspace),
         // and the gate's content appears in the same update that flips the shell back to
@@ -298,7 +297,9 @@ struct ShellView: View {
                 )
                 .id(root)
             } else {
-                ComingLaterView(item: item)
+                // ⚠️ UNREACHABLE: every section that is neither the Overview, Account nor a
+                // list section has a root route (`MacSidebarItemTests`).
+                Color.clear
             }
         }
     }
