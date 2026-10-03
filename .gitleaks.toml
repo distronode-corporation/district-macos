@@ -7,13 +7,14 @@
 # ⚠️ Paths are matched with `(^|/)` rather than `^` because `gitleaks dir <path>` reports them
 # with the scanned directory in front, while `gitleaks git` reports them repository-relative.
 #
-# This repository holds no test fixtures that look like credentials. The one entry below is
-# a public key.
+# Each entry below says what its value is: a public key, a public checksum and a truncated
+# key header used as test data. None is a credential.
 
 [extend]
 useDefault = true
 
-# Sparkle's `SUPublicEDKey` in project.yml: the PUBLIC half of the Developer ID build's
+# Sparkle's `SUPublicEDKey` in project.yml (and the same value as release-preflight.test.sh's
+# well-formed fixture): the PUBLIC half of the Developer ID build's
 # update-signing key (Ed25519, base64), shipped in every copy's Info.plist so Sparkle can
 # check an update's signature. Public by design; the private half lives only in the release
 # lane's secret store. The rule matches it only because of the key name beside it.
@@ -23,6 +24,29 @@ useDefault = true
 description = "Sparkle SUPublicEDKey in project.yml (a public key)"
 targetRules = ["generic-api-key"]
 condition = "AND"
-paths = ['''(^|/)project\.yml$''']
+paths = ['''(^|/)project\.yml$''', '''(^|/)scripts/release-preflight\.test\.sh$''']
 regexTarget = "secret"
 regexes = ['''^2WeJT5IvJAjXbzYQufEbGBqNu5SSZ5B9to10em8H7QQ=$''']
+
+# The published SHA-256 of the sentry-cli release binary that release.yml pins and checks
+# before running it, as in district-ios. A checksum of a public download, not a credential;
+# the Sentry token rule matches it only because of the variable name beside it.
+[[allowlists]]
+description = "sentry-cli release checksum pinned in release.yml (public SHA-256)"
+targetRules = ["sentry-access-token"]
+condition = "AND"
+paths = ['''(^|/)\.github/workflows/release\.yml$''']
+regexTarget = "secret"
+regexes = ['''^2c26914636c47ab9bf9e710484ad7b44d371cbec8bd29cafb36b3cf877bf4285$''']
+
+# The stand-in App Store Connect key in the key-fetch script's tests, copied from district-ios.
+# Its one body line is the fixed PKCS#8 prefix every P-256 private key starts with (the
+# algorithm and curve identifiers), cut off before any key bytes, so it is not a key and
+# signs nothing.
+[[allowlists]]
+description = "Truncated PKCS#8 P-256 header used as a stand-in .p8 in asc-key.test.sh (test data)"
+targetRules = ["private-key"]
+condition = "AND"
+paths = ['''(^|/)scripts/asc-key\.test\.sh$''']
+regexTarget = "secret"
+regexes = ['''^-----BEGIN PRIVATE KEY-----\s+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQg\s+-----END PRIVATE KEY-----$''']
