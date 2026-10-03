@@ -6,8 +6,9 @@ section: calls placed and answered on the Mac, the inbox, contacts, meeting room
 settings of a District AI workspace.
 
 **Status: in development, not released.** This build signs in, shows the Overview, the
-Inbox, Calls, Contacts and your Account and devices, and rings for calls handed to you
-and answers them; the other sections say which later wave ports them. Nothing is on the
+Inbox, Calls, Contacts, Rooms and your Account and devices, places calls from Dial, and
+rings for calls handed to you and answers them; the other sections say which later wave
+ports them. Nothing is on the
 Mac App Store or in a GitHub Release yet. See [CHANGELOG.md](CHANGELOG.md).
 
 **How calls reach a Mac.** While District AI is open and you are signed in, a call handed

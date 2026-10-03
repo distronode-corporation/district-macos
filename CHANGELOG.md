@@ -27,6 +27,11 @@ Store and the direct download.
 - Ring on this computer, in Account and in Settings, on by default. Ringing stops while
   the Mac sleeps, when the app quits and when you sign out, and starts again on wake.
 - Choose the microphone and speaker for calls, in the call window and in Settings.
+- Dial: place a call from the Mac, with the country the number rings shown beside it,
+  recent callers to call back, and emergency numbers handed off rather than dialled.
+- Rooms: start or rejoin a meeting room, with video tiles, your camera and microphone,
+  the note-taking Companion shown, a guest link to share, and past meetings' minutes.
+- A contact's Video call button, which sends them a guest link and opens the room.
 - Menu commands: File > New Message (Command-N) and New Contact (Shift-Command-N),
   Edit > Search Messages (Command-F), View > Refresh (Command-R) and a Refresh button in
   the toolbar, and the Go menu follows the sidebar.

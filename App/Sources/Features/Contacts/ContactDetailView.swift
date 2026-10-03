@@ -20,6 +20,13 @@ struct ContactDetailView: View {
 
     @State private var model: ContactDetailModel
 
+    /// ⛔ ITS OWN MODEL, BECAUSE STARTING A ROOM IS NOT EDITING A CONTACT.
+    /// ``ContactDetailModel``'s four mutations all end in a re-read of the same row and
+    /// share one `saving` flag; this one mints a room, spends a METERED and unrecallable
+    /// message, and then navigates. Folding it in would put an irreversible send behind the
+    /// flag that guards a rename.
+    @State private var videoCall: ContactVideoCallModel
+
     /// ⛔ THE CONTAINER'S ONE STORE, NOT A `@State` OF ITS OWN. A block performed on
     /// an inbox thread has to flip this screen's control and badge, and the inbox is
     /// a different tab with a different model, see the ⛔ on
@@ -33,6 +40,9 @@ struct ContactDetailView: View {
         self.contactId = contactId
         self.role = role
         blocked = container.blockedContacts
+        _videoCall = State(
+            initialValue: ContactVideoCallModel(container: container, workspaceId: workspaceId, role: role)
+        )
         _model = State(
             initialValue: ContactDetailModel(
                 container: container,
@@ -79,6 +89,7 @@ struct ContactDetailView: View {
             ContactDetailContentView(
                 loaded: loaded,
                 model: model,
+                videoCall: videoCall,
                 blocked: blocked,
                 workspaceId: workspaceId,
                 role: role,
@@ -108,6 +119,7 @@ struct ContactDetailView: View {
 private struct ContactDetailContentView: View {
     let loaded: LoadedContact
     let model: ContactDetailModel
+    let videoCall: ContactVideoCallModel
     /// The shared blocked set. See the ⛔ on ``ContactDetailView/blocked``.
     let blocked: BlockedContactsStore
     let workspaceId: String
@@ -144,11 +156,7 @@ private struct ContactDetailContentView: View {
                     onClearIntel: clearIntel
                 )
                 mutationFailure
-                // ⚠️ NO VIDEO CALL ROW YET ON THE MAC. iOS mints a room, sends the contact
-                // its guest link (a metered, unrecallable message) and then pushes the
-                // room; the Mac's rooms arrive in Wave 6, and inviting a customer to a room
-                // this app cannot open would strand them. The row (`ContactVideoCallModel`)
-                // is ported with Rooms.
+                videoCallSection
                 controls
             }
             .padding(DistrictSpacing.gutter)
@@ -282,7 +290,75 @@ private struct ContactDetailContentView: View {
         }
     }
 
+    // MARK: - Video call
+
+    /// Start a video room and send the contact its guest link.
+    ///
+    /// ⛔ ONE TAP IS ONE METERED, UNRECALLABLE MESSAGE. The button disables the moment an
+    /// attempt starts and there is no retry on a failed send: a timeout means the invitation
+    /// may already have reached the customer, so a second attempt is a second charge and a
+    /// duplicate. See the ⛔ on ``ContactVideoCallModel``.
+    ///
+    /// ⛔ THE NAVIGATION IS A `NavigationLink` OVER THE ALREADY-MINTED NAME, never a
+    /// button that assembles one at the destination. `Route.activeRoom`'s own ⛔ requires
+    /// the full `meet_<workspaceId>_<suffix>` string in the value, because rebuilding a name
+    /// is precisely where a `video_` one, one character away, billable, and capped at one
+    /// concurrent session across the estate, could be produced by mistake.
+    ///
+    /// ⛔ SCREEN SHARE IS OUT OF SCOPE (iOS: it needs a Broadcast Upload Extension and an App
+    /// Group; on a Mac it would need the screen-recording permission and its own review).
+    /// ⛔ SO IS AN AI-AVATAR (`video_`) ROOM: unmintable here by construction, billable,
+    /// and concurrency-capped. Neither is re-litigable from a contact screen.
+    @ViewBuilder
+    private var videoCallSection: some View {
+        if videoCall.canStart {
+            switch videoCall.phase {
+            case .idle:
+                Button(ContactVideoCopy.action, action: startVideoCall)
+                    .buttonStyle(.districtSecondary)
+                    .disabled(loaded.saving || ContactVideoCallModel.target(for: contact) == nil)
+            case .starting:
+                Button(ContactVideoCopy.starting) {}
+                    .buttonStyle(.districtSecondary)
+                    .disabled(true)
+            case let .sent(room):
+                NavigationLink(value: Route.activeRoom(
+                    workspaceId: workspaceId,
+                    role: role,
+                    roomName: room.value
+                )) {
+                    Text(ContactVideoCopy.action)
+                }
+                .buttonStyle(.districtPrimary)
+            case let .failed(failure):
+                videoCallFailure(failure)
+            }
+        }
+    }
+
+    /// ⚠️ SHOWN BESIDE THE CONTACT, NOT INSTEAD OF IT, and the only control offered is
+    /// Dismiss. Whether the attempt is worth repeating is the model's claim to make, and for
+    /// a failed SEND the answer is no. See the ⛔ in
+    /// ``ContactVideoCallModel/invite(contact:target:room:credential:)``.
+    private func videoCallFailure(_ failure: FailureText) -> some View {
+        VStack(alignment: .leading, spacing: DistrictSpacing.tight) {
+            Text(failure.message)
+                .font(DistrictType.caption)
+                .foregroundStyle(colors.destructive)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Dismiss") { videoCall.reset() }
+                .buttonStyle(.districtGhost)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     // MARK: - Actions
+
+    // MARK: - Actions
+
+    private func startVideoCall() {
+        Task { await videoCall.start(with: contact) }
+    }
 
     private func rename(to name: String) {
         renaming = false

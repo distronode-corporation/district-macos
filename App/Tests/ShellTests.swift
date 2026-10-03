@@ -15,7 +15,7 @@ final class MacSidebarItemTests: XCTestCase {
     /// The parity checklist: which sections this build draws for real.
     func testTheSectionsPortedSoFar() {
         let ported = SidebarItem.allCases.filter { $0.portedInWave == nil }
-        XCTAssertEqual(ported, [.overview, .inbox, .calls, .contacts, .account])
+        XCTAssertEqual(ported, [.overview, .inbox, .calls, .contacts, .rooms, .dialer, .account])
     }
 
     func testCommandDigitsAreTheiPadTabOrder() {

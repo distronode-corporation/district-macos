@@ -35,14 +35,30 @@ struct AudioDevicePickers: View {
     /// and the person should be able to see why.
     static let disconnected = "Not connected"
 
-    @ViewBuilder
-    private func options(_ choices: [AudioDeviceChoice], selected: String) -> some View {
-        Text(Self.systemDefault).tag("")
-        ForEach(choices.filter { !$0.id.isEmpty }) { choice in
-            Text(choice.name).tag(choice.id)
+    /// One picker entry: what is stored when it is chosen, and what it says.
+    struct Entry: Equatable, Identifiable {
+        let tag: String
+        let label: String
+
+        var id: String {
+            tag
         }
+    }
+
+    /// The entries one picker offers: the system default first (stored as the empty
+    /// string), every particular device, and a remembered device that is not connected.
+    static func entries(_ choices: [AudioDeviceChoice], selected: String) -> [Entry] {
+        var entries = [Entry(tag: "", label: systemDefault)]
+        entries += choices.filter { !$0.isSystemDefault }.map { Entry(tag: $0.id, label: $0.name) }
         if !selected.isEmpty, !choices.contains(where: { $0.id == selected }) {
-            Text(Self.disconnected).tag(selected)
+            entries.append(Entry(tag: selected, label: disconnected))
+        }
+        return entries
+    }
+
+    private func options(_ choices: [AudioDeviceChoice], selected: String) -> some View {
+        ForEach(Self.entries(choices, selected: selected)) { entry in
+            Text(entry.label).tag(entry.tag)
         }
     }
 
