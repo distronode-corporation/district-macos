@@ -132,11 +132,20 @@ every pull request, and uses no secrets:
 
 ## Releases
 
-Not yet. Releases will be built from a protected `v*` tag on GitHub-hosted macOS
-runners, with no signing key or store credential stored in this repository or in
-GitHub, and submitted to the App Store and published here only with the maintainers'
-explicit approval. Builds from a fork report no crashes: crash reporting (Sentry) starts
-only when a DSN is supplied at build time, and `project.yml` ships it empty.
+None yet. [`release.yml`](.github/workflows/release.yml) builds both builds of one commit
+on GitHub-hosted macOS runners, from `main` or a protected `v*` tag, with no signing key
+or store credential stored in this repository or in GitHub (each run borrows them from
+Distronode's Google Cloud for its own length):
+
+- the Mac App Store build is signed and uploaded to App Store Connect for TestFlight;
+- the Developer ID build is notarised and stapled, packed into a signed, notarised and
+  stapled `.dmg`, signed for Sparkle, and kept with its checksums and a build provenance
+  attestation as the run's artifact.
+
+Submission to the App Store ([`submit.yml`](.github/workflows/submit.yml)) and publishing
+the `.dmg` here happen only with the maintainers' explicit approval. Builds from a fork
+report no crashes: crash reporting (Sentry) starts only when a DSN is supplied at build
+time, and `project.yml` ships it empty.
 
 ## Contributing, security and conduct
 

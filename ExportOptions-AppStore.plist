@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Export options for the Mac App Store build (`DistrictMac`), used by scripts/archive.sh
+  with LANE=appstore. Copied from district-ios's ExportOptions.plist.
+
+  ⛔ AUTHORED, UNLIKE App/Info.plist AND THE .entitlements FILES, which `xcodegen
+  generate` writes from project.yml. Nothing in project.yml names this file.
+
+  ⚠️ IT CONFIGURES THE EXPORT ONLY. The archive half (team, build number) is passed to
+  `xcodebuild archive` by archive.sh, and the teams must agree.
+-->
+<plist version="1.0">
+<dict>
+  <!-- App Store Connect distribution: on macOS the export signs the app and wraps it in
+       an installer package signed for the store. -->
+  <key>method</key>
+  <string>app-store-connect</string>
+
+  <!-- ⛔ `upload` MAKES THE EXPORT DO THE UPLOAD ITSELF. With `export` it would write a
+       package to disk and nothing would reach App Store Connect, with exit 0. -->
+  <key>destination</key>
+  <string>upload</string>
+
+  <!-- Cloud signing: automatic signing plus the App Store Connect key on the command
+       line uses the team's cloud-managed distribution certificates and mints the Mac
+       App Store profile on first use, so the runner needs no certificate installed. -->
+  <key>signingStyle</key>
+  <string>automatic</string>
+
+  <!-- ⚠️ Must equal TEAM_ID in scripts/archive.sh. -->
+  <key>teamID</key>
+  <string>R935BA6767</string>
+
+  <!-- The dSYMs go with the build, for App Store Connect's crash reports. -->
+  <key>uploadSymbols</key>
+  <true/>
+
+  <!-- ⛔ FALSE: THE BUILD NUMBER IS OURS (an offset plus the commit count), so a build
+       maps back to a commit. Spelt without a double hyphen, which XML forbids inside
+       a comment. -->
+  <key>manageAppVersionAndBuildNumber</key>
+  <false/>
+</dict>
+</plist>

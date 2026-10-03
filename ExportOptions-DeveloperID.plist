@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Export options for the Developer ID build (`DistrictMacDirect`) when it is cloud
+  signed, used by scripts/archive.sh with LANE=direct DIRECT_SIGNING=cloud. The manual
+  variant names a provisioning profile and is written by archive.sh at run time.
+
+  The export re-signs every nested binary (Sparkle's Autoupdate, Updater.app and its
+  two XPC services included) with the Developer ID identity and the hardened runtime,
+  and writes the app into the export directory. Nothing is uploaded: notarisation and
+  the .dmg are scripts/direct-package.sh.
+-->
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>developer-id</string>
+
+  <key>destination</key>
+  <string>export</string>
+
+  <key>signingStyle</key>
+  <string>automatic</string>
+
+  <!-- ⚠️ Must equal TEAM_ID in scripts/archive.sh. -->
+  <key>teamID</key>
+  <string>R935BA6767</string>
+</dict>
+</plist>

@@ -158,11 +158,8 @@ targetTemplates:
         # distribution) is `production`; a `Debug` build signed with a development
         # profile needs `development`. The values live under `settings.configs`.
         com.apple.developer.aps-environment: $(APS_ENVIRONMENT)
-        # ⛔ APP STORE REVIEW GUIDELINE 4.8: the web sign-in offers Google and Microsoft
-        # SSO, so Sign in with Apple is offered beside it. `Default` is the only value and
-        # it is an array of one string.
-        com.apple.developer.applesignin:
-          - Default
+        # ⚠️ NO SIGN IN WITH APPLE HERE: the store target adds it (below) and the Developer
+        # ID target cannot have it.
         # ⛔ `www.` ONLY, matching district-ios exactly. `distronode.ca` stays unclaimed.
         com.apple.developer.associated-domains:
           - applinks:www.distronode.com
@@ -206,6 +203,17 @@ targets:
       path: App/Info.plist
     entitlements:
       path: App/DistrictMac.entitlements
+      properties:
+        # ⛔ APP STORE REVIEW GUIDELINE 4.8: the web sign-in offers Google and Microsoft
+        # SSO, so Sign in with Apple is offered beside it. `Default` is the only value and
+        # it is an array of one string.
+        # ⛔ STORE TARGET ONLY. Apple leaves it out of the Developer ID provisioning profile
+        # (4F2465QW2Z grants push, associated domains and the keychain group), and an
+        # export that claims it fails with "doesn't include the
+        # com.apple.developer.applesignin entitlement". The Direct build hides the native
+        # button (`RootView.appleDoor`); the website's sign-in still offers Apple there.
+        com.apple.developer.applesignin:
+          - Default
 
   # The Developer ID build: the template, plus Sparkle and its sandbox plumbing.
   DistrictMacDirect:
