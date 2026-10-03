@@ -91,9 +91,9 @@ final class StoreCopyTests: XCTestCase {
         "start your trial",
     ]
 
-    /// ⚠️ MAC ONLY: A RATCHET, NOT iOS's 150. The Mac tree grows by wave (140 files under
-    /// the scanned roots with all of Wave 7); raise this as sections land.
-    private static let minimumFiles = 135
+    /// ⚠️ MAC ONLY: A RATCHET BELOW THE TREE. The Mac tree grows by wave (171 files under
+    /// the scanned roots with Wave 8's settings); raise this as sections land.
+    private static let minimumFiles = 165
 
     private static let reachedNothing = "the scan reached almost nothing, so it proved nothing"
 

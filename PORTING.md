@@ -45,6 +45,8 @@ not copied: they are shared.
 | 7 | Support (requests to Distronode, a request's thread, inline compose) | `4777c40` | `App/Sources/Features/Support/Support*.swift` |
 | 7 | `SettingsChrome.swift` whole (replacing Wave 5's `SettingsField.swift`), `SettingsConfigState.swift`, `SettingsCopy.swift` | `4777c40` | `App/Sources/Features/Settings/` |
 | 7 | Tests: `DeskModelCreateTests`, `SettingsTestSupport` | `4777c40` | `App/Tests/` |
+| 8 | Workspace settings: the hub and its eight sections (persona with its engine and the audition, capabilities, how calls are answered, transfer directory, dynamic persona rules, knowledge base, messaging with the carrier-account sheet, members), `SettingsCopy+*.swift`, `SettingsDestinations`, `SettingsWireDisplay` | `4777c40` | `App/Sources/Features/Settings/` |
+| 8 | Tests: `PersonaEngineDraftTests`, `PersonaPreviewStateTests`, `RoutingEditorTests`, `SettingsPersonaCopyTests` | `4777c40` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -65,13 +67,14 @@ Wave 7 adds Mac-only tests with no iOS original: `MacBillingReadOnlyTests` (noth
 support write states, trigger labels) and `MacTestIsolationTests` (see "Tests never touch
 an installed copy").
 
+Wave 8 adds Mac-only tests with no iOS original: `MacListSectionLoadTests` (see "A list
+section reads once" below).
+
 ## Left out on purpose, and where it goes
 
-- **The rest of `Features/Settings`** (the hub and its sections): Wave 8. Wave 7 already
-  brought `SettingsChrome.swift` whole (the Desk's settings sheet is built from it),
-  `SettingsConfigState.swift` and `SettingsCopy.swift`, and deleted Wave 5's
-  `SettingsField.swift`, so there is one definition. Wave 8 adds `SettingsCopy+*.swift` and
-  the screens.
+- **The settings hub's Scheduling row** pushes `Route.scheduling`, as on iOS. Until Wave 9
+  ports Scheduling, that route shows the same hand-off screen the sidebar's Scheduling row
+  does (`SchedulingHandoffView`), not a placeholder.
 - **A "New ticket" entry point on the Desk**: iOS at `4777c40` declares the compose sheet
   and its `composing` flag but nothing sets the flag, so the sheet is unreachable there.
   The Mac keeps the same code and the same absence; adding a button or a menu command is a
@@ -114,9 +117,51 @@ Copied as is, then:
 - A `Toggle` that the iPad draws as a switch gets `.toggleStyle(.switch)`: the macOS
   default is a checkbox, which beside a row reads as "select this" (Workflows, the Desk's
   settings, and Account's availability row).
+- The persona audition (`PersonaPreviewEngine`) has no `setSpeakerphone`: iOS asks for the
+  loudspeaker over the earpiece and a Mac has none; the engine applies the speaker picker's
+  choice at the join, as a room does. A preview ended by sleep gets its own sentence.
 - Em and en dashes are taken out of comments (the public-hygiene check forbids them). A
   string the user reads that holds one keeps it as an escape (`"\u{2014}"`), so the copy
-  stays byte-identical to iOS.
+  stays byte-identical to iOS. Inside a raw JSON test string the escape is JSON's
+  (`\u2014`), because Swift does not interpret `\u{...}` there.
+
+## Two settings surfaces, split by owner
+
+The iPad has one settings surface, the workspace hub. The Mac has two, and they do not
+overlap:
+
+- **Workspace settings** (the sidebar section) is the iPad's hub, ported whole. Everything
+  on it is stored by the server for one workspace and is the same on every device signed
+  in to it: persona, capabilities, how calls are answered, the transfer directory, the
+  dynamic persona rules, the knowledge base, messaging and members.
+- **The Settings window** (District AI > Settings..., Cmd-,; Wave 6) holds this
+  installation's preferences, kept in this Mac's defaults: "Ring on this computer", the
+  microphone and speaker, the notifications line and, in the Developer ID build, updates.
+
+Account's "Calls to you" stays in Account, as on the iPad: it is whether this PERSON can
+be rung (a server-side membership flag), while "Ring on this computer" is whether this Mac
+rings when they can.
+
+## The brand tint
+
+iOS publishes the District tint once, at its root (`.districtTheme()` in `RootView`). The
+Mac does the same at `RootView`, and again at the roots of the two other windows (the
+Settings window and the ring panel), because a window is its own root and does not inherit
+the main window's environment. Without it, SwiftUI's own controls (switches, prominent
+buttons, progress, the sidebar's symbols) drew the system accent beside correctly themed
+custom components.
+
+## A list section reads once
+
+With no workspace yet, the shell draws a list section (Desk, Support, and the three tabs)
+in its whole-column layout behind the workspace gate. The update that resolves the
+workspace also flips the shell to three columns, and the gate used to build the section's
+screen in that same update, so a second Desk or Support existed for a moment and its
+`.task` loaded too. That happened in the real app on every reload of the workspace list
+while one of them was open (choosing a workspace in the picker, a new sign-in), and in the
+screenshot harness on every shot, which opens a section before the list arrives. The gate
+now draws nothing for a list section, and `MacListSectionLoadTests` renders the shell with
+a delayed workspace list and counts the requests (it reads two without the fix).
 
 ## Billing: read-only, in both Mac builds
 
@@ -208,7 +253,9 @@ it. So far: the notifications line and the dialler's microphone refusal say "Sys
 Settings" where iOS says "iOS Settings" or "Settings"; the emergency-number hand-off says
 "Use a phone to call for help." where iOS names "the Phone app" (a Mac has none); and the
 call-backs' empty state says "one click" where iOS says "one tap". Wave 7's screens needed
-no change of words; its one Mac-only string is the Desk logo's "Choose file".
+no change of words; its one Mac-only string is the Desk logo's "Choose file". Wave 8 adds
+one: the persona preview's "This Mac went to sleep, so the preview was ended.", in the
+shape of its "A call arrived on this device" line.
 
 Mac-only copy (no iOS original) comes from district-linux where it has one, and is in the
 iOS sentences' shape otherwise (a room left because the Mac went to sleep): "Ring on this

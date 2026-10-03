@@ -36,11 +36,20 @@ struct ShellView: View {
     /// the same case differently.
     @State private var columns: NavigationSplitViewVisibility = .automatic
 
-    init(container: AppContainer, session: SessionModel, push: PushRegistrar, live: DesktopLive) {
+    /// - Parameter paths: where the shell opens. ⚠️ The Overview with empty stacks in the app;
+    ///   a test opens a section directly.
+    init(
+        container: AppContainer,
+        session: SessionModel,
+        push: PushRegistrar,
+        live: DesktopLive,
+        paths: ShellPaths = ShellPaths()
+    ) {
         self.container = container
         self.session = session
         self.push = push
         self.live = live
+        _paths = State(initialValue: paths)
         _workspaceSession = State(initialValue: WorkspaceSessionModel(container: container))
     }
 
@@ -270,6 +279,15 @@ struct ShellView: View {
         case .scheduling:
             SchedulingHandoffView(container: container, workspaceId: workspaceId)
                 .id(workspaceId)
+        // ⛔ A LIST SECTION IS NEVER BUILT HERE. It reaches this whole-column layout only
+        // while the workspace list is loading (the three-column one needs a workspace),
+        // and the gate's content appears in the same update that flips the shell back to
+        // three columns. Building the section here too made a second, short-lived screen
+        // whose `.task` ran as well: every list reload (a workspace switch, a new sign-in)
+        // read the Desk or Support twice (the other three have no root route and flashed
+        // the placeholder instead). `MacListSectionLoadTests`.
+        case _ where item.isListSection:
+            Color.clear
         default:
             if let root = item.rootRoute(workspaceId: workspaceId, role: role) {
                 RouteDestinations.view(

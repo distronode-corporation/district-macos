@@ -2,9 +2,15 @@ import SwiftUI
 
 /// The app's Settings window (District AI > Settings..., ⌘,).
 ///
-/// ⚠️ APP PREFERENCES ONLY. Workspace settings are a sidebar section, as on the iPad; this
-/// window holds what belongs to this Mac: whether calls ring here and on which microphone
-/// and speaker, its notifications and, in the Developer ID build, updates.
+/// ⛔ THIS INSTALLATION'S PREFERENCES ONLY, AND NOTHING THE SERVER STORES. The split with
+/// the sidebar's Workspace settings (the iPad's hub, `SettingsHubView`) is by owner: that
+/// section edits one WORKSPACE (persona, capabilities, call handling, directory, routing,
+/// knowledge, messaging, members) and is the same for every device signed in to it; this
+/// window holds what belongs to THIS MAC and is kept in its own defaults: whether calls
+/// ring here and on which microphone and speaker, its notifications and, in the Developer
+/// ID build, updates. Neither repeats the other. ⚠️ Account's "Calls to you" (whether THIS
+/// PERSON can be rung, a server-side membership flag) stays in Account, as on the iPad;
+/// "Ring on this computer" decides whether this Mac rings when they can.
 ///
 /// ⚠️ THE NOTIFICATIONS LINE IS ACCOUNT'S (``PushStatusCopy``), word for word, so the two
 /// places that report it cannot disagree.
@@ -36,6 +42,7 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 440)
         .padding()
+        .districtTheme()
     }
 
     /// `MARKETING_VERSION (CURRENT_PROJECT_VERSION)`, read from the bundle.

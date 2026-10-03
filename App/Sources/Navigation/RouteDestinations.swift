@@ -112,7 +112,20 @@ enum RouteDestinations {
         case let .deskTicket(workspaceId, role, ticketId):
             DeskTicketView(container: container, workspaceId: workspaceId, ticketId: ticketId, role: role)
 
-        case .marketplace, .workspaceSettings, .scheduling:
+        // ⛔ THE ROLE IS A REAL GATE: every route behind the hub, the config read included,
+        // excludes `viewer`. One line per destination family here; one per section in
+        // ``SettingsDestinations``, which keeps both switches exhaustive.
+        case let .workspaceSettings(workspaceId, role, section):
+            SettingsDestinations.view(for: section, container: container, workspaceId: workspaceId, role: role)
+
+        // ⚠️ UNTIL WAVE 9, THE SAME HAND-OFF THE SIDEBAR'S SCHEDULING ROW SHOWS, so the
+        // settings hub's Scheduling row (which pushes this route, as on iOS) lands on the
+        // screen Scheduling has today rather than on a placeholder.
+        case let .scheduling(workspaceId, _, _):
+            SchedulingHandoffView(container: container, workspaceId: workspaceId)
+                .id(workspaceId)
+
+        case .marketplace:
             ComingLaterView(item: ShellPaths.listSection(of: route))
         }
     }
