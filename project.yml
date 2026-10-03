@@ -45,12 +45,17 @@ options:
 packages:
   # The shared core: DistrictModel, DistrictAuthCore, DistrictNetwork, DistrictData and
   # DistrictCall, the Linux-tested half of both Swift apps.
-  # TODO(Wave 1.1): pin `exactVersion: 1.0.0` once the tag exists, and delete `branch:`.
-  # A branch reference resolves whatever `main` is at resolve time, which is acceptable
-  # for the first scaffold commits and for nothing that ships.
+  # ⛔ PINNED TO ONE RELEASE, THE SAME ONE district-ios's project.yml NAMES. A core change
+  # lands in district-core-swift, is tagged, and arrives here as a one-line bump.
   DistrictCore:
     url: https://github.com/distronode-corporation/district-core-swift
-    branch: main
+    exactVersion: 1.0.0
+  # ⛔ LINKED BY NOTHING, DECLARED ONLY TO PIN IT. swift-crypto takes swift-asn1 by range,
+  # so without this root-level constraint Xcode resolves the newest one on a cache miss.
+  # 1.7.3 is what district-core-swift 1.0.0's Package.resolved records. Bump with the core.
+  swift-asn1:
+    url: https://github.com/apple/swift-asn1.git
+    exactVersion: 1.7.3
 
   # ⛔ THE SAME EXACT VERSIONS AS district-ios's project.yml. One WebRTC and one Sentry SDK
   # across both apps, bumped together and deliberately. `exactVersion:` is XcodeGen's
@@ -218,11 +223,10 @@ targets:
         # ⛔ THE FEED IS A CNAME TO GITHUB PAGES, DNS-ONLY IN CLOUDFLARE, generated from
         # the GitHub Releases (never a Release asset itself: Releases are immutable).
         SUFeedURL: https://updates.distronode.com/district/macos/appcast.xml
-        # ⛔ A PLACEHOLDER UNTIL THE RELEASE KEY IS GENERATED (Sparkle `generate_keys`,
-        # Wave 0d). With this value Sparkle refuses every update, which is the safe
-        # failure; the release lane must refuse to build a Direct release while it is
-        # still here.
-        SUPublicEDKey: REPLACE_WITH_SPARKLE_PUBLIC_KEY
+        # ⛔ THE PUBLIC HALF OF THE RELEASE SIGNING KEY. The private half lives only in
+        # the release lane's secret store. Changing this value strands every installed
+        # copy: Sparkle refuses an update not signed by the key it shipped with.
+        SUPublicEDKey: 2WeJT5IvJAjXbzYQufEbGBqNu5SSZ5B9to10em8H7QQ=
         # ⛔ A SANDBOXED APP CANNOT INSTALL ITS OWN UPDATE. This asks Sparkle to use its
         # bundled installer launcher XPC service, which the mach-lookup exceptions below
         # let the sandbox reach.
