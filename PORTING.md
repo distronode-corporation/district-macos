@@ -124,6 +124,9 @@ above:
   so there is no Flip camera, and no earpiece, so the room's Speaker on/off is replaced by
   the microphone and speaker pickers. The video tile is an `NSViewRepresentable` over the
   same `VideoView`. Sleep yields a room like a call does (`RoomAudioYield.sleep`).
+- **One sandbox key iOS does not need: `com.apple.security.network.server`.** WebRTC binds
+  its own UDP sockets for ICE and the macOS sandbox grants `bind` only with it; LiveKit's own
+  sandboxed test host claims it too. It is a sandbox entitlement, not a profile-granted one.
 
 ## Copy
 
