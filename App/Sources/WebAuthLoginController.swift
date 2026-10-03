@@ -21,7 +21,7 @@ final class WebAuthLoginController: NSObject {
     nonisolated static let redirectURI = "districtai://auth"
 
     /// The scheme half of ``redirectURI``: no `://`, no path.
-    static let callbackScheme = "districtai"
+    nonisolated static let callbackScheme = "districtai"
 
     /// ⚠️ A PAGE, NOT AN API ROUTE: `/auth/native` bounces an unauthenticated visitor
     /// through `/login?redirect=...`.
@@ -102,18 +102,7 @@ final class WebAuthLoginController: NSObject {
     private func present(_ url: URL) async -> Result<URL, any Error> {
         await withCheckedContinuation { continuation in
             let resumer = SingleResume(continuation)
-            // ⚠️ THE DEPRECATED INITIALISER, DELIBERATELY, as on iOS: its replacement's
-            // `.customScheme(_:)` is macOS 14.4+, and this target deploys to 14.0.
-            let session = ASWebAuthenticationSession(
-                url: url,
-                callbackURLScheme: Self.callbackScheme
-            ) { callback, error in
-                if let callback {
-                    resumer.finish(.success(callback))
-                } else {
-                    resumer.finish(.failure(error ?? WebAuthLoginError.noCallback))
-                }
-            }
+            let session = Self.makeSession(url: url, resumer: resumer)
             session.presentationContextProvider = self
             // ⛔ FALSE: share the browser's cookies, so a user already signed in to the
             // website is not asked to sign in to Google or Microsoft again.
@@ -123,6 +112,37 @@ final class WebAuthLoginController: NSObject {
             // ⚠️ `start()` returning false does not call the completion handler.
             if !session.start() {
                 resumer.finish(.failure(WebAuthLoginError.couldNotStart))
+            }
+        }
+    }
+
+    /// The session, built OUTSIDE the main actor.
+    ///
+    /// ⛔ THE COMPLETION HANDLER MUST NOT BE MAIN-ACTOR ISOLATED. AuthenticationServices
+    /// calls it on its own XPC reply queue (`com.apple.SafariLaunchAgent`). A closure
+    /// written inside this `@MainActor` class inherits that isolation under Swift 6, and
+    /// the runtime's executor check then traps (SIGILL in `dispatch_assert_queue`) the
+    /// moment the session ends: every sign-in crashed build 20012. Built here, the
+    /// closure is plain `@Sendable` and only resumes the continuation, which is safe from
+    /// any thread; `MacWebAuthIsolationTests` calls it from a background queue.
+    ///
+    /// ⚠️ THE DEPRECATED INITIALISER, DELIBERATELY, as on iOS: its replacement's
+    /// `.customScheme(_:)` is macOS 14.4+, and this target deploys to 14.0.
+    nonisolated static func makeSession(url: URL, resumer: SingleResume) -> ASWebAuthenticationSession {
+        ASWebAuthenticationSession(
+            url: url,
+            callbackURLScheme: callbackScheme,
+            completionHandler: completionHandler(resumer)
+        )
+    }
+
+    /// The session's completion handler, separate so a test can call it off the main thread.
+    nonisolated static func completionHandler(_ resumer: SingleResume) -> @Sendable (URL?, (any Error)?) -> Void {
+        { callback, error in
+            if let callback {
+                resumer.finish(.success(callback))
+            } else {
+                resumer.finish(.failure(error ?? WebAuthLoginError.noCallback))
             }
         }
     }
@@ -242,7 +262,7 @@ enum WebAuthLoginError: Error {
 
 /// Guarantees a `CheckedContinuation` is resumed exactly once, because a checked
 /// continuation traps on a second resume and the path that could cause one is the SDK's.
-private final class SingleResume: @unchecked Sendable {
+final class SingleResume: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Result<URL, any Error>, Never>?
 
