@@ -8,10 +8,9 @@ import XCTest
 /// Ported from district-ios (see PORTING.md). ⛔ IT HOLDS BOTH MAC BUILDS: the Developer ID
 /// build compiles the same `App/Sources` under the same bundle id as the store build, so a
 /// sentence that would be rejected in one is shipped in both. ⚠️ The Mac's allowlist is
-/// the iOS one minus the files that are not ported yet (Marketplace, Wave 8; the Desk's
-/// entry arrives with the Desk) and minus the sign-in button's disclosure, which the Mac's
-/// sign-in screen does not carry, because a stale entry fails
-/// ``testTheAllowlistHasNoStaleEntry``.
+/// the iOS one minus the files that are not ported yet (Marketplace, Wave 8) and minus
+/// the sign-in button's disclosure, which the Mac's sign-in screen does not carry,
+/// because a stale entry fails ``testTheAllowlistHasNoStaleEntry``.
 ///
 /// ⛔ 3.1.1 FORBIDS THE SIGNPOST, NOT ONLY THE BUTTON. Prose is not the safe half of the
 /// rule: a sentence telling a customer that plan changes happen "on the web dashboard at
@@ -46,10 +45,10 @@ import XCTest
 ///     it is named here so nobody removes it thinking this gate wants it gone.
 ///
 /// ⚠️ THE REMAINING ALLOWANCES ARE FIELD LABELS (on iOS also a sign-in disclosure), none of
-/// which tell anyone where to go instead: a contact's own website, and, as their sections
-/// are ported, the A2P form's website field and the customer's browser loading a logo we
-/// host. Each is listed by its exact text, and ``testTheAllowlistHasNoStaleEntry``
-/// fails if one stops occurring, so the list cannot quietly grow slack.
+/// which tell anyone where to go instead: a contact's own website, the customer's browser
+/// loading a logo we host, and, once Wave 8 ports it, the A2P form's website field. Each
+/// is listed by its exact text, and ``testTheAllowlistHasNoStaleEntry`` fails if one
+/// stops occurring, so the list cannot quietly grow slack.
 final class StoreCopyTests: XCTestCase {
     // MARK: - The contract
 
@@ -92,9 +91,9 @@ final class StoreCopyTests: XCTestCase {
         "start your trial",
     ]
 
-    /// ⚠️ MAC ONLY: A RATCHET, NOT iOS's 150. The Mac tree grows by wave (119 files under
-    /// the scanned roots with Wave 7's first half); raise this as sections land.
-    private static let minimumFiles = 110
+    /// ⚠️ MAC ONLY: A RATCHET, NOT iOS's 150. The Mac tree grows by wave (140 files under
+    /// the scanned roots with all of Wave 7); raise this as sections land.
+    private static let minimumFiles = 135
 
     private static let reachedNothing = "the scan reached almost nothing, so it proved nothing"
 
@@ -110,6 +109,9 @@ final class StoreCopyTests: XCTestCase {
         ],
         "Features/Contacts/ContactDetailView.swift": [
             "Website",
+        ],
+        "Features/Desk/DeskCopy.swift": [
+            "so their browser can load it, and anyone with a thread link can see it.",
         ],
     ]
 

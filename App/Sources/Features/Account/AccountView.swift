@@ -169,6 +169,8 @@ struct AccountView: View {
                     subtitle: AvailabilityCopy.rowSubtitle(status.workspaceName)
                 )
             }
+            // ⚠️ MAC: `.switch`, the iPad's control, not the macOS default checkbox.
+            .toggleStyle(.switch)
             .padding(.trailing, DistrictSpacing.gutter)
             .disabled(availability.saving)
             if let failure = availability.writeFailure {

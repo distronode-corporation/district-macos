@@ -82,8 +82,9 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
     /// build already shows the real section.
     var portedInWave: Int? {
         switch self {
-        case .overview, .account, .inbox, .calls, .contacts, .rooms, .dialer, .hq, .analytics, .billing: nil
-        case .workflows, .desk, .support: 7
+        case .overview, .account, .inbox, .calls, .contacts, .rooms, .dialer, .hq, .analytics, .billing,
+             .workflows, .desk, .support:
+            nil
         case .settings, .marketplace: 8
         case .scheduling: 9
         }
