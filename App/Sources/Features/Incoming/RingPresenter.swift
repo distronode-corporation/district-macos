@@ -93,7 +93,11 @@ final class RingPresenter: RingPresenting {
             content: content,
             trigger: nil
         )
-        center.add(request) { _ in }
+        // ⛔ NO COMPLETION CLOSURE. The centre calls it on a background queue, and a closure
+        // written in this `@MainActor` class is main-actor isolated under Swift 6, so the
+        // runtime's executor check would trap on the first ring (the same SIGILL that
+        // crashed every web sign-in in build 20012). A failed post is not acted on anyway.
+        center.add(request, withCompletionHandler: nil)
     }
 
     private func removeLeftovers(of callId: String) {
