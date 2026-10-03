@@ -51,6 +51,9 @@ not copied: they are shared.
 | 8 | Tests: `StoreCopyTests`' Marketplace allowance and its two direct assertions (the purchase boundary, the trunk sentence) | `4777c40` | `App/Tests/StoreCopyTests.swift` |
 | 9 | Scheduling, the read side: the hub (tenancy card, Enable, the provisioning poll, the booking link, the hand-off), the register (Overview), event types and one event type, hours and overrides, bookings and one booking (answers, notes, transcript), calendar connections, team, recordings (play, consent), settings (four tabs) and developer (keys, apps and MCP, webhooks and deliveries); `SchedulingCopy*`, `SchedulingSectionChrome`, `SchedulingDestinations` | `4777c40` | `App/Sources/Features/Scheduling/` |
 | 9 | `A11yID+SchedulingWritesC.swift` (the webhook deliveries' identifiers live there on iOS too) | `4777c40` | `App/Sources/Accessibility/` |
+| 9 | Scheduling, the write side: everything under `Writes/` (booking cancel, reschedule and reassign, regenerated notes; event type create, edit, state actions, hosts and questions; weekly hours and date overrides; calendar connect, CalDAV, calendar choice and disconnect; team create, edit, members and user archive; recording delete and delete-all; branding, automation, profile and notifications; API keys, connected apps and webhooks), the write hooks in the section screens, and `SchedulingSSOClient` | `4777c40` | `App/Sources/Features/Scheduling/`, `Writes/` |
+| 9 | `A11yID+SchedulingWrites.swift`, `A11yID+SchedulingWritesB.swift`, `A11yID+SchedulingWriteEntry.swift` | `4777c40` | `App/Sources/Accessibility/` |
+| 9 | Tests: every `SchedulingWrites*Tests` file and its support, and `SchedulingRescheduleDayZoneTests` (rewritten to find the `NSDatePicker` in an offscreen window) | `4777c40` | `App/Tests/` |
 | 9 | Tests: `SchedulingFailureCopyTests`, `SchedulingHandOffTests`, `SchedulingModelTestCase`, `SchedulingModelTests`, `SchedulingReadConcurrencyTests`, `SchedulingSectionModelTests`, `SchedulingSectionTests`, `SchedulingTestTransport`, and `SchedulingRoutingTests` from its gate cases on (`_10` to `_15`, the settings hub's row among them) | `4777c40` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
@@ -79,12 +82,9 @@ and that opening Phone numbers reads only the owned list), and two Phone numbers
 `MacBillingReadOnlyTests` (see "Billing and Phone numbers" below).
 
 Wave 9 adds Mac-only tests with no iOS original: `MacSchedulingTests` (the two scheduling
-tables' order and cells, the navigator a table row opens through, and the settings hub's
-Scheduling row) and two Scheduling cases in `MacBillingReadOnlyTests` (see "Billing and
-Phone numbers" below).
-
-Scheduling's writes (creating, editing, cancelling and rescheduling) are the second packet
-of Wave 9; until it lands the section reads everything and changes nothing.
+tables' order and cells, the navigator a table row opens through, the settings hub's
+Scheduling row, and ⌘N's create) and three Scheduling cases in `MacBillingReadOnlyTests`
+(see "Billing and Phone numbers" below).
 
 ## Left out on purpose, and where it goes
 
@@ -149,6 +149,26 @@ Copied as is, then:
   or `handOffStartClosed`).
 - A recording plays in a sheet with a Done button (Esc), in the shape of a call
   recording's player; the iPad's is a bare full-height player dismissed by a swipe.
+- Every scheduling write sheet is drawn by `SchedulingWriteSheet`, so the Mac sizes them
+  there (520 by 600, the content scrolls) and turns their toggles into switches there,
+  rather than at 29 presentation sites. Their Cancel already takes Esc and a non-destructive
+  confirm ⌘↩, on iOS too (the iPad's keyboard); a destructive one takes no shortcut.
+- The reschedule sheet's day is the graphical month calendar, where the iPad's compact
+  picker opens one on a tap. The hours editor and the date overrides keep the iPad's text
+  fields (zero-padded times and `YYYY-MM-DD` dates, which the diff and the server read).
+- A booking's Cancel, Reschedule and Change host, which the iPad draws under every row,
+  are drawn under the bookings table for the selected booking (a table row cannot hold
+  them), with the same two gates. The booking's own screen keeps Cancel and Regenerate
+  notes, as on the iPad.
+- ⌘N runs the create of the screen on display when it has one (Create event type, Create
+  team, Create key, Add webhook; the menu item takes the button's own words), and is New
+  Message otherwise, where File > New Message stays without the shortcut
+  (`ShellCommandCenter`, `districtCreateCommand`). iOS has no create for a booking (guests
+  book), so there is none here.
+- Connecting a Google or Microsoft calendar opens the provider's consent in the default
+  browser (`BrowserHandOff`), where iOS uses an in-app Safari sheet; the providers refuse an
+  embedded web view and a Mac has no in-app browser. The calendar list re-reads when the
+  app becomes active again, where iOS re-reads when its sheet closes.
 - A `Toggle` that the iPad draws as a switch gets `.toggleStyle(.switch)`: the macOS
   default is a checkbox, which beside a row reads as "select this" (Workflows, the Desk's
   settings, and Account's availability row).
@@ -221,11 +241,14 @@ sentence about it (`MarketplaceCopy.purchaseElsewhere`) states the limit and nam
 purchase path iOS leaves out. The Mac additions are a Close button (Esc) on a number's
 sheet and Esc on a confirmation's Cancel; no submit there takes a shortcut.
 
-Scheduling gets the same rule with one documented exception: nothing under
-`Features/Scheduling` (its subfolders included) may open a URL except the hub's hand-off
-into our own scheduler, which opens exactly twice (leg 1 and the minted URL) from one
-function, and the booking link's `ShareLink` (a share picker, as iOS's share sheet).
-Scheduling is exempt from `StoreCopyTests`, as on iOS.
+Scheduling gets the same rule with the two exceptions iOS also takes out of the app (both
+into a Safari sheet there, the default browser here): nothing under `Features/Scheduling`
+(its subfolders included) may open a URL except the hub's hand-off into our own scheduler,
+which opens exactly twice (leg 1 and the minted URL) from one function, and the calendar
+connect, which opens the minted provider hand-off once. The booking link's `ShareLink` is
+allowed (a share picker, as iOS's share sheet), and so are three `URL(string:)` parses that
+open nothing. Nothing on the surface is a purchase. Scheduling is exempt from
+`StoreCopyTests`, as on iOS.
 
 The `StoreCopyTests` allowlist is iOS's minus the sign-in button's "Opens your browser"
 disclosure, which the Mac sign-in screen does not carry. Its file-count floor is a ratchet
@@ -309,7 +332,9 @@ one: the persona preview's "This Mac went to sleep, so the preview was ended.", 
 shape of its "A call arrived on this device" line.
 Wave 9 changes no words; its Mac-only strings are the scheduling tables'
 column headings, which are the web dashboard's (`BookingsTable`, `EventTypesTable`), and
-the recording player's "Done", which the call recording's player already says.
+the recording player's "Done", which the call recording's player already says. The ⌘N
+menu items reuse their buttons' titles. "Finish in the browser, then come back" (the
+calendar connect's note) is iOS's sentence and is true on the Mac as written.
 
 Mac-only copy (no iOS original) comes from district-linux where it has one, and is in the
 iOS sentences' shape otherwise (a room left because the Mac went to sleep): "Ring on this
@@ -318,3 +343,32 @@ here right now." line, and the ring window's "Incoming call" title. The app's ow
 notification uses the APNs alert's strings (`push.call.title` and `push.call.body`), so the
 two notifications a Mac can show for a call read the same. The device pickers say
 "Microphone", "Speaker", "System default" and "Not connected".
+
+## Parity checklist
+
+The sixteen sidebar sections against the iPad app, all copied from district-ios `4777c40`
+(Wave 9 completes the list). "Gaps" are the intentional differences recorded above; a
+section with none is the iPad's screen with only the adaptations in "How a file is adapted".
+
+| # | Section | Wave | Gaps (intentional) |
+|---|---|---|---|
+| 1 | Overview | 5 | The tab rows the Mac sidebar already offers are hidden (`hidingEntryPoints`), as on the iPad's sidebar. |
+| 2 | Inbox | 5 | A tapped message notification does not open its thread (push taps not ported). |
+| 3 | Calls | 5 | None (a sortable table where the iPad has rows). |
+| 4 | Contacts | 5 | None (a sortable table); the Video call row is Wave 6. |
+| 5 | District HQ | 7 | None. |
+| 6 | Analytics | 7 | None. |
+| 7 | Phone numbers | 8 | No purchase, as on iOS (Guideline 3.1.1); nothing opens a URL. |
+| 8 | Billing | 7 | Read-only, as on iOS (3.1.3(b)); nothing opens a URL, in both Mac builds. |
+| 9 | Rooms | 6 | No Flip camera and no speaker toggle (one camera, no earpiece); device pickers instead. |
+| 10 | Workflows | 7 | None. |
+| 11 | Desk | 7 | No "New ticket" entry point, as on iOS (unreachable there too). |
+| 12 | Dial | 6 | No CallKit; the emergency hand-off says "Use a phone to call for help." |
+| 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet; scheduling links (`SchedulingRoutingTests` `_01` to `_09`) wait for app links. |
+| 14 | Support | 7 | None (reporting a message or a call came in Wave 5). |
+| 15 | Workspace settings | 8 | The persona audition has no loudspeaker request (no earpiece). |
+| 16 | Account | 5 | "Ring on this computer" added (Wave 6); devices are Wave 5. |
+
+Across every section: no CallKit or VoIP push (the Mac rings over the telemetry socket while
+open), and app links and push taps do not open a section yet (see "Left out on purpose").
+

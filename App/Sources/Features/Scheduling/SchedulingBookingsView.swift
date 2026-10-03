@@ -263,12 +263,17 @@ struct SchedulingBookingsView: View {
 
     private let workspaceId: String
     private let role: WorkspaceRole?
+    private let admin: SchedulingAdminRepository
+
+    /// ⚠️ MAC: the table's selected booking, whose actions are drawn under the table.
+    @State private var selected: String?
 
     @Environment(\.colorScheme) private var colorScheme
 
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingBookingsModel(
             container: container,
             workspaceId: workspaceId
@@ -339,7 +344,10 @@ struct SchedulingBookingsView: View {
                 message: SchedulingCopy.bookingsEmptyBody(model.view)
             )
         } else {
-            SchedulingBookingsTable(workspaceId: workspaceId, role: role, rows: model.rows)
+            SchedulingBookingsTable(workspaceId: workspaceId, role: role, rows: model.rows, selection: $selected)
+            if let row = model.rows.first(where: { $0.id == selected }) {
+                actions(row)
+            }
             more
         }
     }
@@ -356,6 +364,35 @@ struct SchedulingBookingsView: View {
             }
             .buttonStyle(.districtSecondary)
             .disabled(model.loadingMore)
+        }
+    }
+
+    /// ⛔ THE iPad DRAWS THIS UNDER EVERY ROW; A MAC TABLE ROW CANNOT HOLD IT, so the
+    /// selected booking's bar is drawn under the table, headed by that booking's time.
+    /// It is the same ``SchedulingBookingWriteBar`` with the same two gates, and `.id`
+    /// gives each booking a fresh bar so no sheet state carries from one to the next.
+    ///
+    /// ⛔ TWO GATES, BOTH REQUIRED. `client` for the three ops, and `isActionable`
+    /// for the booking: it is judged on `end_at`, so a meeting that has started is
+    /// still cancellable and one that has finished is not. A cancelled booking
+    /// fails the same test on its status.
+    @ViewBuilder
+    private func actions(_ row: SchedulingBookingsModel.Row) -> some View {
+        if WorkspaceRole.allowsMutation(role), SchedulingBookingFormat.isActionable(row.booking) {
+            HStack(spacing: DistrictSpacing.row) {
+                Text(row.when)
+                    .font(DistrictType.labelSmall)
+                    .foregroundStyle(colors.mutedForeground)
+                SchedulingBookingWriteBar(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    booking: row.booking,
+                    timezone: model.timezone,
+                    mayReassign: model.schedulerIsAdmin,
+                    onChanged: reload
+                )
+            }
+            .id(row.id)
         }
     }
 

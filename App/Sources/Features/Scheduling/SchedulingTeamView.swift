@@ -131,6 +131,11 @@ final class SchedulingTeamModel {
 struct SchedulingTeamView: View {
     @State private var model: SchedulingTeamModel
 
+    /// ⚠️ HELD BESIDE THE MODEL RATHER THAN REACHED THROUGH IT. Every write sheet on
+    /// this screen builds its own model at the moment its control is pressed and
+    /// takes the repository directly; the read model keeps its own copy private,
+    /// which is the right default for a type whose job is the read.
+    private let admin: SchedulingAdminRepository
     private let workspaceId: String
     private let role: WorkspaceRole?
 
@@ -139,6 +144,7 @@ struct SchedulingTeamView: View {
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingTeamModel(
             container: container,
             workspaceId: workspaceId
@@ -147,6 +153,13 @@ struct SchedulingTeamView: View {
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
+    }
+
+    /// ⛔ `teams.*`, `teams.members.*` AND `users.archive` ARE ALL `client`-LEVEL, so
+    /// every control this screen adds is absent rather than disabled for a viewer,
+    /// the rule ``SchedulingEventTypesView`` states for its own create.
+    private var canManage: Bool {
+        WorkspaceRole.allowsMutation(role)
     }
 
     var body: some View {
@@ -218,6 +231,24 @@ struct SchedulingTeamView: View {
                 ),
                 trailing: { DistrictBadge(text: state.label, tone: state.kind.tone) }
             )
+            archive(row)
+        }
+    }
+
+    /// ⛔ OFFERED ONLY FOR A LIVE SCHEDULER ACCOUNT. Somebody with no scheduler row
+    /// (`.absent`) has nothing to archive, and an already-archived one answers a 404
+    /// the sheet would then have to explain, so the control is absent for both,
+    /// which is what ``SchedulingMemberRow/state`` is read for here.
+    @ViewBuilder
+    private func archive(_ row: SchedulingMemberRow) -> some View {
+        if canManage, row.state == .host, let userId = row.schedulerUserId {
+            SchedulingUserArchiveButton(
+                admin: admin,
+                workspaceId: workspaceId,
+                userId: userId,
+                userName: row.name,
+                onChanged: reload
+            )
         }
     }
 
@@ -243,6 +274,7 @@ struct SchedulingTeamView: View {
                         teamRow(team)
                     }
                 }
+                create
             }
         }
     }
@@ -257,6 +289,25 @@ struct SchedulingTeamView: View {
                 value: SchedulingCopy.memberCount(
                     SchedulingTeamFormat.teamMemberCount(team)
                 )
+            )
+            if canManage {
+                SchedulingTeamRowActions(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    team: team,
+                    onChanged: reload
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var create: some View {
+        if canManage {
+            SchedulingTeamCreateButton(
+                admin: admin,
+                workspaceId: workspaceId,
+                onChanged: reload
             )
         }
     }

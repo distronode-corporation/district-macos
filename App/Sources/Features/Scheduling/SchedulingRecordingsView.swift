@@ -206,10 +206,15 @@ struct SchedulingRecordingsView: View {
     /// ``SchedulingRecordingsModel``.
     private let role: WorkspaceRole?
 
+    private let admin: SchedulingAdminRepository
+    private let workspaceId: String
+
     @Environment(\.colorScheme) private var colorScheme
 
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.role = role
+        self.workspaceId = workspaceId
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingRecordingsModel(
             container: container,
             workspaceId: workspaceId
@@ -223,6 +228,16 @@ struct SchedulingRecordingsView: View {
     /// ⛔ `allowsMutation` FAILS CLOSED ON A ROLE THAT DID NOT PARSE, which is the correct
     /// direction for a control that takes a customer conversation off the platform.
     private var mayDownload: Bool {
+        WorkspaceRole.allowsMutation(role)
+    }
+
+    /// ⛔ THE SAME BAR AS THE DOWNLOAD AND NOT THE SAME QUESTION, WHICH IS WHY IT IS
+    /// SPELLED OUT RATHER THAN REUSED. `recordings.delete` and `recordings.deleteAll`
+    /// are `client`-level like the download, but they are NOT gated on `hasFile` or on
+    /// storage: a row whose object was never stored still has a database record, a
+    /// transcript and meeting notes, and removing it is exactly what somebody clearing
+    /// a tenancy is asking for.
+    private var mayDelete: Bool {
         WorkspaceRole.allowsMutation(role)
     }
 
@@ -283,6 +298,7 @@ struct SchedulingRecordingsView: View {
                 message: SchedulingCopy.recordingsEmptyBody
             )
         } else {
+            deleteAll
             ForEach(rows) { row in
                 SchedulingCard(eyebrow: row.when) {
                     SchedulingReadOnlyRow(label: SchedulingCopy.recordingWith, value: row.who)
@@ -318,6 +334,14 @@ struct SchedulingRecordingsView: View {
             }
             Button(SchedulingCopy.recordingConsent) { openConsent(row.id) }
                 .buttonStyle(.districtGhost)
+            if mayDelete {
+                SchedulingRecordingDeleteEntry(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    recordingId: row.id,
+                    onDeleted: reload
+                )
+            }
         }
         .accessibilityIdentifier(A11yID.Scheduling.recordingRow(row.id))
     }
@@ -350,6 +374,21 @@ struct SchedulingRecordingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// ⛔ ABSENT WHEN THERE IS NOTHING TO DELETE, AND THAT IS NOT COSMETIC. The bulk
+    /// delete is the most destructive control on this surface; offering it over an
+    /// empty list would put it on screen in the one state where pressing it can only
+    /// be a mistake.
+    @ViewBuilder
+    private var deleteAll: some View {
+        if mayDelete {
+            SchedulingRecordingDeleteAllButton(
+                admin: admin,
+                workspaceId: workspaceId,
+                onDeleted: reload
+            )
         }
     }
 

@@ -101,6 +101,47 @@ final class MacSchedulingTests: XCTestCase {
         )
     }
 
+    // MARK: - Command-N
+
+    /// ⛔ ⌘N RUNS THE CREATE THAT APPEARED LAST, and falls back to New Message when the
+    /// screen offering one goes away.
+    func test_MAC_SCHED_08_commandNRunsTheCreateOnScreen() {
+        let center = ShellCommandCenter()
+        XCTAssertNil(center.screenCreate)
+        var ran: [String] = []
+        let types = UUID()
+        let keys = UUID()
+        center.registerCreate(types, .init(title: SchedulingWriteCopy.createTitle) { ran.append("types") })
+        center.registerCreate(keys, .init(title: SchedulingWriteCopyC.keyCreate) { ran.append("keys") })
+        XCTAssertEqual(center.screenCreate?.title, "Create key")
+        center.screenCreate?.action()
+        center.unregisterCreate(keys)
+        XCTAssertEqual(center.screenCreate?.title, "Create event type")
+        center.screenCreate?.action()
+        center.unregisterCreate(types)
+        XCTAssertNil(center.screenCreate)
+        XCTAssertEqual(ran, ["keys", "types"])
+    }
+
+    /// ⚠️ THE MENU ITEM'S TITLE IS THE BUTTON'S OWN WORDS, and with no workspace there is none.
+    func test_MAC_SCHED_09_theMenuOffersTheCreateOnlyWithAWorkspace() {
+        let title = SchedulingWriteCopy.createTitle
+        let signedIn = ShellCommandAvailability(
+            workspaceId: "ws_1",
+            role: .client,
+            refreshAvailable: false,
+            screenCreateTitle: title
+        )
+        XCTAssertEqual(signedIn.screenCreateTitle, "Create event type")
+        let none = ShellCommandAvailability(
+            workspaceId: nil,
+            role: .client,
+            refreshAvailable: false,
+            screenCreateTitle: title
+        )
+        XCTAssertNil(none.screenCreateTitle)
+    }
+
     // MARK: - Fixtures
 
     private func booking(_ id: String, start: String, who: String) throws -> SchedulingBookingsModel.Row {

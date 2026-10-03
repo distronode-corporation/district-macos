@@ -38,6 +38,11 @@ Store and the direct download.
   Bookings and event types are tables you can sort by any column, and the week's hours
   are laid out as a week. "Open in browser" opens the scheduler in your browser, signed
   in.
+- Scheduling's editing, as on the iPad: cancel, reschedule or reassign a booking; create
+  and edit event types, their hosts and questions; set weekly hours and date overrides;
+  connect calendars; manage teams, recordings, branding, your profile and notifications,
+  API keys and webhooks. Command-N creates on the screen that offers it (an event type, a
+  team, a key or a webhook).
 - Menu commands: File > New Message (Command-N) and New Contact (Shift-Command-N),
   Edit > Search Messages (Command-F), View > Refresh (Command-R) and a Refresh button in
   the toolbar, and the Go menu follows the sidebar.

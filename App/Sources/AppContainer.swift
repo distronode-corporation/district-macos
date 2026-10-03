@@ -154,6 +154,14 @@ final class AppContainer {
     /// an `op` post: a download is a **302** to a presigned URL, an upload is multipart.
     let schedulingAdminMedia: SchedulingAdminMediaRepository
 
+    /// The scheduler hand-off whose 302 is read rather than followed, for the calendar
+    /// connect round trip (``SchedulingCalendarConnectModel``).
+    ///
+    /// ⚠️ IT SHARES THE ONE TRANSPORT AND THE ONE ``TokenRefreshCoordinator`` with ``api``:
+    /// a second transport would be a second redirect policy and a second coordinator a
+    /// second single-flight gate.
+    let schedulingSSO: SchedulingSSOClient
+
     /// Minting the scheduling hand-off URL.
     let schedulingHandoff: SchedulingHandoffClient
 
@@ -232,6 +240,7 @@ final class AppContainer {
         scheduling = SchedulingRepository(client: api)
         schedulingAdmin = Self.schedulingAdmin(client: api)
         schedulingAdminMedia = SchedulingAdminMediaRepository(client: api)
+        schedulingSSO = SchedulingSSOClient(baseURL: baseURL, transport: transport, accessToken: bearer)
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)
 

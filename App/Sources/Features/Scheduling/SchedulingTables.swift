@@ -97,9 +97,10 @@ struct SchedulingBookingsTable: View {
     let workspaceId: String
     let role: WorkspaceRole?
     let rows: [SchedulingBookingsModel.Row]
+    /// ⚠️ THE SCREEN'S, because the selected booking's actions are drawn under the table.
+    @Binding var selection: String?
 
     @State private var sortOrder: [KeyPathComparator<SchedulingBookingsTableRow>] = []
-    @State private var selection: String?
     @Environment(ShellNavigator.self) private var navigator: ShellNavigator?
 
     var body: some View {

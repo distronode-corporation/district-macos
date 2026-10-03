@@ -19,15 +19,18 @@ struct ShellCommandAvailability: Equatable {
     let workspaceResolved: Bool
     let canSend: Bool
     let refreshAvailable: Bool
+    /// The create a screen on display offers for ⌘N, by its button's title, or nil.
+    let screenCreateTitle: String?
     /// The sections the sidebar offers this role (``SidebarItem/entries(workspaceId:role:)``).
     let offered: Set<SidebarItem>
 
-    init(workspaceId: String?, role: WorkspaceRole?, refreshAvailable: Bool) {
+    init(workspaceId: String?, role: WorkspaceRole?, refreshAvailable: Bool, screenCreateTitle: String? = nil) {
         workspaceResolved = workspaceId != nil
         // ⛔ THE SAME GATE THE INBOX'S OWN "New" BUTTON AND THE SEND ITSELF USE, so the
         // shortcut can never offer a viewer the sheet the toolbar hides from them.
         canSend = WorkspaceRole.allowsMutation(role)
         self.refreshAvailable = refreshAvailable
+        self.screenCreateTitle = workspaceId == nil ? nil : screenCreateTitle
         offered = workspaceId.map { Set(SidebarItem.visible(workspaceId: $0, role: role)) } ?? []
     }
 
@@ -66,6 +69,7 @@ struct ShellCommandActions {
     let availability: ShellCommandAvailability
     let select: (SidebarItem) -> Void
     let newMessage: () -> Void
+    let screenCreate: () -> Void
     let newContact: () -> Void
     let search: () -> Void
     let refresh: () -> Void
@@ -106,9 +110,18 @@ struct DistrictCommands: Commands {
         #endif
 
         CommandGroup(replacing: .newItem) {
-            Button("New Message") { shell?.newMessage() }
-                .keyboardShortcut("n")
-                .disabled(!availability.canCompose)
+            // ⚠️ ⌘N IS THE CREATE OF THE SCREEN ON DISPLAY WHEN IT OFFERS ONE (titled with
+            // that button's own words), and New Message otherwise; see ``ShellCommandCenter``.
+            if let title = availability.screenCreateTitle {
+                Button(title) { shell?.screenCreate() }
+                    .keyboardShortcut("n")
+                Button("New Message") { shell?.newMessage() }
+                    .disabled(!availability.canCompose)
+            } else {
+                Button("New Message") { shell?.newMessage() }
+                    .keyboardShortcut("n")
+                    .disabled(!availability.canCompose)
+            }
             Button("New Contact") { shell?.newContact() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(!availability.canCreateContact)
@@ -162,7 +175,8 @@ extension View {
         let availability = ShellCommandAvailability(
             workspaceId: workspaceId,
             role: role,
-            refreshAvailable: center.canRefresh
+            refreshAvailable: center.canRefresh,
+            screenCreateTitle: center.screenCreate?.title
         )
         let select: (SidebarItem) -> Void = { item in
             guard availability.canSelect(item) else { return }
@@ -175,6 +189,9 @@ extension View {
                 guard availability.canCompose else { return }
                 select(.inbox)
                 center.composeRequested = true
+            },
+            screenCreate: {
+                center.screenCreate?.action()
             },
             newContact: {
                 guard availability.canCreateContact else { return }

@@ -65,24 +65,31 @@ final class MacBillingReadOnlyTests: XCTestCase {
     // MARK: - Scheduling
 
     /// ⛔ SCHEDULING KEEPS IN THE APP WHAT iOS KEEPS IN THE APP, and leaves it only where iOS
-    /// does. Every section, every booking and every recording is drawn here; the one way
-    /// out is the documented hand-off into our own scheduler (``SchedulingHubView``'s
-    /// "Open in browser", the S33 bound hand-off, which iOS opens in an in-app Safari sheet
-    /// and a Mac can only open in the default browser). Nothing on the surface is a
-    /// purchase, and no other control may hand a URL to the browser.
+    /// does. Every section, every booking and every recording is drawn and edited here; the
+    /// two ways out are the two iOS takes out of the app into a Safari sheet, which a Mac
+    /// can only open in the default browser: the hand-off into our own scheduler
+    /// (``SchedulingHubView``'s "Open in browser", S33) and the calendar provider's consent
+    /// screen (``SchedulingCalendarConnectSection``, a page the provider owns and refuses
+    /// to show in an embedded view). Nothing on the surface is a purchase, and no other
+    /// control may hand a URL to the browser.
     ///
     /// ⚠️ THE ALLOWANCES ARE PER FILE AND PER CALL, and each is a thing iOS also does: the
-    /// hand-off's two `NSWorkspace.open` calls, the booking link's `ShareLink` (a share
-    /// picker, as iOS's share sheet, and it carries our own booking page), and parsing the
-    /// presigned recording address for the in-app player.
+    /// hand-off's two `NSWorkspace.open` calls, the calendar connect's one `BrowserHandOff`,
+    /// the booking link's `ShareLink` (a share picker, as iOS's share sheet, and it carries
+    /// our own booking page), and three `URL(string:)` parses that open nothing (the
+    /// presigned recording address for the in-app player, the SSO route's `Location`, and
+    /// the branding form's check that a privacy or terms address is absolute).
     func test_MAC_BILLING_5_schedulingOpensOnlyTheDocumentedHandOff() throws {
         try assertNothingOpens(
             in: "Scheduling",
-            atLeast: 21,
+            atLeast: 90,
             "scheduling stays in the app except for the documented hand-off",
             allowing: [
                 "SchedulingHubView.swift": ["NSWorkspace", "ShareLink", "URL(string"],
                 "SchedulingRecordingsView.swift": ["URL(string"],
+                "SchedulingCalendarConnectSection.swift": ["BrowserHandOff"],
+                "SchedulingSSOClient.swift": ["URL(string"],
+                "SchedulingBrandingModel.swift": ["URL(string"],
             ]
         )
     }
@@ -98,6 +105,21 @@ final class MacBillingReadOnlyTests: XCTestCase {
             !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") && $0.contains("NSWorkspace.shared.open(")
         }
         XCTAssertEqual(opens.count, 2, "leg 1 and the minted URL, nothing else")
+    }
+
+    /// ⛔ THE CALENDAR CONNECT OPENS ONCE, FROM ITS CONNECT FUNCTION, and only what the SSO
+    /// route answered: a fresh single-use hand-off per press.
+    func test_MAC_BILLING_7_theCalendarConnectOpensOnceFromOnePlace() throws {
+        let file = Self.features.appendingPathComponent("Scheduling/Writes/SchedulingCalendarConnectSection.swift")
+        let lines = try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+        }
+        let opens = lines.filter { $0.contains("BrowserHandOff.open(") }
+        XCTAssertEqual(opens.count, 1)
+        XCTAssertTrue(
+            opens.first?.contains("BrowserHandOff.open(url)") == true,
+            "the minted URL, and nothing built here"
+        )
     }
 
     private static let features = URL(fileURLWithPath: #filePath)
