@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+#
+# Harness for release-preflight.sh, run against throwaway git repositories.
+#
+#   bash scripts/release-preflight.test.sh
+#
+# ⚠️ NO `set -e`: half of these cases assert a refusal.
+set -uo pipefail
+
+# ⛔ HERMETIC. The script falls back to GITHUB_REF_TYPE / GITHUB_REF_NAME, which are set
+# in every Actions job, so an ambient value would silently become the fixture.
+for _leaked in $(env 2>/dev/null | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' |
+  grep -E '^(RELEASE_|GITHUB_|ASC_|HIGHEST$|TRAIN$|BUILD_NUMBER_OFFSET$)'); do
+  unset "$_leaked"
+done
+
+HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT="$HERE/release-preflight.sh"
+PASS=0
+FAIL=0
+fail() {
+  FAIL=$((FAIL + 1))
+  echo "  x $1"
+}
+ok() {
+  PASS=$((PASS + 1))
+  echo "  . $1"
+}
+assert_contains() { case "$1" in *"$2"*) ok "$3" ;; *) fail "$3 - expected to find: $2 (got: $1)" ;; esac }
+assert_zero() { if [ "$1" = "0" ]; then ok "$2"; else fail "$2 - expected exit 0, got $1"; fi; }
+assert_nonzero() { if [ "$1" != "0" ]; then ok "$2"; else fail "$2 - expected a non-zero exit, got 0"; fi; }
+
+TMPROOT="$(mktemp -d)"
+trap 'rm -rf "$TMPROOT"' EXIT
+N=0
+REPO=""
+OUT=""
+RC=0
+
+# A repository with the script, a project.yml at VERSION with a real-shaped Sparkle key
+# (or the key given as the second argument), and three commits on main, origin/main
+# pointing at the tip.
+GOOD_KEY="2WeJT5IvJAjXbzYQufEbGBqNu5SSZ5B9to10em8H7QQ="
+new_repo() {
+  N=$((N + 1))
+  REPO="$TMPROOT/repo$N"
+  mkdir -p "$REPO/scripts"
+  cp "$SCRIPT" "$REPO/scripts/release-preflight.sh"
+  (
+    cd "$REPO" || exit 1
+    git init -q -b main
+    git config user.email harness@example.invalid
+    git config user.name harness
+    printf 'targets:\n  App:\n    info:\n      properties:\n        SUPublicEDKey: %s\n    settings:\n      base:\n        MARKETING_VERSION: "%s"\n' "${2:-$GOOD_KEY}" "$1" >project.yml
+    git add -A && git commit -qm one
+    git commit -q --allow-empty -m two
+    git commit -q --allow-empty -m three
+    git update-ref refs/remotes/origin/main HEAD
+  )
+}
+
+run() {
+  OUT="$(cd "$REPO" && env "$@" bash scripts/release-preflight.sh 2>&1)"
+  RC=$?
+}
+
+echo "release-preflight.sh"
+
+echo "1. main: the build number is 20000 plus the commit count"
+new_repo 1.3
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_zero "$RC" "main is accepted"
+assert_contains "$OUT" "version=1.3" "it reads MARKETING_VERSION"
+assert_contains "$OUT" "build=20003" "20000 + 3 commits"
+assert_contains "$OUT" "kind=main" "it names the kind"
+
+echo "2. GITHUB_OUTPUT is written, and the GITHUB_ ref is the default"
+new_repo 1.3
+: >"$TMPROOT/out$N"
+run GITHUB_REF_TYPE=branch GITHUB_REF_NAME=main GITHUB_OUTPUT="$TMPROOT/out$N"
+assert_zero "$RC" "the run's own ref is used when RELEASE_ is unset"
+assert_contains "$(cat "$TMPROOT/out$N")" "build=20003" "GITHUB_OUTPUT carries the build number"
+
+echo "3. BUILD_NUMBER_OFFSET replaces the offset"
+new_repo 1.3
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main BUILD_NUMBER_OFFSET=10
+assert_contains "$OUT" "build=13" "10 + 3"
+
+echo "4. refuses a branch other than main"
+new_repo 1.3
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=feature
+assert_nonzero "$RC" "a side branch is refused"
+assert_contains "$OUT" "'feature' is not main" "the message names the branch"
+
+echo "5. a tag matching MARKETING_VERSION on main is accepted"
+new_repo 1.3
+(cd "$REPO" && git tag v1.3)
+run RELEASE_REF_TYPE=tag RELEASE_REF_NAME=v1.3
+assert_zero "$RC" "v1.3 at 1.3 on main is accepted"
+assert_contains "$OUT" "kind=tag" "it names the kind"
+
+echo "6. refuses a tag that does not match MARKETING_VERSION"
+new_repo 1.3
+run RELEASE_REF_TYPE=tag RELEASE_REF_NAME=v1.4
+assert_nonzero "$RC" "v1.4 at 1.3 is refused"
+assert_contains "$OUT" "does not match MARKETING_VERSION '1.3'" "the message names both"
+
+echo "7. refuses a malformed tag"
+new_repo 1.3
+run RELEASE_REF_TYPE=tag 'RELEASE_REF_NAME=v1.3; echo pwned'
+assert_nonzero "$RC" "a tag that is not v<version> is refused"
+assert_contains "$OUT" "is not of the form" "the message says why"
+
+echo "8. refuses a tag whose commit is not on main"
+new_repo 1.3
+(
+  cd "$REPO" || exit 1
+  git checkout -q -b side
+  git commit -q --allow-empty -m side
+)
+run RELEASE_REF_TYPE=tag RELEASE_REF_NAME=v1.3
+assert_nonzero "$RC" "a commit off main is refused"
+assert_contains "$OUT" "not on main" "the message says why"
+
+echo "9. refuses when origin/main is missing"
+new_repo 1.3
+(cd "$REPO" && git update-ref -d refs/remotes/origin/main)
+run RELEASE_REF_TYPE=tag RELEASE_REF_NAME=v1.3
+assert_nonzero "$RC" "no origin/main is refused rather than assumed"
+assert_contains "$OUT" "origin/main is not in this clone" "the message says why"
+
+echo "10. refuses a shallow clone"
+new_repo 1.3
+SRC="$REPO"
+REPO="$TMPROOT/shallow$N"
+git clone -q --depth 1 "file://$SRC" "$REPO"
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "a shallow clone is refused"
+assert_contains "$OUT" "shallow clone" "the message says why"
+
+echo "11. refuses an unknown ref type and a missing or duplicated MARKETING_VERSION"
+new_repo 1.3
+run RELEASE_REF_TYPE=pull RELEASE_REF_NAME=main
+assert_nonzero "$RC" "an unknown ref type is refused"
+new_repo 1.3
+(cd "$REPO" && printf 'x: 1\n' >project.yml && git commit -qam none)
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "no MARKETING_VERSION is refused"
+new_repo 1.3
+(cd "$REPO" && printf '        MARKETING_VERSION: "1.4"\n' >>project.yml && git commit -qam two)
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "two MARKETING_VERSION lines are refused"
+
+echo "12. RELEASE_CHECK_UPLOADED refuses a build number App Store Connect already has"
+# A stand-in for asc_release.py that answers highest-build from HIGHEST and train-open
+# from TRAIN, and records every call, so no credential or network is involved.
+stub_asc() {
+  cat >"$REPO/scripts/asc_release.py" <<'STUB'
+import os, sys
+with open(os.environ["ASC_ARGS"], "a") as f:
+    f.write(" ".join(sys.argv[1:]) + "\n")
+if sys.argv[1] == "train-open":
+    if os.environ.get("TRAIN") == "closed":
+        sys.exit("FATAL - stub: the train is closed")
+    print("the train is open")
+    sys.exit(0)
+if os.environ.get("HIGHEST") == "fail":
+    sys.exit("FATAL - stub refused")
+print(os.environ["HIGHEST"])
+STUB
+}
+new_repo 1.3
+stub_asc
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main RELEASE_CHECK_UPLOADED=1 HIGHEST=20002 ASC_ARGS="$TMPROOT/args$N"
+assert_zero "$RC" "20003 above 20002 is accepted"
+assert_contains "$(cat "$TMPROOT/args$N")" "highest-build --version 1.3" "it asks for this version's builds"
+assert_contains "$(cat "$TMPROOT/args$N")" "train-open --version 1.3" "it asks whether the train is open"
+assert_contains "$OUT" "build=20003" "the outputs are still written"
+new_repo 1.3
+stub_asc
+(cd "$REPO" && git tag v1.3)
+run RELEASE_REF_TYPE=tag RELEASE_REF_NAME=v1.3 RELEASE_CHECK_UPLOADED=1 HIGHEST=20003 ASC_ARGS="$TMPROOT/args$N"
+assert_nonzero "$RC" "a tag of the commit main already uploaded as 20003 is refused"
+assert_contains "$OUT" "build 20003 of 1.3 is not above 20003" "the message names both numbers"
+new_repo 1.3
+stub_asc
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main RELEASE_CHECK_UPLOADED=1 HIGHEST=fail ASC_ARGS="$TMPROOT/args$N"
+assert_nonzero "$RC" "a failed App Store Connect read is a refusal, not a pass"
+new_repo 1.3
+stub_asc
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main RELEASE_CHECK_UPLOADED=1 HIGHEST= ASC_ARGS="$TMPROOT/args$N"
+assert_nonzero "$RC" "an empty answer is a refusal, not a pass"
+new_repo 1.3
+stub_asc
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main HIGHEST=9999 ASC_ARGS="$TMPROOT/args$N"
+assert_zero "$RC" "without RELEASE_CHECK_UPLOADED nothing is asked"
+if [ -e "$TMPROOT/args$N" ]; then fail "the stub was called without RELEASE_CHECK_UPLOADED"; else ok "the stub was not called"; fi
+
+echo "13. RELEASE_CHECK_UPLOADED refuses a closed train"
+new_repo 1.3
+stub_asc
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main RELEASE_CHECK_UPLOADED=1 HIGHEST=0 TRAIN=closed ASC_ARGS="$TMPROOT/args$N"
+assert_nonzero "$RC" "a version App Store Connect has closed is refused before the archive"
+assert_contains "$OUT" "will not take a build of 1.3" "the message says why"
+if grep -q '^build=' <<<"$OUT"; then fail "outputs were written for a closed train"; else ok "no outputs for a closed train"; fi
+
+echo "14. the Sparkle public key"
+new_repo 1.0 REPLACE_WITH_SPARKLE_PUBLIC_KEY
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "the scaffold's placeholder is refused"
+assert_contains "$OUT" "still the placeholder" "the message says why"
+new_repo 1.0 not-a-key
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "a value that is not a base64 Ed25519 key is refused"
+assert_contains "$OUT" "is not a base64 Ed25519 public key" "the message says why"
+new_repo 1.0
+(cd "$REPO" && sed -i.bak '/SUPublicEDKey/d' project.yml && rm project.yml.bak && git commit -qam nokey)
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "no SUPublicEDKey is refused"
+new_repo 1.0
+(cd "$REPO" && printf '        SUPublicEDKey: %s\n' "$GOOD_KEY" >>project.yml && git commit -qam twokeys)
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_nonzero "$RC" "two SUPublicEDKey lines are refused"
+new_repo 1.0
+run RELEASE_REF_TYPE=branch RELEASE_REF_NAME=main
+assert_zero "$RC" "the real key's shape is accepted"
+
+echo
+echo "passed $PASS, failed $FAIL"
+[ "$FAIL" -eq 0 ]

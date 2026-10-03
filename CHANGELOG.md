@@ -19,3 +19,5 @@ Store and the direct download.
 - Opening the scheduler's admin in your browser, already signed in.
 - Two builds of the same app: one for the Mac App Store, and one for direct download
   that updates itself with Sparkle.
+- In the direct download, Sign in with Apple is offered on the website's sign-in page
+  (beside Google and Microsoft) rather than as a button in the app.
