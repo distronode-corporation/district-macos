@@ -105,12 +105,14 @@ struct SchedulingHoursView: View {
 
     private let workspaceId: String
     private let role: WorkspaceRole?
+    private let admin: SchedulingAdminRepository
 
     @Environment(\.colorScheme) private var colorScheme
 
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingHoursModel(
             container: container,
             workspaceId: workspaceId
@@ -127,11 +129,32 @@ struct SchedulingHoursView: View {
             identifier: A11yID.Scheduling.hoursRoot,
             onRefresh: { await model.load() },
             content: {
+                writes
                 weekCard
                 overridesCard
             }
         )
         .task { await model.load() }
+    }
+
+    /// ⛔ `client`-LEVEL, BOTH OF THEM. Every `availability.*` write is on the
+    /// client side of ``SchedulingAdminOp/minRole``; a viewer reads the week and the
+    /// overrides and is offered no editor, rather than a disabled one.
+    ///
+    /// ⚠️ THE BAR IS DRAWN WHATEVER THE TWO READS CAME TO, unlike the event type
+    /// detail's. Both sheets re-read for themselves, the week editor's diff is
+    /// taken against ITS OWN load, never against this screen's, so a failed read
+    /// here says nothing about whether the editor can open.
+    @ViewBuilder
+    private var writes: some View {
+        if WorkspaceRole.allowsMutation(role) {
+            SchedulingHoursWriteBar(
+                admin: admin,
+                workspaceId: workspaceId,
+                today: SchedulingHoursFormat.todayInZone(model.timezone),
+                onChanged: reload
+            )
+        }
     }
 
     private var weekCard: some View {

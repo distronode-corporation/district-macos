@@ -41,6 +41,30 @@ final class ShellCommandCenter {
 
     private var refreshers: [(id: UUID, action: Refresh)] = []
 
+    /// A create action a screen on display offers, for ⌘N (``View/districtCreateCommand(_:action:)``).
+    struct Create {
+        /// The screen's own button title ("Create event type"), which the menu item takes.
+        let title: String
+        let action: @MainActor () -> Void
+    }
+
+    /// ⚠️ MAC ONLY, AND BY APPEARANCE, AS ⌘R IS: the create button that appeared last is
+    /// the one ⌘N runs. With none on screen, ⌘N is New Message.
+    private var creators: [(id: UUID, create: Create)] = []
+
+    var screenCreate: Create? {
+        creators.last?.create
+    }
+
+    func registerCreate(_ id: UUID, _ create: Create) {
+        creators.removeAll { $0.id == id }
+        creators.append((id, create))
+    }
+
+    func unregisterCreate(_ id: UUID) {
+        creators.removeAll { $0.id == id }
+    }
+
     /// ⚠️ ONE AT A TIME. A second ⌘R during a slow read would start a second read of the
     /// same list, and the models do not all guard against that themselves.
     private(set) var isRefreshing = false
@@ -77,6 +101,17 @@ extension View {
         modifier(CommandRefreshable(action: action))
     }
 
+    /// This create button's action on ⌘N while it is on screen.
+    ///
+    /// ⚠️ MAC ONLY. The iPad's keyboard commands stop at New Message; on the Mac a section
+    /// whose screen offers a create (Scheduling's event types, teams, keys and webhooks)
+    /// takes ⌘N while that button is on screen, and File > New Message keeps its place
+    /// without the shortcut. The button already carries the role gate (it is absent for a
+    /// role that may not create), so registering only while it is drawn is the gate.
+    func districtCreateCommand(_ title: String, action: @escaping @MainActor () -> Void) -> some View {
+        modifier(CreateCommand(create: ShellCommandCenter.Create(title: title, action: action)))
+    }
+
     /// Where ⇧⌘N lands: open Contacts' Add contact sheet. ⚠️ Consumed either way, like
     /// ⌘N, so a request this role cannot honour does not wait for one where it can.
     func contactCommandTarget(canCreate: Bool, creating: Binding<Bool>) -> some View {
@@ -103,6 +138,19 @@ private struct CommandRefreshable: ViewModifier {
             .refreshable { await action() }
             .onAppear { center?.register(id, action: action) }
             .onDisappear { center?.unregister(id) }
+    }
+}
+
+private struct CreateCommand: ViewModifier {
+    let create: ShellCommandCenter.Create
+
+    @Environment(ShellCommandCenter.self) private var center: ShellCommandCenter?
+    @State private var id = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { center?.registerCreate(id, create) }
+            .onDisappear { center?.unregisterCreate(id) }
     }
 }
 

@@ -161,6 +161,17 @@ struct SchedulingDeveloperView: View {
     @State private var model: SchedulingDeveloperModel
     @State private var openWebhook: String?
 
+    /// ⛔ THE THREE DESTRUCTIVE MODELS ARE OWNED BY THE SCREEN AND BUILT IN `init`,
+    /// NOT PER ROW. Each carries the row it is asking about, and each row's button
+    /// presents its dialog only while it is that row (see
+    /// ``SchedulingWriteConfirmationsC``); a per-row model would have no one place that
+    /// knows a prompt is already up. ⚠️ Each takes `onChanged` from the read model, which is
+    /// what re-reads the tab behind the prompt, without it a revoked key stays on screen.
+    @State private var keyRevoke: SchedulingAPIKeyRevokeModel
+    @State private var appRevoke: SchedulingOAuthConnectionRevokeModel
+    @State private var webhookDelete: SchedulingWebhookDeleteModel
+
+    private let admin: SchedulingAdminRepository
     private let workspaceId: String
     private let role: WorkspaceRole?
 
@@ -169,11 +180,37 @@ struct SchedulingDeveloperView: View {
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.workspaceId = workspaceId
         self.role = role
-        _model = State(initialValue: SchedulingDeveloperModel(container: container, workspaceId: workspaceId))
+        let admin = container.schedulingAdmin
+        self.admin = admin
+        let model = SchedulingDeveloperModel(container: container, workspaceId: workspaceId)
+        _model = State(initialValue: model)
+        let refresh: () -> Void = { Task { await model.reload() } }
+        _keyRevoke = State(initialValue: SchedulingAPIKeyRevokeModel(
+            repository: admin,
+            workspaceId: workspaceId,
+            onChanged: refresh
+        ))
+        _appRevoke = State(initialValue: SchedulingOAuthConnectionRevokeModel(
+            repository: admin,
+            workspaceId: workspaceId,
+            onChanged: refresh
+        ))
+        _webhookDelete = State(initialValue: SchedulingWebhookDeleteModel(
+            repository: admin,
+            workspaceId: workspaceId,
+            onChanged: refresh
+        ))
     }
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
+    }
+
+    /// ⛔ `webhooks.deliveries` IS `viewer`-LEVEL AND EVERY OTHER WRITE ON THIS SCREEN
+    /// IS `client`-LEVEL, which is the split the web makes too: "Deliveries" is always
+    /// there and the create, revoke, edit and delete beside it are not.
+    private var canManage: Bool {
+        WorkspaceRole.allowsMutation(role)
     }
 
     var body: some View {
@@ -248,6 +285,16 @@ extension SchedulingDeveloperView {
                         keyRow(key)
                     }
                 }
+                if let failure = keyRevoke.failure {
+                    SchedulingWriteFailureLine(failure: failure, onDismiss: keyRevoke.dismissFailure)
+                }
+                if canManage {
+                    SchedulingAPIKeyCreateButton(
+                        admin: admin,
+                        workspaceId: workspaceId,
+                        onChanged: reload
+                    )
+                }
             }
         }
     }
@@ -271,6 +318,9 @@ extension SchedulingDeveloperView {
                     )
                 )
             )
+            if canManage {
+                SchedulingAPIKeyRevokeButton(model: keyRevoke, key: key)
+            }
         }
     }
 
@@ -313,6 +363,9 @@ extension SchedulingDeveloperView {
                         appRow(app)
                     }
                 }
+                if let failure = appRevoke.failure {
+                    SchedulingWriteFailureLine(failure: failure, onDismiss: appRevoke.dismissFailure)
+                }
             }
         }
     }
@@ -327,6 +380,9 @@ extension SchedulingDeveloperView {
                     absent: SchedulingCopy.never
                 )
             )
+            if canManage {
+                SchedulingOAuthConnectionRevokeButton(model: appRevoke, connection: app)
+            }
         }
     }
 
@@ -350,6 +406,19 @@ extension SchedulingDeveloperView {
                         webhookRow(hook)
                     }
                 }
+                if let failure = webhookDelete.failure {
+                    SchedulingWriteFailureLine(
+                        failure: failure,
+                        onDismiss: webhookDelete.dismissFailure
+                    )
+                }
+                if canManage {
+                    SchedulingWebhookCreateButton(
+                        admin: admin,
+                        workspaceId: workspaceId,
+                        onChanged: reload
+                    )
+                }
             }
         }
     }
@@ -369,6 +438,15 @@ extension SchedulingDeveloperView {
                 .accessibilityIdentifier(
                     A11yID.row(A11yID.SchedulingDeveloperWrites.webhookDeliveries, hook.id)
                 )
+            if canManage {
+                SchedulingWebhookRowActions(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    webhook: hook,
+                    deleteModel: webhookDelete,
+                    onChanged: reload
+                )
+            }
             deliveries(hook.id)
         }
     }

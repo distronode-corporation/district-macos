@@ -113,6 +113,18 @@ final class SchedulingCalendarModel {
 struct SchedulingCalendarView: View {
     @State private var model: SchedulingCalendarModel
 
+    /// ⛔ OWNED BY THE SCREEN SO ONE PROMPT IS UP AT A TIME. The model holds the pending
+    /// connection and each row's dialog presents only for it; see
+    /// ``SchedulingWriteConfirmationsC``.
+    @State private var disconnect: SchedulingCalendarDisconnectModel
+    /// ⚠️ ONE PER SCREEN RATHER THAN ONE PER PROVIDER, because the hand-off URL it
+    /// mints is single-use and lives about sixty seconds: the model answers one and
+    /// stores none, so nothing is shared between two presses but the busy flag.
+    @State private var connect: SchedulingCalendarConnectModel
+
+    private let admin: SchedulingAdminRepository
+    private let workspaceId: String
+
     @Environment(\.colorScheme) private var colorScheme
 
     /// ⛔ THE ROLE IS TAKEN AND DELIBERATELY UNUSED, AND THAT IS NOT AN OVERSIGHT.
@@ -123,7 +135,23 @@ struct SchedulingCalendarView: View {
     /// ``SchedulingCalendarWriteEntry``.
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         _ = role
-        _model = State(initialValue: SchedulingCalendarModel(container: container, workspaceId: workspaceId))
+        self.workspaceId = workspaceId
+        let admin = container.schedulingAdmin
+        self.admin = admin
+        let model = SchedulingCalendarModel(container: container, workspaceId: workspaceId)
+        _model = State(initialValue: model)
+        let refresh: () -> Void = { Task { await model.load() } }
+        _disconnect = State(initialValue: SchedulingCalendarDisconnectModel(
+            repository: admin,
+            workspaceId: workspaceId,
+            onChanged: refresh
+        ))
+        _connect = State(initialValue: SchedulingCalendarConnectModel(
+            sso: container.schedulingSSO,
+            baseURL: container.baseURL,
+            workspaceId: workspaceId,
+            onChanged: refresh
+        ))
     }
 
     private var colors: DistrictColors {
@@ -176,7 +204,28 @@ struct SchedulingCalendarView: View {
                         calendars: model.calendars[connection.id]
                     )
                 )
+                SchedulingCalendarRowActions(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    connection: connection,
+                    disconnectModel: disconnect,
+                    onChanged: reload
+                )
             }
+        }
+    }
+
+    /// ⛔ THE WARNING IS DRAWN FROM THE ROW THAT WAS DELETED, NOT FROM THE RE-READ.
+    /// A tenancy left with no destination writes new bookings nowhere, and after the
+    /// status has been read again there is nothing left to ask, so the model records
+    /// it before the refresh and this says so afterwards.
+    @ViewBuilder
+    private var disconnectMessages: some View {
+        if let failure = disconnect.failure {
+            SchedulingWriteFailureLine(failure: failure, onDismiss: disconnect.dismissFailure)
+        }
+        if disconnect.removedDestination {
+            SchedulingWriteNoticeLine(message: SchedulingWriteCopyC.disconnectedLastDestination)
         }
     }
 
@@ -197,6 +246,13 @@ struct SchedulingCalendarView: View {
                     value: zoom.connected ? SchedulingCopy.connected : SchedulingCopy.notConnected
                 )
             }
+            SchedulingCalendarConnectSection(model: connect, status: status)
+            SchedulingCaldavConnectButton(
+                admin: admin,
+                workspaceId: workspaceId,
+                onChanged: reload
+            )
+            disconnectMessages
         }
     }
 

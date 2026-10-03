@@ -137,12 +137,19 @@ struct SchedulingEventTypeView: View {
 
     private let workspaceId: String
     private let role: WorkspaceRole?
+    private let admin: SchedulingAdminRepository
 
     @Environment(\.colorScheme) private var colorScheme
+
+    /// ⚠️ THE POP AFTER A DELETE. The route addresses this screen BY SLUG, so once
+    /// the row is gone there is nothing here to re-read, staying would show a
+    /// refusal the operator caused on purpose.
+    @Environment(\.dismiss) private var dismiss
 
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?, slug: String) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingEventTypeModel(
             container: container,
             workspaceId: workspaceId,
@@ -161,6 +168,7 @@ struct SchedulingEventTypeView: View {
             onRefresh: { await model.load() },
             content: {
                 details
+                writes
                 hosts
                 questions
             }
@@ -174,6 +182,27 @@ struct SchedulingEventTypeView: View {
     /// they are looking at while it loads.
     private var title: String {
         model.eventType.value?.name ?? model.slug
+    }
+
+    /// ⛔ BUILT FROM THE LOADED ROW AND FROM NOTHING ELSE. `eventTypes.hosts.put` is
+    /// a wholesale replace, so an editor opened over a `.failed` or `.loading` read
+    /// would save a list it never saw, the trap the read model's own header names.
+    /// `value` is nil in both those states, so the bar is simply absent.
+    ///
+    /// ⚠️ `client`-LEVEL, ALL FOUR. The form, the state actions, the hosts and the
+    /// questions are the same bar as the web's, and a viewer gets the inspector
+    /// without them.
+    @ViewBuilder
+    private var writes: some View {
+        if WorkspaceRole.allowsMutation(role), let item = model.eventType.value {
+            SchedulingEventTypeWriteBar(
+                admin: admin,
+                workspaceId: workspaceId,
+                eventType: item,
+                onChanged: reload,
+                onDeleted: { dismiss() }
+            )
+        }
     }
 
     private var details: some View {

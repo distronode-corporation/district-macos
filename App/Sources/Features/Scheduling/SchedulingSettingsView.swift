@@ -139,6 +139,10 @@ final class SchedulingSettingsModel {
 struct SchedulingSettingsView: View {
     @State private var model: SchedulingSettingsModel
 
+    /// ⚠️ THE MEDIA REPOSITORY IS HELD TOO, because the avatar, the logo and the
+    /// banner are multipart uploads on their own route rather than catalog ops.
+    private let admin: SchedulingAdminRepository
+    private let media: SchedulingAdminMediaRepository
     private let workspaceId: String
     private let role: WorkspaceRole?
 
@@ -147,6 +151,8 @@ struct SchedulingSettingsView: View {
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
+        media = container.schedulingAdminMedia
         _model = State(initialValue: SchedulingSettingsModel(
             container: container,
             workspaceId: workspaceId
@@ -155,6 +161,15 @@ struct SchedulingSettingsView: View {
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
+    }
+
+    /// ⛔ THIS GATES TWO OF THE FOUR TABS AND MUST NEVER GATE THE OTHER TWO.
+    /// Branding, storage, notetaker and LLM are `client`-level; `me.patch` and
+    /// `me.avatar.delete` are `viewer`-level, because they touch only the caller's
+    /// OWN profile, a viewer who cannot set their own timezone is offered every
+    /// booking window in the wrong hours.
+    private var canManage: Bool {
+        WorkspaceRole.allowsMutation(role)
     }
 
     var body: some View {
@@ -234,6 +249,15 @@ struct SchedulingSettingsView: View {
                         supported: branding.supportedLocales
                     )
                 )
+                if canManage {
+                    SchedulingBrandingEditButton(
+                        admin: admin,
+                        media: media,
+                        workspaceId: workspaceId,
+                        branding: branding,
+                        onSaved: reload
+                    )
+                }
             }
         }
     }
@@ -269,6 +293,16 @@ struct SchedulingSettingsView: View {
                         value: settings.llm.extraInstructions
                     )
                 }
+                if canManage {
+                    SchedulingAutomationEditButton(
+                        admin: admin,
+                        workspaceId: workspaceId,
+                        storage: settings.storage,
+                        notetaker: settings.notetaker,
+                        llm: settings.llm,
+                        onSaved: reload
+                    )
+                }
             }
         }
     }
@@ -294,6 +328,15 @@ struct SchedulingSettingsView: View {
                 SchedulingReadOnlyRow(
                     label: SchedulingCopy.profileDateFormat,
                     value: SchedulingSettingsFormat.dateFormatLabel(me.dateFormat)
+                )
+                // ⛔ UNGATED ON PURPOSE. `me.patch` and `me.avatar.delete` are
+                // `viewer`-level; see the ⛔ on ``canManage``.
+                SchedulingProfileEditButton(
+                    admin: admin,
+                    media: media,
+                    workspaceId: workspaceId,
+                    me: me,
+                    onSaved: reload
                 )
             }
         }
@@ -326,6 +369,14 @@ struct SchedulingSettingsView: View {
                     }
                 }
             }
+            // ⛔ UNGATED, FOR THE SAME REASON THE PROFILE TAB IS: these seven switches
+            // are the caller's own `me.patch`.
+            SchedulingNotificationsEditButton(
+                admin: admin,
+                workspaceId: workspaceId,
+                me: me,
+                onSaved: reload
+            )
         }
     }
 

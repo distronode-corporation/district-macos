@@ -137,11 +137,19 @@ struct SchedulingEventTypesView: View {
     private let workspaceId: String
     private let role: WorkspaceRole?
 
+    /// ⚠️ HELD BESIDE THE MODEL RATHER THAN REACHED THROUGH IT. The create sheet's
+    /// model is built at the moment the button is pressed and takes the repository
+    /// directly (see the ⛔ on ``SchedulingEventTypeEditorModel``); the read model
+    /// keeps its own copy private, which is the right default for a type whose job
+    /// is the read.
+    private let admin: SchedulingAdminRepository
+
     @Environment(\.colorScheme) private var colorScheme
 
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingEventTypesModel(
             container: container,
             workspaceId: workspaceId
@@ -158,7 +166,7 @@ struct SchedulingEventTypesView: View {
             title: SchedulingCopy.sectionTitle(.eventTypes),
             identifier: A11yID.Scheduling.eventTypesRoot,
             onRefresh: { await model.load() },
-            header: { EmptyView() },
+            header: { header },
             content: { content }
         )
         .task { await model.load() }
@@ -173,6 +181,37 @@ struct SchedulingEventTypesView: View {
             FailureView(failure: failure, onRetry: reload)
         case .ready:
             rows
+        }
+    }
+
+    /// ⚠️ MAC: THE CREATE BUTTON IS THE COLUMN'S HEADER, above the table, where the iPad
+    /// draws it above its rows; it is drawn only once the read is `.ready` (below).
+    @ViewBuilder
+    private var header: some View {
+        if case .ready = model.state {
+            create
+        }
+    }
+
+    /// ⛔ DRAWN ONLY ON `.ready`, AND NOT BECAUSE A BUTTON NEEDS A LIST TO SIT UNDER.
+    /// The editor refuses a slug the tenancy already holds, and the set it checks
+    /// against is the rows this screen loaded; offering a create over a FAILED read
+    /// would check the new slug against an empty set and let the server refuse it
+    /// instead, after the operator had filled the form in.
+    ///
+    /// ⚠️ GATED THE SAME WAY THE WEB GATES IT. `eventTypes.create` is `client`-level,
+    /// so the control is absent rather than disabled for a viewer, a greyed button
+    /// tells somebody a thing exists and that they are shut out of it, which on a
+    /// screen they can otherwise use fully is noise.
+    @ViewBuilder
+    private var create: some View {
+        if WorkspaceRole.allowsMutation(role) {
+            SchedulingEventTypeCreateButton(
+                admin: admin,
+                workspaceId: workspaceId,
+                takenSlugs: model.rows.map(\.slug),
+                onSaved: reload
+            )
         }
     }
 

@@ -130,12 +130,14 @@ struct SchedulingBookingDetailView: View {
 
     private let workspaceId: String
     private let role: WorkspaceRole?
+    private let admin: SchedulingAdminRepository
 
     @Environment(\.colorScheme) private var colorScheme
 
     init(container: AppContainer, workspaceId: String, role: WorkspaceRole?, bookingId: String) {
         self.workspaceId = workspaceId
         self.role = role
+        admin = container.schedulingAdmin
         _model = State(initialValue: SchedulingBookingDetailModel(
             container: container,
             workspaceId: workspaceId,
@@ -153,12 +155,45 @@ struct SchedulingBookingDetailView: View {
             identifier: A11yID.Scheduling.bookingDetailRoot,
             onRefresh: { await model.load() },
             content: {
+                writes
                 answers
                 notes
                 transcript
             }
         )
         .task { await model.load() }
+    }
+
+    /// The two writes this screen can address by id alone.
+    ///
+    /// ⛔ THE RESCHEDULE AND THE REASSIGN ARE NOT HERE, AND IT IS A MISSING READ
+    /// RATHER THAN A DECISION ABOUT PLACEMENT. `bookings.reschedule` needs the event
+    /// type's SLUG to ask for slots and `bookings.reassign` needs the current host to
+    /// leave out of the candidates; neither is carried by the three ops this screen
+    /// makes, and there is no op that fetches ONE booking. Both live on the list,
+    /// where `bookings.list` has already answered them, see
+    /// ``SchedulingBookingWriteBar``.
+    ///
+    /// ⚠️ `client`-LEVEL, BOTH. A viewer reads the answers, the notes and the
+    /// transcript and is offered neither control.
+    @ViewBuilder
+    private var writes: some View {
+        if WorkspaceRole.allowsMutation(role) {
+            SchedulingCard(eyebrow: SchedulingWriteCopy.manage) {
+                SchedulingBookingCancelButton(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    bookingId: model.bookingId,
+                    onChanged: reload
+                )
+                SchedulingBookingNotesEntry(
+                    admin: admin,
+                    workspaceId: workspaceId,
+                    bookingId: model.bookingId,
+                    onQueued: reload
+                )
+            }
+        }
     }
 
     private func reload() {
