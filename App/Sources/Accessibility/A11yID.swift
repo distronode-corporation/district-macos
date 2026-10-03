@@ -176,6 +176,8 @@ enum A11yID {
         static let signOut = "district-account-sign-out"
         /// ⛔ A FORBIDDEN SURFACE: starts an irreversible deletion.
         static let delete = "district-account-delete"
+        /// ⚠️ MAC ONLY: "Ring on this computer".
+        static let ringHere = "district-account-ring-here"
     }
 
     /// The workspace-settings hub. Mirrors Android's

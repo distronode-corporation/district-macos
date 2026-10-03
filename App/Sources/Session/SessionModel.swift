@@ -61,13 +61,20 @@ final class SessionModel {
     /// that can happen. See ``refreshPhase()`` and ``signOut()``.
     private let push: PushRegistrar
 
+    /// ⚠️ HELD TO ORDER THE RINGING SIDE OF A SIGN-OUT, for the reason ``push`` is: a live
+    /// call, the presence and the socket all end BEFORE the revoke. nil in a test that
+    /// builds no live session.
+    private let live: DesktopLive?
+
     init(
         container: AppContainer,
         push: PushRegistrar,
+        live: DesktopLive? = nil,
         selection: WorkspaceSelectionStore = WorkspaceSelectionStore()
     ) {
         self.container = container
         self.push = push
+        self.live = live
         self.selection = selection
     }
 
@@ -96,6 +103,9 @@ final class SessionModel {
         case let .reauthRequired(reason):
             phase = .signedOut(Self.text(for: reason))
             push.forget()
+            // ⚠️ NOTHING IS WITHDRAWN: the server ended the session, so there is no bearer
+            // left to do it with, and the presence lapses there within ten minutes.
+            live?.sessionEnded()
         case let .retryLater(reason):
             phase = .unavailable(Self.text(for: reason))
         }
@@ -177,7 +187,16 @@ final class SessionModel {
     func signOut() async {
         isBusy = true
         defer { isBusy = false }
-        await container.signOut(beforeRevoke: { await push.unregisterForSignOut() })
+        // ⛔ THE LIVE SIDE FIRST: a placed call's carrier hang-up, then the presence's own
+        // unregister (`PresenceController.signOut()`, which waits for a renewal already on
+        // its way so it cannot land after the unregister), then the alert token's. All three
+        // authenticate with the session the revoke is about to end. The two unregisters hit
+        // the same route (it withdraws every row this installation holds); the second is
+        // the existing, bounded alert-token path and costs one idempotent request.
+        await container.signOut(beforeRevoke: { [live, push] in
+            await live?.signOut()
+            await push.unregisterForSignOut()
+        })
         push.forget()
         selection.setSelectedWorkspaceId(nil)
         phase = .signedOut(SessionCopy.signedOut)

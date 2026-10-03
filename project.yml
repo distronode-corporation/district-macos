@@ -43,9 +43,9 @@ options:
     macOS: "14.0"
 
 packages:
-  # The shared core: DistrictModel, DistrictAuthCore, DistrictNetwork, DistrictData and
-  # DistrictCall, the Linux-tested half of both Swift apps. (2.0.0 also publishes
-  # DistrictLive, the desktop's live updates; it is linked when something uses it.)
+  # The shared core: DistrictModel, DistrictAuthCore, DistrictNetwork, DistrictData,
+  # DistrictCall and DistrictLive (the telemetry socket's state machine, the presence and
+  # the ring gate that make this Mac ring), the Linux-tested half of both Swift apps.
   # ⛔ PINNED TO ONE RELEASE, THE SAME ONE district-ios's project.yml NAMES. A core change
   # lands in district-core-swift, is tagged, and arrives here as a one-line bump.
   DistrictCore:
@@ -90,8 +90,10 @@ targetTemplates:
       - path: App/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:
-      # All five products, listed explicitly: the package publishes five libraries and
-      # no umbrella, so `- package: DistrictCore` alone would link nothing.
+      # All six products, listed explicitly: the package publishes six libraries and no
+      # umbrella, so `- package: DistrictCore` alone would link nothing. ⚠️ BOTH TARGETS
+      # get every one through this template; `DistrictLive` is the desktop half iOS does
+      # not link.
       - package: DistrictCore
         products:
           - DistrictModel
@@ -99,6 +101,7 @@ targetTemplates:
           - DistrictNetwork
           - DistrictData
           - DistrictCall
+          - DistrictLive
       - package: Sentry
         product: Sentry
       - package: LiveKit

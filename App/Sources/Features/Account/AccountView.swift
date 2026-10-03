@@ -66,10 +66,14 @@ struct AccountView: View {
     /// `.onOpenURL`-style test double can replace.
     @Environment(\.openURL) private var openURL
 
-    init(container: AppContainer, session: SessionModel, push: PushRegistrar) {
+    /// "Ring on this computer". ⚠️ MAC ONLY; see ``RingHereToggle``.
+    let live: DesktopLive
+
+    init(container: AppContainer, session: SessionModel, push: PushRegistrar, live: DesktopLive) {
         self.container = container
         self.session = session
         self.push = push
+        self.live = live
         _availability = State(initialValue: AvailabilityModel(container: container))
     }
 
@@ -82,6 +86,7 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: DistrictSpacing.section) {
                 deviceCard
                 availabilityCard
+                ringHereCard
                 accountCard
                 footer
             }
@@ -101,6 +106,19 @@ struct AccountView: View {
         // previous account's answer. See `SessionModel.epoch`.
         .task(id: session.epoch) {
             await availability.load()
+        }
+    }
+
+    // ── Ring on this computer ────────────────────────────────────────
+
+    /// ⚠️ MAC ONLY, AND BESIDE "Calls to you" ON PURPOSE: that card decides whether calls
+    /// are handed to this member at all, this one whether they ring on this computer.
+    /// Shown with no workspace too (the setting belongs to the computer).
+    private var ringHereCard: some View {
+        card(title: "This computer") {
+            RingHereToggle(live: live)
+                .padding(.horizontal, DistrictSpacing.gutter)
+                .padding(.vertical, DistrictSpacing.tight)
         }
     }
 

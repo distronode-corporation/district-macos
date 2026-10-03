@@ -27,6 +27,7 @@ struct ShellView: View {
     let container: AppContainer
     let session: SessionModel
     let push: PushRegistrar
+    let live: DesktopLive
 
     @State private var workspaceSession: WorkspaceSessionModel
     @State private var paths = ShellPaths()
@@ -35,10 +36,11 @@ struct ShellView: View {
     /// the same case differently.
     @State private var columns: NavigationSplitViewVisibility = .automatic
 
-    init(container: AppContainer, session: SessionModel, push: PushRegistrar) {
+    init(container: AppContainer, session: SessionModel, push: PushRegistrar, live: DesktopLive) {
         self.container = container
         self.session = session
         self.push = push
+        self.live = live
         _workspaceSession = State(initialValue: WorkspaceSessionModel(container: container))
     }
 
@@ -105,6 +107,13 @@ struct ShellView: View {
         .task(id: session.epoch) { await workspaceSession.load() }
         .onChange(of: workspaceSession.workspaceId, initial: true) {
             paths.adopt(workspaceSession.workspaceId)
+        }
+        // ⛔ THIS MAC RINGS FOR THE SELECTED WORKSPACE, and moves with it. See ``DesktopLive``.
+        .onChange(of: workspaceSession.workspaceId, initial: true) {
+            live.signedIn(
+                workspaceId: workspaceSession.workspaceId,
+                workspaceName: workspaceSession.selectedEntry?.name
+            )
         }
     }
 
@@ -232,7 +241,7 @@ struct ShellView: View {
     @ViewBuilder
     private func sectionRoot(_ item: SidebarItem) -> some View {
         if item == .account {
-            AccountView(container: container, session: session, push: push)
+            AccountView(container: container, session: session, push: push, live: live)
         } else {
             WorkspaceGate(workspaceSession: workspaceSession, onSignIn: signIn) { workspaceId in
                 workspaceSection(item, workspaceId: workspaceId)

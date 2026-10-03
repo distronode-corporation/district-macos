@@ -21,6 +21,12 @@ Store and the direct download.
 - The unread count on the Dock icon.
 - The sidebar offers what your role can open, as on the iPad, and marks read-only
   sections.
+- Calls handed to you ring on this Mac while the app is open: a small call window that
+  floats above other apps, a notification with Answer and Decline, and a ring. Answer
+  in either place joins the call; the call window has Mute and Hang up.
+- Ring on this computer, in Account and in Settings, on by default. Ringing stops while
+  the Mac sleeps, when the app quits and when you sign out, and starts again on wake.
+- Choose the microphone and speaker for calls, in the call window and in Settings.
 - Menu commands: File > New Message (Command-N) and New Contact (Shift-Command-N),
   Edit > Search Messages (Command-F), View > Refresh (Command-R) and a Refresh button in
   the toolbar, and the Go menu follows the sidebar.

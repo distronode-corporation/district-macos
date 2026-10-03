@@ -6,10 +6,24 @@ struct RootView: View {
     let container: AppContainer
     let session: SessionModel
     let push: PushRegistrar
+    let live: DesktopLive
+    let incoming: IncomingCallModel
 
     var body: some View {
         content
             .task { await session.refreshPhase() }
+            // ⛔ THE RING FOLLOWS THE SESSION GATE IN BOTH DIRECTIONS: a ring waiting on an
+            // unresolved session is resolved here, and a session that ends (or cannot be
+            // checked) stops this Mac ringing. The shell starts it again with a workspace.
+            .onChange(of: session.phase, initial: true) {
+                incoming.sessionChanged(session.phase)
+                switch session.phase {
+                case .signedOut, .unavailable:
+                    live.sessionEnded()
+                case .checking, .signedIn:
+                    break
+                }
+            }
             // ⛔ `districtai://handoff` IS TAKEN HERE AND HANDED TO THE ONE FLOW (S33); the
             // flow drops it unless it carries the state of the hand-off in flight.
             // ⚠️ `districtai://auth` never arrives here: `ASWebAuthenticationSession`
@@ -30,7 +44,7 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .signedIn:
-            ShellView(container: container, session: session, push: push)
+            ShellView(container: container, session: session, push: push, live: live)
                 .onAppear { push.enableAfterSignIn() }
 
         case let .signedOut(reason):
