@@ -7,9 +7,9 @@
 #     scripts/developer-id-keychain.sh setup <directory>
 #   scripts/developer-id-keychain.sh teardown <directory>
 #
-# Called by .github/workflows/release.yml's direct job. The certificate signs what cloud
-# signing cannot reach (the .dmg, which codesign signs with a private key on this
-# machine) and, when the cloud export fails, the export itself, with the profile.
+# Called by .github/workflows/release.yml's direct job. The certificate and the profile
+# sign the Developer ID export (cloud signing is refused for Developer ID with an App
+# Store Connect key; see scripts/archive.sh), and the certificate signs the .dmg.
 #
 # setup writes, under <directory> (mode 0700):
 #   release.keychain-db   a new keychain holding only the certificate and its key,

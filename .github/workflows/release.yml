@@ -4,7 +4,8 @@ name: Release
 #
 #   - `appstore`: the Mac App Store build, signed and uploaded to App Store Connect, from
 #     which TestFlight's internal group receives every valid build.
-#   - `direct`: the Developer ID build, notarised, stapled, in a signed and notarised
+#   - `direct`: the Developer ID build, signed with the team's Developer ID certificate
+#     and provisioning profile, notarised, stapled, in a signed and notarised
 #     .dmg with its Sparkle signature, checksums and a provenance attestation, kept as
 #     this run's workflow artifact. Nothing is published: no GitHub Release, no appcast.
 #
@@ -250,15 +251,19 @@ jobs:
           echo "$RUNNER_TEMP/bin" >>"$GITHUB_PATH"
           "$RUNNER_TEMP/bin/sentry-cli" --version
 
-      # ⛔ CLOUD SIGNING FIRST, BEFORE ANY CERTIFICATE IS ON THIS MACHINE, so that a
-      # success is cloud signing and not the keychain. Developer ID cloud signing is
-      # not available to every App Store Connect key; when the export is refused, the
-      # next two steps sign it with the certificate and the profile instead. The
-      # summary names the route that signed this build.
-      - name: Archive and export (cloud signing)
-        id: cloud
+      # ⛔ THE CERTIFICATE AND THE PROFILE, NOT CLOUD SIGNING. Developer ID cloud signing
+      # is refused to the App Store Connect key ("Cloud signing permission error", run
+      # 37107124829), and the .dmg is signed by codesign on this machine anyway, which
+      # needs the certificate's private key here.
+      - name: Developer ID certificate and profile
+        env:
+          GSM_ACCESS_TOKEN: ${{ steps.gcp.outputs.access_token }}
+        run: |
+          scripts/developer-id-keychain.sh setup "$RUNNER_TEMP/devid"
+          cat "$RUNNER_TEMP/devid/devid.env" >>"$GITHUB_ENV"
+
+      - name: Archive and export
         timeout-minutes: 75
-        continue-on-error: true
         env:
           GSM_ACCESS_TOKEN: ${{ steps.gcp.outputs.access_token }}
           KIND: ${{ steps.preflight.outputs.kind }}
@@ -276,46 +281,9 @@ jobs:
           fi
           unset GSM_ACCESS_TOKEN
           if [ "$KIND" = "tag" ]; then export ALLOW_BRANCH=1; fi
-          LANE=direct DIRECT_SIGNING=cloud BUILD_DIR="$RUNNER_TEMP/build" scripts/archive.sh 2>&1 | tee "$RUNNER_TEMP/archive.log"
+          LANE=direct BUILD_DIR="$RUNNER_TEMP/build" scripts/archive.sh 2>&1 | tee "$RUNNER_TEMP/archive.log"
           grep -qx "build number: $EXPECTED_BUILD" "$RUNNER_TEMP/archive.log" || {
             echo "::error::the archive did not report build number $EXPECTED_BUILD"
-            exit 1
-          }
-
-      # A fresh token: the archive alone can outlast the first one's hour.
-      - name: Authenticate to Google Cloud (certificate)
-        id: gcp_cert
-        uses: ./.github/actions/release-auth # zizmor: ignore[self-repository]
-
-      # ⛔ ALWAYS, whichever route signed the export: the .dmg is signed by codesign on
-      # this machine, which needs the certificate's private key here.
-      - name: Developer ID certificate and profile
-        env:
-          GSM_ACCESS_TOKEN: ${{ steps.gcp_cert.outputs.access_token }}
-        run: |
-          scripts/developer-id-keychain.sh setup "$RUNNER_TEMP/devid"
-          cat "$RUNNER_TEMP/devid/devid.env" >>"$GITHUB_ENV"
-
-      # Only when cloud signing was refused, and only once the archive exists: an archive
-      # that failed to build fails here too, rather than being retried.
-      - name: Export (manual signing)
-        id: manual
-        if: steps.cloud.outcome == 'failure'
-        timeout-minutes: 20
-        env:
-          KIND: ${{ steps.preflight.outputs.kind }}
-          EXPECTED_BUILD: ${{ steps.preflight.outputs.build }}
-        run: |
-          set -euo pipefail
-          grep -q 'ARCHIVE SUCCEEDED' "$RUNNER_TEMP/archive.log" || {
-            echo "::error::the archive itself failed, so there is nothing to export"
-            exit 1
-          }
-          echo "::warning::Developer ID cloud signing was refused; exporting with the certificate and profile $DIRECT_PROFILE_NAME."
-          if [ "$KIND" = "tag" ]; then export ALLOW_BRANCH=1; fi
-          LANE=direct DIRECT_SIGNING=manual SKIP_ARCHIVE=1 BUILD_DIR="$RUNNER_TEMP/build" scripts/archive.sh 2>&1 | tee "$RUNNER_TEMP/export.log"
-          grep -qx "build number: $EXPECTED_BUILD" "$RUNNER_TEMP/export.log" || {
-            echo "::error::the export did not report build number $EXPECTED_BUILD"
             exit 1
           }
 
@@ -326,7 +294,7 @@ jobs:
           BUILD: ${{ steps.preflight.outputs.build }}
         run: BUILD_DIR="$RUNNER_TEMP/build" scripts/direct-package.sh
 
-      # A fresh token again: notarising twice can outlast the second one.
+      # A fresh token: the archive and two notarisations can outlast the first one's hour.
       - name: Authenticate to Google Cloud (Sparkle)
         id: gcp_sparkle
         uses: ./.github/actions/release-auth # zizmor: ignore[self-repository]
@@ -358,13 +326,11 @@ jobs:
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
           BUILD: ${{ steps.preflight.outputs.build }}
-          CLOUD: ${{ steps.cloud.outcome }}
         run: |
-          if [ "$CLOUD" = "success" ]; then route="cloud signing (App Store Connect key)"; else route="manual signing (certificate and profile $DIRECT_PROFILE_NAME)"; fi
           {
             echo "### District AI for Mac $VERSION ($BUILD), Developer ID"
             echo
-            echo "Signed with $route, notarised and stapled; the .dmg is signed, notarised and stapled too."
+            echo "Signed with $DIRECT_IDENTITY and the profile $DIRECT_PROFILE_NAME, notarised and stapled; the .dmg is signed, notarised and stapled too."
             echo
             echo '```'
             cat "$RUNNER_TEMP/build/out/SHA256SUMS"
@@ -377,7 +343,7 @@ jobs:
         if: always()
         run: |
           scripts/developer-id-keychain.sh teardown "$RUNNER_TEMP/devid"
-          rm -rf "$RUNNER_TEMP/release" "$RUNNER_TEMP/build" "$RUNNER_TEMP/archive.log" "$RUNNER_TEMP/export.log"
+          rm -rf "$RUNNER_TEMP/release" "$RUNNER_TEMP/build" "$RUNNER_TEMP/archive.log"
 
   # The one submission path, submit.yml, called here rather than copied: it checks the
   # approval again, checks out the tag and runs scripts/release-submit.sh.

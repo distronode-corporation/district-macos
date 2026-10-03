@@ -185,6 +185,10 @@ targetTemplates:
         GENERATE_INFOPLIST_FILE: "NO"
         # ⛔ Required for notarisation (the Developer ID build) and accepted by the store.
         ENABLE_HARDENED_RUNTIME: "YES"
+        # ⛔ App Store Connect refuses a Mac app without an icon that has a 512 pt @2x
+        # image ("Missing required icon" at the export). `App/Resources/Assets.xcassets`
+        # holds every Mac size, drawn from the iOS app's artwork on Apple's 824 pt grid.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # ⛔ BLANK, AND BLANK MEANS SENTRY IS OFF. Never put the real DSN here.
         SENTRY_DSN: ""
         CODE_SIGN_STYLE: Automatic
