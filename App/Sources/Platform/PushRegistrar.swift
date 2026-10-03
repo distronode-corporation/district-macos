@@ -57,9 +57,9 @@ final class PushRegistrar {
 
     /// APNs issued (or re-issued) this Mac's token. Sent as `{token, platform:"macos"}`.
     func deviceTokenReceived(_ token: String) {
-        let registration = container.pushRegistration
+        let repository = container.pushTokens
         Task {
-            self.registration = await Self.status(for: registration.register(token: token))
+            self.registration = await Self.status(for: repository.register(token: token))
         }
     }
 

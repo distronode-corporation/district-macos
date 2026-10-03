@@ -18,7 +18,7 @@ import Foundation
 @MainActor
 final class WebAuthLoginController: NSObject {
     /// ⛔ BYTE-FOR-BYTE THE SERVER'S NATIVE REDIRECT ALLOWLIST, compared literally twice.
-    static let redirectURI = "districtai://auth"
+    nonisolated static let redirectURI = "districtai://auth"
 
     /// The scheme half of ``redirectURI``: no `://`, no path.
     static let callbackScheme = "districtai"
@@ -28,7 +28,7 @@ final class WebAuthLoginController: NSObject {
     private static let authorizePath = "/auth/native"
 
     private let baseURL: URL
-    private let exchange: MacNativeAuthExchange
+    private let exchange: AppNativeAuthClient
     private let coordinator: TokenRefreshCoordinator
     private let deviceId: String
     private let deviceName: String?
@@ -41,7 +41,7 @@ final class WebAuthLoginController: NSObject {
 
     init(
         baseURL: URL,
-        exchange: MacNativeAuthExchange,
+        exchange: AppNativeAuthClient,
         coordinator: TokenRefreshCoordinator,
         deviceId: String,
         deviceName: String?
@@ -129,6 +129,27 @@ final class WebAuthLoginController: NSObject {
 
     // MARK: - Leg two
 
+    /// The code exchange's request, as this app sends it.
+    ///
+    /// ⛔ `clientPlatform: .macos`, STATED HERE AND NOWHERE ELSE. The core defaults it to
+    /// `.ios`, so a request built without it lists this Mac as an iPhone in Devices.
+    /// `MacClientPlatformTests` pins the body this builds as `"platform":"macos"`.
+    nonisolated static func codeExchangeRequest(
+        code: String,
+        verifier: String,
+        deviceId: String,
+        deviceName: String?
+    ) -> CodeExchangeRequest {
+        CodeExchangeRequest(
+            code: code,
+            codeVerifier: verifier,
+            redirectUri: redirectURI,
+            deviceId: deviceId,
+            deviceName: deviceName,
+            clientPlatform: .macos
+        )
+    }
+
     /// Validate the callback and exchange its code.
     ///
     /// ⛔ `state` IS CHECKED BEFORE THE CODE IS SPENT: a callback this app never initiated
@@ -153,15 +174,13 @@ final class WebAuthLoginController: NSObject {
             return .denied("missing_code")
         }
 
-        let request = CodeExchangeRequest(
+        let request = Self.codeExchangeRequest(
             code: code,
-            codeVerifier: attempt.verifier,
-            redirectUri: Self.redirectURI,
+            verifier: attempt.verifier,
             deviceId: deviceId,
             deviceName: deviceName
         )
 
-        // ⚠️ THROUGH THE MAC SHIM, which sends `platform: "macos"`. See MacPlatformShims.
         switch await exchange.exchangeCode(request) {
         case let .success(tokens):
             // ⛔ THE COORDINATOR ADOPTS, NOTHING ELSE WRITES.

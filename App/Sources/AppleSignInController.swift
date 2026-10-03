@@ -1,5 +1,6 @@
 import AuthenticationServices
 import DistrictAuthCore
+import DistrictNetwork
 import Foundation
 
 /// The Sign in with Apple door (App Store Review Guideline 4.8). Ported from district-ios.
@@ -12,7 +13,7 @@ import Foundation
 /// the same ``LoginOutcome``.
 @MainActor
 final class AppleSignInController {
-    private let authExchange: MacNativeAuthExchange
+    private let authExchange: AppNativeAuthClient
     private let coordinator: TokenRefreshCoordinator
     private let deviceId: String
     private let deviceName: String?
@@ -20,7 +21,7 @@ final class AppleSignInController {
     private(set) var pending: AppleNonce?
 
     init(
-        exchange: MacNativeAuthExchange,
+        exchange: AppNativeAuthClient,
         coordinator: TokenRefreshCoordinator,
         deviceId: String,
         deviceName: String?
@@ -64,13 +65,12 @@ final class AppleSignInController {
             return .denied("apple_no_identity_token")
         }
 
-        // ⚠️ THROUGH THE MAC SHIM, which sends `platform: "macos"`. See MacPlatformShims.
-        let result = await authExchange.exchangeAppleIdentityToken(
+        let result = await authExchange.exchangeAppleIdentityToken(Self.signInRequest(
             identityToken: token,
             nonce: nonce.raw,
             deviceId: deviceId,
             deviceName: deviceName
-        )
+        ))
         switch result {
         case let .success(tokens):
             await coordinator.adopt(tokens, deviceId: deviceId)
@@ -84,6 +84,27 @@ final class AppleSignInController {
         case .transportFailure:
             return .unreachable
         }
+    }
+
+    /// The Apple exchange's request, as this app sends it.
+    ///
+    /// ⛔ `platform: .macos`, STATED HERE AND NOWHERE ELSE. The core defaults it to `.ios`,
+    /// so a request built without it lists this Mac as an iPhone in Devices.
+    /// `MacClientPlatformTests` pins the body this builds as `"platform":"macos"`.
+    /// ⚠️ `nonce` is the RAW value, never the hashed one Apple's request carried.
+    nonisolated static func signInRequest(
+        identityToken: String,
+        nonce: String,
+        deviceId: String,
+        deviceName: String?
+    ) -> AppleNativeSignInRequest {
+        AppleNativeSignInRequest(
+            identityToken: identityToken,
+            nonce: nonce,
+            deviceId: deviceId,
+            deviceName: deviceName,
+            platform: .macos
+        )
     }
 
     /// ⚠️ A user cancel is benign; any other authorization error carries its code so a

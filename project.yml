@@ -44,15 +44,16 @@ options:
 
 packages:
   # The shared core: DistrictModel, DistrictAuthCore, DistrictNetwork, DistrictData and
-  # DistrictCall, the Linux-tested half of both Swift apps.
+  # DistrictCall, the Linux-tested half of both Swift apps. (2.0.0 also publishes
+  # DistrictLive, the desktop's live updates; it is linked when something uses it.)
   # ⛔ PINNED TO ONE RELEASE, THE SAME ONE district-ios's project.yml NAMES. A core change
   # lands in district-core-swift, is tagged, and arrives here as a one-line bump.
   DistrictCore:
     url: https://github.com/distronode-corporation/district-core-swift
-    exactVersion: 1.0.0
+    exactVersion: 2.0.0
   # ⛔ LINKED BY NOTHING, DECLARED ONLY TO PIN IT. swift-crypto takes swift-asn1 by range,
   # so without this root-level constraint Xcode resolves the newest one on a cache miss.
-  # 1.7.3 is what district-core-swift 1.0.0's Package.resolved records. Bump with the core.
+  # 1.7.3 is what district-core-swift 2.0.0's Package.resolved records. Bump with the core.
   swift-asn1:
     url: https://github.com/apple/swift-asn1.git
     exactVersion: 1.7.3

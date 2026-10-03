@@ -2,7 +2,7 @@ import DistrictData
 import Foundation
 
 /// ``PushTokenMemory`` over `UserDefaults`, ported from district-ios. Everything decided
-/// FROM the value lives in the core's `PushTokenRepository` and in ``MacPushRegistration``.
+/// FROM the value lives in the core's `PushTokenRepository`.
 ///
 /// ⚠️ The VoIP pair exists because the protocol requires it. The Mac has no PushKit and
 /// never registers a VoIP token, so those two keys stay empty.

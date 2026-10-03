@@ -3,7 +3,7 @@ import Foundation
 
 /// A transport that records every request and answers from a queue of canned replies.
 ///
-/// ⚠️ AN EMPTY QUEUE THROWS rather than hanging, so a shim that sends a request its test
+/// ⚠️ AN EMPTY QUEUE THROWS rather than hanging, so code that sends a request its test
 /// did not expect fails on an assertion instead of a timeout.
 final class RecordingTransport: HTTPTransport, @unchecked Sendable {
     enum Failure: Error {

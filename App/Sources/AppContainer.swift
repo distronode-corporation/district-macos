@@ -34,12 +34,10 @@ final class AppContainer {
     let overview: OverviewRepository
     let devices: DevicesRepository
 
-    /// The core's push repository, used for `unregister()` and `forgetRegistration()`
-    /// only: neither names a platform. Registering goes through ``pushRegistration``.
+    /// The core's push repository, registering this Mac's ALERT token with
+    /// `platform: "macos"`, unregistering it and forgetting it on sign-out. Built by
+    /// ``pushTokenRepository(client:memory:)``.
     let pushTokens: PushTokenRepository
-
-    /// Registering this Mac's APNs token with `platform: "macos"` (MacPlatformShims).
-    let pushRegistration: MacPushRegistration
 
     /// Minting the scheduling hand-off URL.
     let schedulingHandoff: SchedulingHandoffClient
@@ -84,33 +82,35 @@ final class AppContainer {
         workspaces = WorkspaceRepository(client: api)
         overview = OverviewRepository(client: api)
         devices = DevicesRepository(client: api)
-        let memory = UserDefaultsPushTokenMemory()
-        pushTokens = PushTokenRepository(client: api, memory: memory)
-        // ⚠️ THE SAME `transport`, BEARER AND MEMORY, so the shim and the core repository
-        // agree on what was registered and the shim never holds a second credential path.
-        pushRegistration = MacPushRegistration(
-            baseURL: baseURL,
-            transport: transport,
-            accessToken: bearer,
-            memory: memory
-        )
+        pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)
 
-        let exchange = MacNativeAuthExchange(baseURL: baseURL, transport: transport)
         login = WebAuthLoginController(
             baseURL: baseURL,
-            exchange: exchange,
+            exchange: auth,
             coordinator: coordinator,
             deviceId: deviceId,
             deviceName: deviceName
         )
         appleLogin = AppleSignInController(
-            exchange: exchange,
+            exchange: auth,
             coordinator: coordinator,
             deviceId: deviceId,
             deviceName: deviceName
         )
+    }
+
+    /// The push repository, as this app registers with it.
+    ///
+    /// ⛔ `platform: .macos`, STATED HERE AND NOWHERE ELSE. The core defaults it to `.ios`,
+    /// which would route this Mac's pushes as an iOS device. `MacClientPlatformTests` pins
+    /// the register body as `{"token", "platform":"macos"}`, with no `kind`: the alert
+    /// token is the only push this Mac registers here (presence, `kind: "desktop"`, is
+    /// `DistrictLive`'s), and the server refuses `voip` from a Mac, so
+    /// ``PushTokenRepository/registerVoip(token:)`` is never called.
+    nonisolated static func pushTokenRepository(client: ApiClient, memory: any PushTokenMemory) -> PushTokenRepository {
+        PushTokenRepository(client: client, memory: memory, platform: .macos)
     }
 
     /// Sign out, on the server and locally.

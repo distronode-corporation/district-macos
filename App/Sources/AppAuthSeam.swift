@@ -10,10 +10,11 @@ import Foundation
 /// supply them. A mapping function written here would put a security-relevant status
 /// map on the one tier with no Linux tests.
 ///
-/// ⚠️ ONLY ``NativeAuthClient/refresh(refreshToken:)`` AND
-/// ``NativeAuthClient/revoke(refreshToken:)`` ARE USED ON THE MAC. Its two sign-in
-/// exchanges hard-code `platform: "ios"`; the Mac sends `"macos"` through
-/// ``MacNativeAuthExchange`` until the core takes a platform parameter (Wave 2).
+/// ⛔ ITS TWO SIGN-IN EXCHANGES SEND WHATEVER PLATFORM THE REQUEST NAMES, AND THE CORE
+/// DEFAULTS IT TO `.ios`. The Mac builds both requests in one place each,
+/// ``WebAuthLoginController/codeExchangeRequest(code:verifier:deviceId:deviceName:)``
+/// and ``AppleSignInController/signInRequest(identityToken:nonce:deviceId:deviceName:)``,
+/// with `.macos`.
 typealias AppNativeAuthClient = NativeAuthClient<NativeTokenResponse, RefreshResult, RevokeOutcome>
 extension NativeTokenResponse: NativeAuthTokenWire {}
 

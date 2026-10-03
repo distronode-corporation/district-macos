@@ -49,10 +49,10 @@ when it can live there and in `App/Tests` when it cannot.
 `App/Direct`, which only `DistrictMacDirect` compiles. Shared code that needs to know
 which build it is in checks `#if DEVELOPER_ID`.
 
-**One platform shim, and it is temporary.** Requests that name the client platform are
-built in `App/Sources/MacPlatformShims.swift` with `"macos"`, because the core still
-hard-codes `"ios"`. Do not add a second one; it is deleted when the core takes a platform
-parameter.
+**Every request that names the client platform says `.macos`.** The core's clients take a
+`ClientPlatform` that defaults to `.ios`, so a request built without one lists this Mac as
+an iPhone. Each such request is built in one place in the app, with `.macos`, and
+`App/Tests/MacClientPlatformTests.swift` pins its bytes: a new one gets a test there.
 
 ## Pull requests
 
