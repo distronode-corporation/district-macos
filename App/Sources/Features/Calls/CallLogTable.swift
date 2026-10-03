@@ -79,33 +79,36 @@ struct CallLogTable: View {
                     .accessibilityIdentifier(A11yID.Calls.row(row.id))
                     .onAppear { reached(row, in: rows) }
             }
-            .width(min: 110, ideal: 140)
+            .width(min: 120, ideal: 120)
             TableColumn("Direction", value: \.direction) { row in
                 Text(row.direction)
             }
-            .width(min: 64, ideal: 72)
+            .width(min: 66, ideal: 66)
             TableColumn("When", value: \.instant) { row in
                 Text(row.display.time)
                     .monospacedDigit()
             }
             // ⚠️ WIDE ENOUGH FOR THE WHOLE STAMP ("Sep 30, 2026 at 12:59 PM"), which a narrower
             // column truncated to the hour at the default window width. The other columns
-            // give up the room, so the five still fit the list column's ideal width.
-            .width(min: 175, ideal: 180)
+            // give up the room, so the five fit the list column's minimum width
+            // (``ShellView``), with no horizontal scroll.
+            .width(min: 172, ideal: 172)
             TableColumn("Duration", value: \.seconds) { row in
                 Text(row.display.durationLabel ?? "")
                     .monospacedDigit()
             }
-            .width(min: 56, ideal: 60)
+            .width(min: 56, ideal: 56)
+            // ⚠️ MAC: A TRANSFER OUTCOME STACKS OVER THE STATUS rather than beside it, so the
+            // column is one badge wide and a two-badge row grows a line instead of scrolling.
             TableColumn("Status", value: \.status) { row in
-                HStack(spacing: DistrictSpacing.hairline) {
+                VStack(alignment: .leading, spacing: 2) {
                     if let transfer = row.display.transferLabel {
                         DistrictBadge(text: transfer, tone: row.display.transferTone)
                     }
                     DistrictBadge(text: row.display.statusLabel, tone: row.display.statusTone)
                 }
             }
-            .width(min: 90, ideal: 110)
+            .width(min: 92, ideal: 92)
         }
         .contextMenu(forSelectionType: String.self) { ids in
             menu(for: ids)

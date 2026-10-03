@@ -11,6 +11,7 @@ import Foundation
 /// line where a date should be reads as missing data.
 enum WireDate {
     private static let style = Date.FormatStyle(date: .abbreviated, time: .shortened)
+    private static let dayStyle = Date.FormatStyle(date: .abbreviated, time: .omitted)
 
     /// - Parameter zone: the zone to read the instant in. nil is the device's; a
     ///   scheduling surface passes the operator's profile zone instead.
@@ -20,5 +21,12 @@ enum WireDate {
         var zoned = style
         zoned.timeZone = zone
         return date.formatted(zoned)
+    }
+
+    /// The day alone (`Sep 12, 2026`), in the device's zone, for a column too narrow for the
+    /// minute. ⚠️ Falls back to the raw string, as ``display(_:in:)`` does.
+    static func displayDay(_ raw: String) -> String {
+        guard let date = WireInstant.parse(raw) else { return raw }
+        return date.formatted(dayStyle)
     }
 }

@@ -50,6 +50,24 @@ Store and the direct download.
 ### Changed
 
 - Both builds are now named District AI.app.
+- The sidebar stays on screen in every section (it vanished in Inbox, Calls, Contacts,
+  Desk and Support), with a sidebar button in the toolbar and View > Show Sidebar /
+  Hide Sidebar (Control-Command-S); your choice is kept as you move between sections.
+- The call log and contacts tables show every column without scrolling sideways, at the
+  default window size and at the smallest; the open row beside them gives way instead.
+  A contact's badges sit under the name, and the Added column shows the day.
+- Inbox, Support and recent-activity rows put their badges under the text when they do
+  not fit beside it, so names and dates read in full.
+- A caller known only by number, or with no caller ID, shows a person glyph rather than
+  "+" or a dot.
+- Ring on this computer, and the update check in Settings, are switches like every other
+  setting.
+- Rooms no longer offers "Read the minutes" for a meeting with no minutes.
+- The booking page's Share button matches Copy link beside it.
+- Devices names each platform properly (macOS, iOS, Android, Linux) and shows when a
+  device was last active as a date.
+- A screen opened from one list section (a contact opened from a call) no longer stays
+  beside another section's list.
 
 - The app's first scaffold: a sidebar with all sixteen sections of the iPad app, sign-in
   through the website or with Apple, the Overview, and the Account page with this

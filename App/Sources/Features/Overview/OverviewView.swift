@@ -352,6 +352,8 @@ private struct ActivityRow: View {
         DistrictListRow(
             title: displayName ?? "No caller ID",
             subtitle: subtitle,
+            // ⚠️ MAC: THE WHEN MUST READ IN FULL, so the pills go underneath before it truncates.
+            subtitleMustFit: true,
             // ⛔ LABELLED SLOTS, or this is `ambiguous use of 'init'`, see the ⛔
             // above the constrained initialisers in `DistrictListRow.swift`.
             leading: { avatar },

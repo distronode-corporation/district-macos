@@ -12,6 +12,25 @@ import SwiftUI
 /// and gets the whole detail column. A `NavigationSplitView`'s column count is fixed when
 /// it is built, and hiding the middle column has no public API.
 ///
+/// ⛔ ON A MAC THE SWAP COSTS TWO THINGS, both seen in Sean's first build (20019) and both
+/// measured on the live `NSSplitView` and `NSToolbar` (PORTING.md, "The sidebar on a Mac"):
+///
+/// - **The sidebar's visibility means different columns in the two.** The shell reset it
+///   to `.automatic` on every change of column count, and on macOS `.automatic` is
+///   `.doubleColumn`, which in three columns is content and detail with NO sidebar: every
+///   list section opened without one. The shell now stores the person's choice and
+///   ``ShellColumns`` translates it for each split view.
+/// - **The window keeps one `NSToolbar` across the swap**, and the split view's own sidebar
+///   button does not survive it: after the first swap it was an empty 10pt item. So the
+///   system button is removed and the shell draws its own (``sidebarToggle``), and View >
+///   Show Sidebar (⌃⌘S) is the shell's command, not `SidebarCommands`, whose action has to
+///   find the split view controller through the responder chain.
+///
+/// The obvious alternative, one two-column split view with the list and the open row in
+/// an `HSplitView`, was built and measured and fails: the split view adopts any
+/// `NavigationStack` in its detail column, so a screen pushed in the open row covered the
+/// list, and one pushed in Account stayed on screen in the next list section.
+///
 /// ⛔ `navigationDestination(for: Route.self)` IS REGISTERED ONCE PER STACK, ON THE DETAIL
 /// COLUMN'S STACK, AND NEVER IN THE SIDEBAR OR THE CONTENT COLUMN. See
 /// ``RouteDestinations``.
@@ -32,9 +51,11 @@ struct ShellView: View {
     @State private var workspaceSession: WorkspaceSessionModel
     @State private var paths = ShellPaths()
     @State private var commands = ShellCommandCenter()
-    /// ⚠️ RESET WHENEVER THE COLUMN COUNT CHANGES, as on the iPad: the two split views read
-    /// the same case differently.
-    @State private var columns: NavigationSplitViewVisibility = .automatic
+    /// Whether the sidebar is on screen: the person's choice, kept across sections (and, as
+    /// scene storage, across a relaunch that restores the window).
+    ///
+    /// ⛔ STORED AS A CHOICE AND NEVER RESET BY A CHANGE OF SECTION. See the type.
+    @SceneStorage("shell.sidebarShown") private var sidebarShown = true
 
     /// - Parameter paths: where the shell opens. ⚠️ The Overview with empty stacks in the app;
     ///   a test opens a section directly.
@@ -82,7 +103,7 @@ struct ShellView: View {
         let rows = entries
         Group {
             if item.isListSection, let workspaceId {
-                NavigationSplitView(columnVisibility: $columns) {
+                NavigationSplitView(columnVisibility: columns(threeColumns: true)) {
                     sidebar(rows, showing: item)
                 } content: {
                     listColumn(item, workspaceId: workspaceId)
@@ -90,15 +111,19 @@ struct ShellView: View {
                     listDetail(item)
                 }
             } else {
-                NavigationSplitView(columnVisibility: $columns) {
+                NavigationSplitView(columnVisibility: columns(threeColumns: false)) {
                     sidebar(rows, showing: item)
                 } detail: {
                     sectionDetail(item)
                 }
             }
         }
-        .onChange(of: item.isListSection) { columns = .automatic }
+        // ⛔ THE SYSTEM'S SIDEBAR BUTTON IS REMOVED (on the sidebar, ``sidebar(_:showing:)``)
+        // AND THIS ONE STANDS IN. See the type.
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                sidebarToggle
+            }
             // ⚠️ THE MAC'S STAND-IN FOR PULL-TO-REFRESH: the same registered action as ⌘R
             // (``ShellCommandCenter``), disabled while no screen on display has one.
             ToolbarItem(placement: .primaryAction) {
@@ -110,7 +135,13 @@ struct ShellView: View {
             }
         }
         .navigationSubtitle(workspaceSession.selectedEntry?.name ?? "")
-        .shellCommands(commands, paths: $paths, workspaceId: workspaceId, role: role)
+        .shellCommands(
+            commands,
+            paths: $paths,
+            sidebarShown: $sidebarShown,
+            workspaceId: workspaceId,
+            role: role
+        )
         // ⚠️ RE-READ ON EVERY SIGN-IN (`epoch`), so a second account never sees the first
         // one's workspace list.
         .task(id: session.epoch) { await workspaceSession.load() }
@@ -136,6 +167,10 @@ struct ShellView: View {
             }
         }
         .listStyle(.sidebar)
+        // ⛔ THE SPLIT VIEW'S OWN BUTTON DOES NOT SURVIVE THE SWAP between the two split
+        // views (an empty 10pt item after the first one); ``sidebarToggle`` replaces it.
+        // ⚠️ BEFORE THE WIDTH: after it, the width was lost and the sidebar drew at 140pt.
+        .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(min: 200, ideal: 220)
     }
 
@@ -145,12 +180,29 @@ struct ShellView: View {
             get: { item },
             set: { next in
                 guard let next else { return }
-                if next.isListSection != shown.isListSection {
-                    columns = .automatic
-                }
                 paths.select(next)
             }
         )
+    }
+
+    /// A split view's visibility, read from and written to the one stored choice.
+    ///
+    /// ⚠️ SwiftUI WRITES IT when the sidebar's divider is dragged shut or open.
+    private func columns(threeColumns: Bool) -> Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: { ShellColumns.visibility(sidebarShown: sidebarShown, threeColumns: threeColumns) },
+            set: { sidebarShown = ShellColumns.sidebarShown(after: $0, threeColumns: threeColumns) }
+        )
+    }
+
+    /// The toolbar's sidebar button: the system's glyph and words, and the same command as
+    /// View > Show Sidebar (⌃⌘S).
+    private var sidebarToggle: some View {
+        let title = ShellColumns.commandTitle(sidebarShown: sidebarShown)
+        return Button(title, systemImage: "sidebar.left") {
+            withAnimation { sidebarShown.toggle() }
+        }
+        .help(title)
     }
 
     // ── List sections: the list, and the open row beside it ──────────────────
@@ -163,8 +215,10 @@ struct ShellView: View {
     ///
     /// ⚠️ WIDER FOR A TABLE. Calls and Contacts are sortable tables (a Mac idiom the iPad
     /// does not have), which need room for their columns; the Inbox keeps the iPad's rows.
+    /// The widths are ``ListColumnWidth``'s.
     private func listColumn(_ item: SidebarItem, workspaceId: String) -> some View {
         let selection = listSelection(item)
+        let width = ListColumnWidth.of(item)
         return Group {
             switch item {
             case .inbox:
@@ -178,44 +232,55 @@ struct ShellView: View {
                     pushSignal: 0,
                     selection: selection
                 )
-                .navigationSplitViewColumnWidth(min: 300, ideal: 400)
             case .calls:
                 CallLogView(container: container, workspaceId: workspaceId, selection: selection)
-                    .navigationSplitViewColumnWidth(min: 460, ideal: 640)
             case .contacts:
                 ContactsView(container: container, workspaceId: workspaceId, role: role, selection: selection)
-                    .navigationSplitViewColumnWidth(min: 460, ideal: 640)
             case .desk:
                 DeskView(container: container, workspaceId: workspaceId, role: role, selection: selection)
-                    .navigationSplitViewColumnWidth(min: 340, ideal: 440)
             case .support:
                 SupportView(container: container, workspaceId: workspaceId, role: role, selection: selection)
-                    .navigationSplitViewColumnWidth(min: 340, ideal: 440)
             default:
                 // ⚠️ UNREACHABLE: the five list sections are the five arms above.
                 Color.clear
             }
         }
         .districtBackground()
+        .navigationSplitViewColumnWidth(min: width.min, ideal: width.ideal)
     }
 
     /// The detail column: the open row as the root of its own stack, or the placeholder.
     ///
-    /// ⛔ `.id(first)` GIVES EACH SELECTED ROW A FRESH STACK: the root screens seed their
-    /// models once per view identity.
-    @ViewBuilder
+    /// ⛔ THE IDENTITY IS THE SECTION AND THE ROW, SO EACH SELECTED ROW GETS A FRESH STACK:
+    /// the root screens seed their models once per view identity.
+    ///
+    /// ⛔ AND THE PLACEHOLDER IS IN A STACK TOO. When the column's stack gave way to a bare
+    /// placeholder, a screen pushed in it stayed on display: a contact opened from a call
+    /// was still beside the Contacts table, and the Support list (measured in a real window
+    /// on main; the split view keeps the stack it adopted while the replacement is not a
+    /// stack). One stack replaced by another is fine, which is what this does.
     private func listDetail(_ item: SidebarItem) -> some View {
-        if let first = ListDetailPath.selection(in: paths.path(for: item)) {
-            NavigationStack(path: tail(for: item)) {
-                destination(first)
-                    .navigationDestination(for: Route.self) { destination($0) }
+        listDetailContent(item)
+            // ⚠️ THE COLUMN THAT GIVES WAY at the window minimum, so a table never scrolls.
+            .navigationSplitViewColumnWidth(min: ListColumnWidth.detailMin, ideal: 480)
+    }
+
+    @ViewBuilder
+    private func listDetailContent(_ item: SidebarItem) -> some View {
+        let first = ListDetailPath.selection(in: paths.path(for: item))
+        NavigationStack(path: tail(for: item)) {
+            Group {
+                if let first {
+                    destination(first)
+                } else if let placeholder = item.detailPlaceholder {
+                    DetailPlaceholder(title: placeholder.title, symbol: placeholder.symbol)
+                        .districtBackground()
+                }
             }
-            .shellNavigator(tail(for: item))
-            .id(first)
-        } else if let placeholder = item.detailPlaceholder {
-            DetailPlaceholder(title: placeholder.title, symbol: placeholder.symbol)
-                .districtBackground()
+            .navigationDestination(for: Route.self) { destination($0) }
         }
+        .shellNavigator(tail(for: item))
+        .id(ListDetailIdentity(section: item, row: first))
     }
 
     private func listSelection(_ item: SidebarItem) -> Binding<Route?> {
@@ -280,8 +345,8 @@ struct ShellView: View {
             .hidingEntryPoints()
         // ⛔ A LIST SECTION IS NEVER BUILT HERE. It reaches this whole-column layout only
         // while the workspace list is loading (the three-column one needs a workspace),
-        // and the gate's content appears in the same update that flips the shell back to
-        // three columns. Building the section here too made a second, short-lived screen
+        // and the gate's content appears in the same update that flips the shell to three
+        // columns. Building the section here too made a second, short-lived screen
         // whose `.task` ran as well: every list reload (a workspace switch, a new sign-in)
         // read the Desk or Support twice (the other three have no root route and flashed
         // the placeholder instead). `MacListSectionLoadTests`.
@@ -412,4 +477,10 @@ private extension OverviewView {
         copy.showsEntryPoints = false
         return copy
     }
+}
+
+/// The open row's stack identity: a fresh stack for every section and every row.
+private struct ListDetailIdentity: Hashable {
+    let section: SidebarItem
+    let row: Route?
 }

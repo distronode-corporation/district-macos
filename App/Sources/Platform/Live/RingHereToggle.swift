@@ -13,8 +13,16 @@ struct RingHereToggle: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.tight) {
-            Toggle(DesktopLiveCopy.settingLabel, isOn: binding)
-                .accessibilityIdentifier(A11yID.Account.ringHere)
+            // ⚠️ A SWITCH, LIKE EVERY OTHER SETTING IN THE APP (Account's "Calls to you", the
+            // Settings window's update check): the macOS default is a checkbox, which beside the
+            // availability switch read as a different kind of control. The label takes the
+            // width so the switch sits at the trailing edge, as that row's does.
+            Toggle(isOn: binding) {
+                Text(DesktopLiveCopy.settingLabel)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .toggleStyle(.switch)
+            .accessibilityIdentifier(A11yID.Account.ringHere)
             Text(DesktopLiveCopy.settingBody)
                 .font(DistrictType.caption)
                 .foregroundStyle(DistrictColors.resolve(colorScheme).mutedForeground)
