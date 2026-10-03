@@ -33,6 +33,12 @@ final class ShellCommandCenter {
     /// ⌘F was pressed and the Inbox has not focused its search field yet.
     var searchRequested = false
 
+    /// ⇧⌘N was pressed and Contacts has not opened its Add contact sheet yet.
+    ///
+    /// ⚠️ MAC ONLY. The iPad's keyboard commands stop at New Message; on the Mac every
+    /// create action a section has gets a File menu item, and Contacts is the other one.
+    var createContactRequested = false
+
     private var refreshers: [(id: UUID, action: Refresh)] = []
 
     /// ⚠️ ONE AT A TIME. A second ⌘R during a slow read would start a second read of the
@@ -69,6 +75,12 @@ extension View {
     /// exactly `.refreshable`.
     func districtRefreshable(_ action: @escaping ShellCommandCenter.Refresh) -> some View {
         modifier(CommandRefreshable(action: action))
+    }
+
+    /// Where ⇧⌘N lands: open Contacts' Add contact sheet. ⚠️ Consumed either way, like
+    /// ⌘N, so a request this role cannot honour does not wait for one where it can.
+    func contactCommandTarget(canCreate: Bool, creating: Binding<Bool>) -> some View {
+        modifier(ContactCommandTarget(canCreate: canCreate, creating: creating))
     }
 
     /// Where ⌘N and ⌘F land: open the compose sheet, focus the search field.
@@ -131,6 +143,25 @@ private struct CommandTargets: ViewModifier {
             content.searchFocused($searchFocused)
         } else {
             content
+        }
+    }
+}
+
+private struct ContactCommandTarget: ViewModifier {
+    let canCreate: Bool
+    @Binding var creating: Bool
+
+    @Environment(ShellCommandCenter.self) private var center: ShellCommandCenter?
+
+    func body(content: Content) -> some View {
+        // ⛔ `initial: true`, FOR THE REASON ``CommandTargets`` GIVES: the selection that
+        // builds Contacts and the request arrive in one update.
+        content.onChange(of: center?.createContactRequested == true, initial: true) { _, requested in
+            guard requested else { return }
+            center?.createContactRequested = false
+            if canCreate {
+                creating = true
+            }
         }
     }
 }

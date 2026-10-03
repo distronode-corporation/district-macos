@@ -26,7 +26,9 @@ struct DistrictMacApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(container: container, session: session, push: push)
-                .frame(minWidth: 820, minHeight: 520)
+                // ⚠️ WIDE ENOUGH FOR A LIST SECTION'S THREE COLUMNS: the sidebar, a sortable
+                // table (Calls, Contacts) and the open row beside it.
+                .frame(minWidth: 1000, minHeight: 560)
                 // ⚠️ On EVERY launch, signed in or not: a sign-out whose revoke failed
                 // last time is retried here.
                 .task { await container.drainPendingRevoke() }

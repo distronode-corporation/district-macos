@@ -71,6 +71,19 @@ final class ShellCommandsTests: XCTestCase {
         XCTAssertTrue(SidebarItem.allCases.allSatisfy(agency.canSelect))
     }
 
+    /// ⛔ ⇧⌘N (New Contact) FOLLOWS CONTACTS' OWN GATE: no workspace, a viewer or an
+    /// unparsed role cannot add one.
+    func test_MAC_COMMANDS_02_newContactFollowsTheContactsGate() {
+        let roles: [WorkspaceRole?] = WorkspaceRole.allCases.map(\.self) + [nil]
+        for role in roles {
+            let availability = ShellCommandAvailability(workspaceId: "ws_1", role: role, refreshAvailable: false)
+            XCTAssertEqual(availability.canCreateContact, WorkspaceRole.allowsMutation(role), String(describing: role))
+        }
+        XCTAssertFalse(ShellCommandAvailability.unavailable.canCreateContact)
+        XCTAssertFalse(ShellCommandAvailability(workspaceId: nil, role: .agency, refreshAvailable: false)
+            .canCreateContact)
+    }
+
     // MARK: - Which screen ⌘R refreshes
 
     /// ⛔ THE SCREEN THAT APPEARED LAST, and the one under it once that one has gone.

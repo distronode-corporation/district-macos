@@ -41,6 +41,24 @@ final class AppContainer {
     let callHandling: CallHandlingRepository
 
     let overview: OverviewRepository
+
+    let calls: CallsRepository
+
+    let contacts: ContactsRepository
+
+    /// Who this account has blocked.
+    ///
+    /// ⛔ THE ONLY MUTABLE OBSERVABLE ON THIS CONTAINER, AND IT IS HERE RATHER THAN IN AN
+    /// `@Environment` BECAUSE SEVERAL SCREENS IN THREE SECTIONS READ IT: the screen that
+    /// performs a block (a thread) and the one that must stop showing it (the Inbox list)
+    /// hold different models. ⚠️ A cache, not an authority. See the type.
+    let blockedContacts: BlockedContactsStore
+
+    let inbox: InboxRepository
+
+    /// This workspace's own support requests WITH DISTRONODE. Wave 5 uses it only for
+    /// reporting a message or a call (`ReportContentModel`); the Support section is Wave 7.
+    let support: SupportRepository
     let devices: DevicesRepository
 
     /// The core's push repository, registering this Mac's ALERT token with
@@ -91,6 +109,12 @@ final class AppContainer {
         workspaces = WorkspaceRepository(client: api)
         callHandling = CallHandlingRepository(client: api)
         overview = OverviewRepository(client: api)
+        calls = CallsRepository(client: api)
+        contacts = ContactsRepository(client: api)
+        // ⚠️ FROM THE ONE `contacts` ABOVE, never a fresh repository.
+        blockedContacts = BlockedContactsStore(contacts: contacts)
+        inbox = InboxRepository(client: api)
+        support = SupportRepository(client: api)
         devices = DevicesRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
         schedulingHandoff = SchedulingHandoffClient(client: api)

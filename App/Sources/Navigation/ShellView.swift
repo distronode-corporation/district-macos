@@ -75,7 +75,6 @@ struct ShellView: View {
                     sidebar(rows, showing: item)
                 } content: {
                     listColumn(item, workspaceId: workspaceId)
-                        .navigationSplitViewColumnWidth(min: 280, ideal: 340)
                 } detail: {
                     listDetail(item)
                 }
@@ -138,9 +137,43 @@ struct ShellView: View {
 
     // ── List sections: the list, and the open row beside it ──────────────────
 
-    private func listColumn(_ item: SidebarItem, workspaceId _: String) -> some View {
-        ComingLaterView(item: item)
-            .districtBackground()
+    /// The content column of a list section.
+    ///
+    /// ⛔ THE INBOX TAKES THE WHOLE PATH, AS ON THE iPad: its compose sheet selects the
+    /// thread its send created by writing through `selection`, and it re-reads when a row
+    /// it had open is left; both read the path, not the tail.
+    ///
+    /// ⚠️ WIDER FOR A TABLE. Calls and Contacts are sortable tables (a Mac idiom the iPad
+    /// does not have), which need room for their columns; the Inbox keeps the iPad's rows.
+    private func listColumn(_ item: SidebarItem, workspaceId: String) -> some View {
+        let selection = listSelection(item)
+        return Group {
+            switch item {
+            case .inbox:
+                InboxView(
+                    container: container,
+                    workspaceId: workspaceId,
+                    role: role,
+                    path: path(for: .inbox),
+                    // ⚠️ CONSTANT: a tapped message push does not reach the Inbox yet
+                    // (iOS `PushRouting` is not ported; see PORTING.md).
+                    pushSignal: 0,
+                    selection: selection
+                )
+                .navigationSplitViewColumnWidth(min: 300, ideal: 400)
+            case .calls:
+                CallLogView(container: container, workspaceId: workspaceId, selection: selection)
+                    .navigationSplitViewColumnWidth(min: 460, ideal: 640)
+            case .contacts:
+                ContactsView(container: container, workspaceId: workspaceId, role: role, selection: selection)
+                    .navigationSplitViewColumnWidth(min: 460, ideal: 640)
+            default:
+                // Desk and Support, the two list sections that are hubs, arrive in Wave 7.
+                ComingLaterView(item: item)
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 340)
+            }
+        }
+        .districtBackground()
     }
 
     /// The detail column: the open row as the root of its own stack, or the placeholder.

@@ -43,6 +43,11 @@ struct ShellCommandAvailability: Equatable {
         workspaceResolved && canSend && offered.contains(.inbox)
     }
 
+    /// ⛔ THE SAME GATE AS CONTACTS' OWN "Add contact" (``ContactsModel/canMutate``).
+    var canCreateContact: Bool {
+        workspaceResolved && canSend && offered.contains(.contacts)
+    }
+
     var canSearch: Bool {
         workspaceResolved && offered.contains(.inbox)
     }
@@ -61,6 +66,7 @@ struct ShellCommandActions {
     let availability: ShellCommandAvailability
     let select: (SidebarItem) -> Void
     let newMessage: () -> Void
+    let newContact: () -> Void
     let search: () -> Void
     let refresh: () -> Void
 }
@@ -76,8 +82,8 @@ extension FocusedValues {
     }
 }
 
-/// The menu bar: File > New Message, Edit > Search Messages, View > Refresh, a Go menu
-/// for the sidebar, and Sign Out.
+/// The menu bar: File > New Message and New Contact, Edit > Search Messages, View >
+/// Refresh, a Go menu for the sidebar, and Sign Out.
 ///
 /// ⚠️ THE COMMANDS READ THE FOCUSED WINDOW'S SHELL (`focusedSceneValue`), so with no
 /// signed-in window in front every item is disabled rather than acting on nothing.
@@ -103,6 +109,9 @@ struct DistrictCommands: Commands {
             Button("New Message") { shell?.newMessage() }
                 .keyboardShortcut("n")
                 .disabled(!availability.canCompose)
+            Button("New Contact") { shell?.newContact() }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(!availability.canCreateContact)
         }
         CommandGroup(after: .textEditing) {
             Button("Search Messages") { shell?.search() }
@@ -166,6 +175,11 @@ extension View {
                 guard availability.canCompose else { return }
                 select(.inbox)
                 center.composeRequested = true
+            },
+            newContact: {
+                guard availability.canCreateContact else { return }
+                select(.contacts)
+                center.createContactRequested = true
             },
             search: {
                 guard availability.canSearch else { return }

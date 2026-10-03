@@ -13,8 +13,8 @@ struct RootView: View {
             // ⛔ `districtai://handoff` IS TAKEN HERE AND HANDED TO THE ONE FLOW (S33); the
             // flow drops it unless it carries the state of the hand-off in flight.
             // ⚠️ `districtai://auth` never arrives here: `ASWebAuthenticationSession`
-            // intercepts it in-session. Any other URL is ignored until app links are
-            // ported (Wave 5).
+            // intercepts it in-session. Any other URL is ignored: routing an app link
+            // (iOS `AppLinkRouting`) into a section is not ported yet.
             .onOpenURL { url in
                 guard SchedulingHandoffCallback.isCallback(url) else { return }
                 let flow = container.schedulingHandoffFlow
