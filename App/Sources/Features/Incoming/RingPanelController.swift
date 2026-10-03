@@ -65,7 +65,8 @@ final class RingPanelController {
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentView = NSHostingView(rootView: IncomingCallView(model: model, devices: devices)
-            .frame(minWidth: 340, minHeight: 320))
+            .frame(minWidth: 340, minHeight: 320)
+            .districtTheme())
         panel.center()
         panel.orderFrontRegardless()
         self.panel = panel

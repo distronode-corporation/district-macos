@@ -11,6 +11,13 @@ struct RootView: View {
 
     var body: some View {
         content
+            // ⚠️ THE BRAND TINT, PUBLISHED ONCE, ABOVE EVERYTHING, as on iOS (`RootView`). It is
+            // the only part of the theme that travels through the environment: the palette is
+            // derived per view from `colorScheme`, so a subtree without it is still correctly
+            // coloured and only SwiftUI's own controls (switches, prominent buttons, progress,
+            // the sidebar's symbols) fall back to the system accent. ⚠️ MAC: a window is its
+            // own root, so the Settings window and the ring panel apply it too.
+            .districtTheme()
             .task { await session.refreshPhase() }
             // ⛔ THE RING FOLLOWS THE SESSION GATE IN BOTH DIRECTIONS: a ring waiting on an
             // unresolved session is resolved here, and a session that ends (or cannot be

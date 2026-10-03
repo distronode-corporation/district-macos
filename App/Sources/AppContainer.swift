@@ -111,6 +111,16 @@ final class AppContainer {
     /// cannot blank a workflow list that answered.
     let workflows: WorkflowsRepository
 
+    /// The workspace knowledge base: what the agent may answer FROM, and where.
+    /// ⛔ ITS OWN REPOSITORY RATHER THAN MORE ``workspaces``: here the READS admit a viewer
+    /// and only the writes exclude one, while every `workspace/config` call excludes one.
+    let knowledge: KnowledgeRepository
+
+    /// The workspace's outbound carrier accounts: one read, five writes, a credential probe.
+    /// ⛔ Same role split as ``knowledge``. Nothing here may be retried: a save with no
+    /// `accountId` mints a fresh account, and the probe calls a third party per request.
+    let messaging: MessagingRepository
+
     /// The core's push repository, registering this Mac's ALERT token with
     /// `platform: "macos"`, unregistering it and forgetting it on sign-out. Built by
     /// ``pushTokenRepository(client:memory:)``.
@@ -129,12 +139,21 @@ final class AppContainer {
 
     /// - Parameter microphone: the permission both call models ask. ⚠️ The live one everywhere
     ///   but a test, which passes a fake so no system alert can stop the run.
-    init(baseURL: URL = ApiClient.productionBaseURL, microphone: any MicrophoneAccess = LiveMicrophoneAccess()) {
-        let transport = URLSessionHTTPTransport()
+    /// - Parameter transport: the HTTP layer every client shares. ⚠️ URLSession everywhere but
+    ///   a test that drives a whole screen against canned replies (`MacListSectionLoadTests`).
+    /// - Parameter tokenStore: where the session persists. nil is the keychain, the only
+    ///   correct store for the app; ⛔ a test passes an in-memory one, which in the app would
+    ///   sign the user out on every cold start (see `InMemoryTokenStore`).
+    init(
+        baseURL: URL = ApiClient.productionBaseURL,
+        microphone: any MicrophoneAccess = LiveMicrophoneAccess(),
+        transport: any HTTPTransport = URLSessionHTTPTransport(),
+        tokenStore: (any TokenStore)? = nil
+    ) {
         // ⛔ THE LEDGER FIRST, BEFORE `DeviceIdentity.current()` MINTS AN ID: a missing id
         // is how a fresh install is recognised. See ``FreshInstallTokenStore``.
         let ledger = UserDefaultsInstallationLedger.begin()
-        let store = FreshInstallTokenStore(base: KeychainTokenStore(), ledger: ledger)
+        let store = FreshInstallTokenStore(base: tokenStore ?? KeychainTokenStore(), ledger: ledger)
         let deviceId = DeviceIdentity.current()
         let deviceName = MacDeviceName.current()
         let auth = AppNativeAuthClient(baseURL: baseURL, transport: transport)
@@ -178,6 +197,8 @@ final class AppContainer {
         hq = HQRepository(client: api)
         billing = BillingRepository(client: api)
         workflows = WorkflowsRepository(client: api)
+        knowledge = KnowledgeRepository(client: api)
+        messaging = MessagingRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)
