@@ -8,9 +8,8 @@ import XCTest
 /// Ported from district-ios (see PORTING.md). ⛔ IT HOLDS BOTH MAC BUILDS: the Developer ID
 /// build compiles the same `App/Sources` under the same bundle id as the store build, so a
 /// sentence that would be rejected in one is shipped in both. ⚠️ The Mac's allowlist is
-/// the iOS one minus the files that are not ported yet (Marketplace, Wave 8) and minus
-/// the sign-in button's disclosure, which the Mac's sign-in screen does not carry,
-/// because a stale entry fails ``testTheAllowlistHasNoStaleEntry``.
+/// the iOS one minus the sign-in button's disclosure, which the Mac's sign-in screen does
+/// not carry, because a stale entry fails ``testTheAllowlistHasNoStaleEntry``.
 ///
 /// ⛔ 3.1.1 FORBIDS THE SIGNPOST, NOT ONLY THE BUTTON. Prose is not the safe half of the
 /// rule: a sentence telling a customer that plan changes happen "on the web dashboard at
@@ -45,10 +44,10 @@ import XCTest
 ///     it is named here so nobody removes it thinking this gate wants it gone.
 ///
 /// ⚠️ THE REMAINING ALLOWANCES ARE FIELD LABELS (on iOS also a sign-in disclosure), none of
-/// which tell anyone where to go instead: a contact's own website, the customer's browser
-/// loading a logo we host, and, once Wave 8 ports it, the A2P form's website field. Each
-/// is listed by its exact text, and ``testTheAllowlistHasNoStaleEntry`` fails if one
-/// stops occurring, so the list cannot quietly grow slack.
+/// which tell anyone where to go instead: a contact's own website, the A2P form's website
+/// field, and the customer's browser loading a logo we host. Each is listed by its exact
+/// text, and ``testTheAllowlistHasNoStaleEntry`` fails if one stops occurring, so the list
+/// cannot quietly grow slack.
 final class StoreCopyTests: XCTestCase {
     // MARK: - The contract
 
@@ -92,8 +91,8 @@ final class StoreCopyTests: XCTestCase {
     ]
 
     /// ⚠️ MAC ONLY: A RATCHET BELOW THE TREE. The Mac tree grows by wave (171 files under
-    /// the scanned roots with Wave 8's settings); raise this as sections land.
-    private static let minimumFiles = 165
+    /// the scanned roots with all of Wave 8); raise this as sections land.
+    private static let minimumFiles = 180
 
     private static let reachedNothing = "the scan reached almost nothing, so it proved nothing"
 
@@ -112,6 +111,9 @@ final class StoreCopyTests: XCTestCase {
         ],
         "Features/Desk/DeskCopy.swift": [
             "so their browser can load it, and anyone with a thread link can see it.",
+        ],
+        "Features/Marketplace/MarketplaceCopy+Numbers.swift": [
+            "Website (optional)",
         ],
     ]
 
@@ -170,6 +172,22 @@ final class StoreCopyTests: XCTestCase {
             "Plan changes, payment methods and cancellations are not available in this app. "
                 + "This screen is read-only."
         )
+    }
+
+    func testThePurchaseBoundaryStatesTheLimitAndNamesNowhere() {
+        XCTAssertEqual(
+            MarketplaceCopy.purchaseElsewhere,
+            "New numbers cannot be purchased in this app. "
+                + "Everything else about a number, including its paperwork and releasing it, is here."
+        )
+    }
+
+    /// ⛔ THE PRICE STAYS. Dropping "$25 per month" to shorten the sentence would remove
+    /// the disclosure that makes a one-way door one an operator can weigh; only the
+    /// destination was the 3.1.1 problem.
+    func testTheTrunkSentenceKeepsItsPriceAndLosesItsDestination() {
+        XCTAssertTrue(MarketplaceCopy.sipOneWay.contains("$25 per month"))
+        XCTAssertFalse(MarketplaceCopy.sipOneWay.lowercased().contains("dashboard"))
     }
 
     // MARK: - The walk

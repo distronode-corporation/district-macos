@@ -16,7 +16,7 @@ final class MacSidebarItemTests: XCTestCase {
     func testTheSectionsPortedSoFar() {
         let ported = SidebarItem.allCases.filter { $0.portedInWave == nil }
         XCTAssertEqual(ported, [
-            .overview, .inbox, .calls, .contacts, .hq, .analytics, .billing, .rooms, .workflows, .desk,
+            .overview, .inbox, .calls, .contacts, .hq, .analytics, .marketplace, .billing, .rooms, .workflows, .desk,
             .dialer, .support, .settings, .account,
         ])
     }
