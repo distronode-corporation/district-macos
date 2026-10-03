@@ -154,6 +154,12 @@ targetTemplates:
         # build too, so both builds run under the same rules and share one container.
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
+        # ⛔ WEBRTC BINDS ITS OWN UDP SOCKETS FOR ICE (a local candidate per interface), and
+        # the sandbox grants `bind` only with the server entitlement; without it a call or a
+        # room can signal and then carry no media. LiveKit's own sandboxed test host
+        # (client-sdk-swift `Tests/LKTestHost`) claims both. No listening service exists in
+        # this app. ⚠️ A sandbox key: no provisioning profile grants or withholds it.
+        com.apple.security.network.server: true
         com.apple.security.device.audio-input: true
         com.apple.security.device.camera: true
         com.apple.security.files.user-selected.read-write: true
