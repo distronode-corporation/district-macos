@@ -10,6 +10,19 @@ Store and the direct download.
 
 ### Added
 
+- The Overview, Account, Workspaces and Devices screens of the iPad app, with the same
+  words: the workspace header and switcher, the four headline figures and recent
+  activity, Finish setting up, Calls to you, notifications status, signing devices out,
+  and account deletion.
+- The sidebar offers what your role can open, as on the iPad, and marks read-only
+  sections.
+- Menu commands: View > Refresh (Command-R) and a Refresh button in the toolbar, and the
+  Go menu follows the sidebar.
+
+### Changed
+
+- Both builds are now named District AI.app.
+
 - The app's first scaffold: a sidebar with all sixteen sections of the iPad app, sign-in
   through the website or with Apple, the Overview, and the Account page with this
   account's signed-in devices. The other sections are placeholders until they are

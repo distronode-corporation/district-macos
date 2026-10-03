@@ -174,6 +174,15 @@ targetTemplates:
       base:
         # ⛔ THE iOS APP'S BUNDLE ID, and the server's APNs topic. See the note at the top.
         PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district
+        # ⛔ BOTH TARGETS BUILD `District AI.app`, the name a user sees in /Applications
+        # and in the menu bar, so no packaging step renames a bundle. The module keeps
+        # the identifier-safe name, which is what `@testable import DistrictMac` reads;
+        # without it Xcode derives `District_AI` from the product name.
+        # ⚠️ THE TWO TARGETS THEREFORE WRITE THE SAME PATH under a shared
+        # `BUILT_PRODUCTS_DIR`: whichever scheme built last owns it. CI builds them one
+        # scheme at a time, and the test host is the store build (see `DistrictMacTests`).
+        PRODUCT_NAME: District AI
+        PRODUCT_MODULE_NAME: DistrictMac
         MARKETING_VERSION: "1.0"
         # ⚠️ A placeholder the release lane overrides with a build number App Store
         # Connect has not seen.
@@ -274,7 +283,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district.tests
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/DistrictMac.app/Contents/MacOS/DistrictMac"
+        # ⚠️ THE PRODUCT NAME, NOT THE TARGET NAME: the host is `District AI.app` (see
+        # `PRODUCT_NAME` in the template). The space needs no quoting inside the setting.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/District AI.app/Contents/MacOS/District AI"
         BUNDLE_LOADER: "$(TEST_HOST)"
         GENERATE_INFOPLIST_FILE: "YES"
         SWIFT_VERSION: "6.0"
@@ -296,18 +307,16 @@ schemes:
         - DistrictMacTests
     archive:
       config: Release
+  # ⛔ NO TEST ACTION. The test bundle is hosted by the store target, and both targets
+  # build `District AI.app` (`PRODUCT_NAME`), so a test build of this scheme would build
+  # both into one `BUILT_PRODUCTS_DIR` and fail with "Multiple commands produce
+  # 'District AI.app'". The Direct build differs from the store one only by `App/Direct`
+  # and the Sparkle link, which CI's plain `build` of this scheme compiles.
   DistrictMacDirect:
     build:
       targets:
         DistrictMacDirect: all
-        DistrictMacTests: [test]
     run:
       config: Debug
-    # ⚠️ The same test bundle, hosted by the store target. The Direct build differs from
-    # it only by `App/Direct` and the Sparkle link, which `build-for-testing` compiles.
-    test:
-      config: Debug
-      targets:
-        - DistrictMacTests
     archive:
       config: Release

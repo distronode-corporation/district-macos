@@ -51,6 +51,9 @@ set -euo pipefail
 
 # ⚠️ Must equal <key>teamID</key> in ExportOptions-AppStore.plist.
 TEAM_ID="R935BA6767"
+# ⛔ THE BUNDLE AND EXECUTABLE NAME OF BOTH TARGETS, NOT A SCHEME NAME: project.yml sets
+# `PRODUCT_NAME: District AI` in the template both targets share. Quote every use.
+PRODUCT="District AI"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -138,9 +141,9 @@ xcodebuild archive \
 
 # ⛔ THE BUNDLE IS CHECKED, NOT ASSUMED: a universal binary, the build number from
 # this commit, and (for the store) no Sparkle anywhere in it.
-APP="$ARCHIVE_PATH/Products/Applications/$SCHEME.app"
-[ -f "$APP/Contents/MacOS/$SCHEME" ] || die "no app binary at $APP/Contents/MacOS/$SCHEME. Nothing was exported."
-archs="$(lipo -archs "$APP/Contents/MacOS/$SCHEME")"
+APP="$ARCHIVE_PATH/Products/Applications/$PRODUCT.app"
+[ -f "$APP/Contents/MacOS/$PRODUCT" ] || die "no app binary at $APP/Contents/MacOS/$PRODUCT. Nothing was exported."
+archs="$(lipo -archs "$APP/Contents/MacOS/$PRODUCT")"
 case " $archs " in *" x86_64 "*) ;; *) die "the archived binary is '$archs', with no x86_64 slice." ;; esac
 case " $archs " in *" arm64 "*) ;; *) die "the archived binary is '$archs', with no arm64 slice." ;; esac
 echo "architectures: $archs"
@@ -195,8 +198,8 @@ case "$LANE" in
       -archivePath "$ARCHIVE_PATH" \
       -exportOptionsPlist "$options" \
       -exportPath "$EXPORT_PATH"
-    [ -d "$EXPORT_PATH/$SCHEME.app" ] || die "the export wrote no $SCHEME.app into $EXPORT_PATH."
-    echo "exported: $EXPORT_PATH/$SCHEME.app"
+    [ -d "$EXPORT_PATH/$PRODUCT.app" ] || die "the export wrote no $PRODUCT.app into $EXPORT_PATH."
+    echo "exported: $EXPORT_PATH/$PRODUCT.app"
     ;;
 esac
 

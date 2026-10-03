@@ -55,7 +55,8 @@ the core shared with the iOS app, which builds and tests on Linux too.
 xcodegen generate --spec project.yml
 
 # The Mac App Store target, and the Developer ID target (the same app plus Sparkle).
-# Signed ad hoc: the project carries no team, certificate or provisioning profile.
+# Both build "District AI.app", so the second build replaces the first in the products
+# directory. Signed ad hoc: the project carries no team, certificate or provisioning profile.
 for scheme in DistrictMac DistrictMacDirect; do
   xcodebuild build -project DistrictMac.xcodeproj -scheme "$scheme" \
     -destination 'platform=macOS' \
@@ -100,7 +101,8 @@ anywhere in the tree.
 ```
 App/
   Sources/              The SwiftUI app, compiled into both targets: Navigation/ (the
-                        sidebar), Features/<Name>/, Session/, Platform/ (push, Sentry)
+                        sidebar, routes and menu commands), Features/<Name>/,
+                        DesignSystem/, Session/, Platform/ (push, Sentry, AppKit)
   Direct/               Sparkle. Compiled into DistrictMacDirect only
   Resources/            The notification strings
   Tests/                DistrictMacTests
@@ -108,6 +110,7 @@ App/
   AdHoc.entitlements    The entitlements an ad-hoc build is signed with
 project.yml             The XcodeGen spec: this is the project; the .xcodeproj is
                         generated and never committed
+PORTING.md              Which district-ios commit each ported screen came from
 scripts/                The public-hygiene check
 ```
 
@@ -123,8 +126,8 @@ every pull request, and uses no secrets:
 - **hygiene** (Linux): the public-hygiene check and its self-test, and the licence files.
 - **gitleaks** (Linux): the full git history, with [`.gitleaks.toml`](.gitleaks.toml).
 - **zizmor** (Linux): static analysis of the workflows.
-- **app** (macOS, Xcode 26.3): generates the project, builds both targets for testing and
-  runs `DistrictMacTests`. While the repository is private it runs only when started by
+- **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
+  store target for testing and runs `DistrictMacTests`. While the repository is private it runs only when started by
   hand, because private macOS minutes are billed at ten times the Linux rate.
 
 [`codeql.yml`](.github/workflows/codeql.yml) and
