@@ -84,6 +84,21 @@ final class AppContainer {
     let support: SupportRepository
     let devices: DevicesRepository
 
+    /// The analytics window and the two metered-usage reads. ⚠️ Each method answers its own
+    /// `Result`, so a usage failure stays inside one card while the figures stay up.
+    let analytics: AnalyticsRepository
+
+    /// District HQ. ⛔ ITS `confirm` EXECUTES AN ARBITRARY WRITE (a persona change, a
+    /// deletion, a real email or SMS to a customer); nothing may retry it, and it takes only
+    /// an ``HqPendingWrite`` that came out of a prompt response.
+    let hq: HQRepository
+
+    /// The plan we own, and the invoices Stripe owns: two reads that fail independently.
+    /// ⛔ IT HAS NO WRITES AND MUST NOT GAIN ANY. Offering a plan change, a cancellation or
+    /// a portal URL in-app breaches App Store Review Guideline 3.1.3(b), in both Mac builds
+    /// (they ship under one bundle id, and the store one is reviewed).
+    let billing: BillingRepository
+
     /// The core's push repository, registering this Mac's ALERT token with
     /// `platform: "macos"`, unregistering it and forgetting it on sign-out. Built by
     /// ``pushTokenRepository(client:memory:)``.
@@ -146,6 +161,9 @@ final class AppContainer {
         inbox = InboxRepository(client: api)
         support = SupportRepository(client: api)
         devices = DevicesRepository(client: api)
+        analytics = AnalyticsRepository(client: api)
+        hq = HQRepository(client: api)
+        billing = BillingRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)

@@ -79,7 +79,7 @@ struct CallLogTable: View {
                     .accessibilityIdentifier(A11yID.Calls.row(row.id))
                     .onAppear { reached(row, in: rows) }
             }
-            .width(min: 120, ideal: 160)
+            .width(min: 110, ideal: 140)
             TableColumn("Direction", value: \.direction) { row in
                 Text(row.direction)
             }
@@ -88,12 +88,15 @@ struct CallLogTable: View {
                 Text(row.display.time)
                     .monospacedDigit()
             }
-            .width(min: 110, ideal: 140)
+            // ⚠️ WIDE ENOUGH FOR THE WHOLE STAMP ("Sep 30, 2026 at 12:59 PM"), which a narrower
+            // column truncated to the hour at the default window width. The other columns
+            // give up the room, so the five still fit the list column's ideal width.
+            .width(min: 175, ideal: 180)
             TableColumn("Duration", value: \.seconds) { row in
                 Text(row.display.durationLabel ?? "")
                     .monospacedDigit()
             }
-            .width(min: 56, ideal: 64)
+            .width(min: 56, ideal: 60)
             TableColumn("Status", value: \.status) { row in
                 HStack(spacing: DistrictSpacing.hairline) {
                     if let transfer = row.display.transferLabel {
@@ -102,7 +105,7 @@ struct CallLogTable: View {
                     DistrictBadge(text: row.display.statusLabel, tone: row.display.statusTone)
                 }
             }
-            .width(min: 90, ideal: 130)
+            .width(min: 90, ideal: 110)
         }
         .contextMenu(forSelectionType: String.self) { ids in
             menu(for: ids)
