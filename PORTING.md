@@ -49,6 +49,9 @@ not copied: they are shared.
 | 8 | Tests: `PersonaEngineDraftTests`, `PersonaPreviewStateTests`, `RoutingEditorTests`, `SettingsPersonaCopyTests` | `4777c40` | `App/Tests/` |
 | 8 | Phone numbers (my numbers, the carrier search, registrations, the carrier account and compliance, one number's actions and the confirmations) | `4777c40` | `App/Sources/Features/Marketplace/` |
 | 8 | Tests: `StoreCopyTests`' Marketplace allowance and its two direct assertions (the purchase boundary, the trunk sentence) | `4777c40` | `App/Tests/StoreCopyTests.swift` |
+| 9 | Scheduling, the read side: the hub (tenancy card, Enable, the provisioning poll, the booking link, the hand-off), the register (Overview), event types and one event type, hours and overrides, bookings and one booking (answers, notes, transcript), calendar connections, team, recordings (play, consent), settings (four tabs) and developer (keys, apps and MCP, webhooks and deliveries); `SchedulingCopy*`, `SchedulingSectionChrome`, `SchedulingDestinations` | `4777c40` | `App/Sources/Features/Scheduling/` |
+| 9 | `A11yID+SchedulingWritesC.swift` (the webhook deliveries' identifiers live there on iOS too) | `4777c40` | `App/Sources/Accessibility/` |
+| 9 | Tests: `SchedulingFailureCopyTests`, `SchedulingHandOffTests`, `SchedulingModelTestCase`, `SchedulingModelTests`, `SchedulingReadConcurrencyTests`, `SchedulingSectionModelTests`, `SchedulingSectionTests`, `SchedulingTestTransport`, and `SchedulingRoutingTests` from its gate cases on (`_10` to `_15`, the settings hub's row among them) | `4777c40` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -60,8 +63,9 @@ sound and notification (`RingPanelController`, `RingPresenter`, `RingNotificatio
 microphone and speaker pickers (`AudioDevices`, `AudioDevicePickers`). Their behaviour follows
 district-linux's desktop ringing, the one client that rang a desktop before this one.
 
-The sections not listed here are still placeholders (`ComingLaterView`); the wave that
-ports each one is `SidebarItem.portedInWave`.
+Every section of the sidebar is now drawn for real, so the placeholder (`ComingLaterView`)
+and `SidebarItem.portedInWave` are gone; `MacSidebarItemTests` pins that every section the
+shell draws through `RouteDestinations` has a root route.
 
 Wave 7 adds Mac-only tests with no iOS original: `MacBillingReadOnlyTests` (nothing under
 `Features/Billing` may open a URL, see "Billing and Phone numbers" below), `MacAnalyticsBillingFormatTests`
@@ -74,13 +78,19 @@ section reads once" below), `MacMarketplaceTests` (the role's wording and provis
 and that opening Phone numbers reads only the owned list), and two Phone numbers cases in
 `MacBillingReadOnlyTests` (see "Billing and Phone numbers" below).
 
-Every section is now ported except Scheduling (Wave 9).
+Wave 9 adds Mac-only tests with no iOS original: `MacSchedulingTests` (the two scheduling
+tables' order and cells, the navigator a table row opens through, and the settings hub's
+Scheduling row) and two Scheduling cases in `MacBillingReadOnlyTests` (see "Billing and
+Phone numbers" below).
+
+Scheduling's writes (creating, editing, cancelling and rescheduling) are the second packet
+of Wave 9; until it lands the section reads everything and changes nothing.
 
 ## Left out on purpose, and where it goes
 
-- **The settings hub's Scheduling row** pushes `Route.scheduling`, as on iOS. Until Wave 9
-  ports Scheduling, that route shows the same hand-off screen the sidebar's Scheduling row
-  does (`SchedulingHandoffView`), not a placeholder.
+- **`SchedulingRoutingTests`' first nine cases** (`test_IOS_SCHLINK_01` to `_09`) resolve a
+  `www.distronode.com/dashboard/district/scheduling/...` link, so they come over with app
+  links (below). The gate cases and the settings hub's row are ported.
 - **A "New ticket" entry point on the Desk**: iOS at `4777c40` declares the compose sheet
   and its `composing` flag but nothing sets the flag, so the sheet is unreachable there.
   The Mac keeps the same code and the same absence; adding a button or a menu command is a
@@ -120,6 +130,25 @@ Copied as is, then:
   beside the Photos picker, as a reply does. Desk and Support keep the iPad's rows rather
   than a `Table`: like the Inbox, each list is interleaved with state cards (desk off,
   settings unreadable, inline compose, status chips), which a table cannot hold.
+- Scheduling's two list-heavy screens, Bookings and Event types, are sortable `Table`s with
+  the web dashboard's column headings (When, Who, Event type, Host, Status; Name,
+  Duration, Starts every, Location, State), every cell the iPad row's own words. A
+  double-click or Return opens the row by appending to the stack (`ShellNavigator`), as
+  the iPad's link does. Bookings keeps the iPad's view buttons above the table and its
+  Load more button below it (one request per press, never on scroll). The other sections
+  keep the iPad's cards: each row there carries inline state (a recording's consent, a
+  webhook's deliveries, a team's actions) that a table row cannot hold.
+- Scheduling's hours are a week of seven columns, Monday first, where the iPad stacks
+  seven `label: value` rows: the same days, the same order, and each range in the words
+  `SchedulingCopy.dayHours` writes ("Not bookable" for an empty day).
+- Scheduling's "Open in browser" runs the S33 bound hand-off in the default browser:
+  leg 1 and the minted URL both open there (`NSWorkspace.open`), and the callback comes
+  back through `.onOpenURL`, as Wave 4 proved. iOS opens both in one in-app Safari sheet,
+  which a Mac does not have, so the Mac cannot see leg 1 render a page or close; the
+  flow's own timeout is the only signal (`SchedulingModel` has no `handOffStartLoaded`
+  or `handOffStartClosed`).
+- A recording plays in a sheet with a Done button (Esc), in the shape of a call
+  recording's player; the iPad's is a bare full-height player dismissed by a swipe.
 - A `Toggle` that the iPad draws as a switch gets `.toggleStyle(.switch)`: the macOS
   default is a checkbox, which beside a row reads as "select this" (Workflows, the Desk's
   settings, and Account's availability row).
@@ -169,7 +198,7 @@ screenshot harness on every shot, which opens a section before the list arrives.
 now draws nothing for a list section, and `MacListSectionLoadTests` renders the shell with
 a delayed workspace list and counts the requests (it reads two without the fix).
 
-## Billing and Phone numbers: no purchase, no way out, in both Mac builds
+## Billing and Phone numbers: no purchase, no way out, in both Mac builds (and Scheduling)
 
 The iOS billing screen states what is billed and offers nothing else: no upgrade, no plan
 picker, no cancel, no card editor, no Stripe portal and no hosted-invoice link (App Store
@@ -192,9 +221,16 @@ sentence about it (`MarketplaceCopy.purchaseElsewhere`) states the limit and nam
 purchase path iOS leaves out. The Mac additions are a Close button (Esc) on a number's
 sheet and Esc on a confirmation's Cancel; no submit there takes a shortcut.
 
+Scheduling gets the same rule with one documented exception: nothing under
+`Features/Scheduling` (its subfolders included) may open a URL except the hub's hand-off
+into our own scheduler, which opens exactly twice (leg 1 and the minted URL) from one
+function, and the booking link's `ShareLink` (a share picker, as iOS's share sheet).
+Scheduling is exempt from `StoreCopyTests`, as on iOS.
+
 The `StoreCopyTests` allowlist is iOS's minus the sign-in button's "Opens your browser"
 disclosure, which the Mac sign-in screen does not carry. Its file-count floor is a ratchet
-raised as sections land (180 with all of Wave 8).
+raised as sections land (180 with all of Wave 8; Scheduling is exempt, so Wave 9 leaves
+it there).
 
 ## Tests never touch an installed copy
 
@@ -271,6 +307,9 @@ call-backs' empty state says "one click" where iOS says "one tap". Wave 7's scre
 no change of words; its one Mac-only string is the Desk logo's "Choose file". Wave 8 adds
 one: the persona preview's "This Mac went to sleep, so the preview was ended.", in the
 shape of its "A call arrived on this device" line.
+Wave 9 changes no words; its Mac-only strings are the scheduling tables'
+column headings, which are the web dashboard's (`BookingsTable`, `EventTypesTable`), and
+the recording player's "Done", which the call recording's player already says.
 
 Mac-only copy (no iOS original) comes from district-linux where it has one, and is in the
 iOS sentences' shape otherwise (a room left because the Mac went to sleep): "Ring on this

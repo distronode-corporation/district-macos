@@ -132,6 +132,28 @@ final class AppContainer {
     /// ``pushTokenRepository(client:memory:)``.
     let pushTokens: PushTokenRepository
 
+    /// The workspace's booking pages: the tenancy's state, and the one call that
+    /// provisions one.
+    let scheduling: SchedulingRepository
+
+    /// The catalogued scheduling admin operations (``SchedulingAdminOp``).
+    ///
+    /// ⛔ A SEPARATE REPOSITORY FROM ``scheduling`` EVEN THOUGH BOTH ARE "SCHEDULING", AND
+    /// THE SPLIT IS THE SERVER'S. ``scheduling`` talks to District's own `scheduling/status`
+    /// and `scheduling/enable`; this one posts an `op` NAME to `scheduling/admin`, which
+    /// proxies into the scheduler's own API through an allowlist. Different routes,
+    /// different failure vocabularies (``ApiError`` against ``SchedulingAdminError``) and
+    /// different role rules.
+    ///
+    /// ⚠️ AN UNKNOWN OP TRAPS IN A DEBUG BUILD (``schedulingAdmin(client:)``): a **400 `unknown_op`**
+    /// means ``SchedulingAdminOp`` and the server's `ADMIN_OPS` have diverged, a programmer
+    /// error nothing a user does can cause.
+    let schedulingAdmin: SchedulingAdminRepository
+
+    /// Recording downloads and the image uploads. ⛔ Its own type because neither call is
+    /// an `op` post: a download is a **302** to a presigned URL, an upload is multipart.
+    let schedulingAdminMedia: SchedulingAdminMediaRepository
+
     /// Minting the scheduling hand-off URL.
     let schedulingHandoff: SchedulingHandoffClient
 
@@ -207,6 +229,9 @@ final class AppContainer {
         messaging = MessagingRepository(client: api)
         numbers = NumbersRepository(client: api)
         pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
+        scheduling = SchedulingRepository(client: api)
+        schedulingAdmin = Self.schedulingAdmin(client: api)
+        schedulingAdminMedia = SchedulingAdminMediaRepository(client: api)
         schedulingHandoff = SchedulingHandoffClient(client: api)
         schedulingHandoffFlow = Self.handoffFlow(schedulingHandoff)
 
@@ -268,6 +293,15 @@ final class AppContainer {
     static func rejected(_ coordinator: TokenRefreshCoordinator) -> @Sendable (String) async -> Void {
         { [coordinator] token in
             _ = await coordinator.invalidateAccessToken(token)
+        }
+    }
+
+    /// ⛔ AN UNKNOWN OP IS A PROGRAMMER ERROR: THE CLIENT'S CATALOGUE AND THE SERVER'S HAVE
+    /// DIVERGED. It traps in a debug build so whoever caused it finds it, and does nothing
+    /// in release, where the screen shows the generic sentence instead.
+    static func schedulingAdmin(client: ApiClient) -> SchedulingAdminRepository {
+        SchedulingAdminRepository(client: client) { op in
+            assertionFailure("The server does not know the scheduling admin op '\(op.rawValue)'.")
         }
     }
 

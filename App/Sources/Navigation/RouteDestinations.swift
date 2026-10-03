@@ -12,8 +12,7 @@ import SwiftUI
 /// here until someone decides what it shows. Never reach for a `default`.
 ///
 /// ⚠️ NO ARM IS A PLACEHOLDER ANY MORE (Wave 8 ported the last two), as iOS requires for a
-/// build external testers see (App Store Review Guideline 2.1). Scheduling's routes show
-/// the hand-off screen the sidebar shows until Wave 9 ports the section.
+/// build external testers see (App Store Review Guideline 2.1).
 ///
 /// ⛔ TWO SESSIONS, AND THEY ARE NOT INTERCHANGEABLE. ``session`` is the WORKSPACE session;
 /// ``accountSession`` is the process's one ``SessionModel``, which `Route.devices` needs:
@@ -116,12 +115,16 @@ enum RouteDestinations {
         case let .workspaceSettings(workspaceId, role, section):
             SettingsDestinations.view(for: section, container: container, workspaceId: workspaceId, role: role)
 
-        // ⚠️ UNTIL WAVE 9, THE SAME HAND-OFF THE SIDEBAR'S SCHEDULING ROW SHOWS, so the
-        // settings hub's Scheduling row (which pushes this route, as on iOS) lands on the
-        // screen Scheduling has today rather than on a placeholder.
-        case let .scheduling(workspaceId, _, _):
-            SchedulingHandoffView(container: container, workspaceId: workspaceId)
-                .id(workspaceId)
+        // ⚠️ THE HUB, ITS NINE SECTIONS AND THE TWO DRILL-DOWNS, one line here and one per
+        // section in ``SchedulingDestinations``, as iOS splits it. The sidebar's Scheduling
+        // row and the settings hub's both arrive here at `section: .hub`.
+        case let .scheduling(workspaceId, role, section):
+            SchedulingDestinations.view(
+                for: section,
+                container: container,
+                workspaceId: workspaceId,
+                role: role
+            )
 
         // ⛔ NO PURCHASE, IN BOTH MAC BUILDS, AND NOTHING ON IT OPENS A URL. Buying a number is
         // a recurring charge for a service used in the app (Guideline 3.1.1), so it is absent

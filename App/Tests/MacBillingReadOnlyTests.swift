@@ -1,7 +1,8 @@
 @testable import DistrictMac
 import XCTest
 
-/// Billing and Phone numbers open nothing outside the app, in both Mac builds.
+/// Billing and Phone numbers open nothing outside the app, in both Mac builds, and
+/// Scheduling opens only its documented hand-off.
 ///
 /// ⛔ MAC ONLY, AND A SECOND HOLD BESIDE ``StoreCopyTests``. That gate reads the SENTENCES;
 /// this one reads the CONTROLS. iOS keeps every purchase path out of its billing screen
@@ -61,26 +62,84 @@ final class MacBillingReadOnlyTests: XCTestCase {
         }
     }
 
-    private func assertNothingOpens(in feature: String, atLeast minimum: Int, _ message: String) throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Sources/Features/\(feature)")
-        let files = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "swift" }
+    // MARK: - Scheduling
+
+    /// ⛔ SCHEDULING KEEPS IN THE APP WHAT iOS KEEPS IN THE APP, and leaves it only where iOS
+    /// does. Every section, every booking and every recording is drawn here; the one way
+    /// out is the documented hand-off into our own scheduler (``SchedulingHubView``'s
+    /// "Open in browser", the S33 bound hand-off, which iOS opens in an in-app Safari sheet
+    /// and a Mac can only open in the default browser). Nothing on the surface is a
+    /// purchase, and no other control may hand a URL to the browser.
+    ///
+    /// ⚠️ THE ALLOWANCES ARE PER FILE AND PER CALL, and each is a thing iOS also does: the
+    /// hand-off's two `NSWorkspace.open` calls, the booking link's `ShareLink` (a share
+    /// picker, as iOS's share sheet, and it carries our own booking page), and parsing the
+    /// presigned recording address for the in-app player.
+    func test_MAC_BILLING_5_schedulingOpensOnlyTheDocumentedHandOff() throws {
+        try assertNothingOpens(
+            in: "Scheduling",
+            atLeast: 21,
+            "scheduling stays in the app except for the documented hand-off",
+            allowing: [
+                "SchedulingHubView.swift": ["NSWorkspace", "ShareLink", "URL(string"],
+                "SchedulingRecordingsView.swift": ["URL(string"],
+            ]
+        )
+    }
+
+    /// ⛔ THE HAND-OFF IS THE HUB'S AND NOBODY ELSE'S: exactly two opens, leg 1 and the
+    /// minted URL, in the one function that runs the bound flow.
+    func test_MAC_BILLING_6_theHandOffOpensTwiceFromOnePlace() throws {
+        let hub = try String(
+            contentsOf: Self.features.appendingPathComponent("Scheduling/SchedulingHubView.swift"),
+            encoding: .utf8
+        )
+        let opens = hub.components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") && $0.contains("NSWorkspace.shared.open(")
+        }
+        XCTAssertEqual(opens.count, 2, "leg 1 and the minted URL, nothing else")
+    }
+
+    private static let features = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("Sources/Features")
+
+    /// - Parameter allowing: per file name, the calls that file may make (see the case that
+    ///   passes it). ⚠️ The walk is recursive, so a subfolder (`Scheduling/Writes`) is read too.
+    private func assertNothingOpens(
+        in feature: String,
+        atLeast minimum: Int,
+        _ message: String,
+        allowing allowed: [String: Set<String>] = [:]
+    ) throws {
+        let root = Self.features.appendingPathComponent(feature)
+        let walk = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        let files = (walk?.allObjects as? [URL] ?? []).filter { $0.pathExtension == "swift" }
 
         XCTAssertGreaterThanOrEqual(files.count, minimum, "the walk reached almost nothing")
 
         var offences: [String] = []
         for file in files {
+            let permitted = allowed[file.lastPathComponent] ?? []
             let lines = try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n")
             for (index, line) in lines.enumerated() {
                 guard !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") else { continue }
-                if let call = Self.forbiddenCalls.first(where: { line.contains($0) }) {
+                let call = Self.forbiddenCalls.first { call in
+                    !permitted.contains(call) && Self.uses(call, in: line)
+                }
+                if let call {
                     offences.append("\(file.lastPathComponent):\(index + 1) uses \(call)")
                 }
             }
         }
         XCTAssertEqual(offences, [], message)
+    }
+
+    /// ⚠️ `Link(` IS A WHOLE WORD: a `NavigationLink(` pushes a screen inside the app and is
+    /// how every scheduling row opens.
+    private static func uses(_ call: String, in line: String) -> Bool {
+        guard call == "Link(" else { return line.contains(call) }
+        return line.range(of: #"(?<![A-Za-z])Link\("#, options: .regularExpression) != nil
     }
 }
