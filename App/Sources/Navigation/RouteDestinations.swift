@@ -1,3 +1,4 @@
+import DistrictNetwork
 import SwiftUI
 
 /// The one place a ``Route`` becomes a screen.
@@ -52,7 +53,31 @@ enum RouteDestinations {
         case .devices:
             DevicesView(container: container, session: accountSession)
 
-        case .hq, .analytics, .marketplace, .billing, .workflows, .rooms, .activeRoom, .dialer,
+        // ⛔ THE ONE DESTINATION THAT SPENDS MONEY AND RINGS A STRANGER'S TELEPHONE, and it
+        // is ONE destination for both the keypad and the live call: a separate in-call
+        // route would be restored after relaunch and its start effect would run again,
+        // placing a second billable call with no user action. See the ⛔ on `Route.dialer`.
+        case let .dialer(workspaceId, role):
+            DialerView(container: container, workspaceId: workspaceId, role: role)
+
+        // ⚠️ THE ROLE IS CARRIED BUT THE LIST IS NOT GATED ON IT: the lobby hides only the
+        // START form from a viewer, whose token carries `canPublish:false` anyway.
+        case let .rooms(workspaceId, role):
+            RoomsLobbyView(container: container, workspaceId: workspaceId, role: role)
+
+        // ⛔ THE ONE DESTINATION THAT PUBLISHES VIDEO, AND IT JOINS NOTHING ON ARRIVAL: a
+        // restored route that connected from a `.task` would re-enter a room with nobody
+        // having asked, so `ActiveRoomView` opens on a Join control. ⛔ AND THE NAME IS
+        // VALIDATED HERE AND NEVER REBUILT: `RoomName(joining:)` refuses a `video_` room (a
+        // BILLABLE avatar session, one character away) and a bare `Call.id`.
+        case let .activeRoom(_, role, roomName):
+            if let room = RoomName(joining: roomName) {
+                ActiveRoomView(container: container, roomName: room, role: role)
+            } else {
+                FailureView(failure: RoomsCopy.unusableName)
+            }
+
+        case .hq, .analytics, .marketplace, .billing, .workflows,
              .workspaceSettings, .scheduling, .support, .supportRequest, .desk, .deskTicket:
             ComingLaterView(item: ShellPaths.listSection(of: route))
         }

@@ -44,8 +44,24 @@ final class AppContainer {
 
     let calls: CallsRepository
 
+    /// Placing one outbound call. ⛔ Never retried; see the ⛔ on `DialerModel`.
+    let dial: DialRepository
+
     /// The answer route for a call ringing on this Mac.
+    ///
+    /// ⛔ A SEPARATE REPOSITORY FROM ``dial`` EVEN THOUGH BOTH END IN A LiveKit CREDENTIAL,
+    /// AND THE SPLIT IS THE SERVER'S OWN: a screen that answers cannot dial and a screen
+    /// that dials cannot answer.
     let inboundCalls: InboundCallRepository
+
+    /// The meetings archive: the workspace's rooms history and one meeting's record.
+    /// ⚠️ READS ONLY; the split from ``rooms`` is that type's own ⛔.
+    let meetings: MeetingsRepository
+
+    /// The credential that joins one `meet_` room. ⛔ Every call mints a fresh twelve-hour
+    /// guest invite that grants publish rights, so the surface that can hand one out is one
+    /// repository rather than a method on a reader.
+    let rooms: RoomsRepository
 
     /// The platform half of a live call: the engine, the call and room claims, and the
     /// microphone and speaker. ⛔ ONE PER PROCESS. `calls` above is the call LOG.
@@ -119,7 +135,10 @@ final class AppContainer {
         callHandling = CallHandlingRepository(client: api)
         overview = OverviewRepository(client: api)
         calls = CallsRepository(client: api)
+        dial = DialRepository(client: api)
         inboundCalls = InboundCallRepository(client: api)
+        meetings = MeetingsRepository(client: api)
+        rooms = RoomsRepository(client: api)
         callStack = CallStack(microphone: microphone)
         contacts = ContactsRepository(client: api)
         // ⚠️ FROM THE ONE `contacts` ABOVE, never a fresh repository.

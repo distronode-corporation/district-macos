@@ -32,6 +32,10 @@ not copied: they are shared.
 | 6 | The live-call surface shared by both directions (`LiveCall`, `InCallView`) | `4777c40` | `App/Sources/Features/Dialer/LiveCall.swift`, `InCallView.swift` |
 | 6 | Call platform: `CallStack`, `LiveKitCallEngine`, `RoomAudio`, `MicrophoneAccess` | `4777c40` | `App/Sources/Platform/Calls/` |
 | 6 | Tests: `InCallCopyTests`, the sentence half of `IncomingCallCopyTests`, `FakeMicrophoneAccess`, the at-Answer case of `MicrophoneAccessTests` (as `test_MAC_INCOMING_12`) | `4777c40` | `App/Tests/` |
+| 6 | Dial (keypad, call-backs, outbound call, carrier hang-up, emergency-number guard) | `4777c40` | `App/Sources/Features/Dialer/` |
+| 6 | Rooms (lobby, meeting record, the room, its engine and tiles) | `4777c40` | `App/Sources/Features/Rooms/` |
+| 6 | Contacts: the Video call row (`ContactVideoCallModel`) | `4777c40` | `App/Sources/Features/Contacts/` |
+| 6 | Tests: `DialerDestinationLineTests`, `LiveMediaReattachTests`, `RoomGridTests`, `RoomMediaToggleTests`, the dial half of `MicrophoneAccessTests` | `4777c40` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -48,10 +52,6 @@ ports each one is `SidebarItem.portedInWave`.
 
 ## Left out on purpose, and where it goes
 
-- **Contacts: the Video call row** (`ContactVideoCallModel`). It sends the contact a
-  guest link (a metered message) and then opens the room; rooms are Wave 6, and
-  inviting a customer to a room this app cannot open would strand them. It is ported
-  with Rooms.
 - **`SettingsChrome.swift`**: only `SettingsField` came over, because the compose sheet
   uses it. Wave 8 ports the rest of that file without it (or deletes
   `SettingsField.swift`), so there is one definition.
@@ -114,6 +114,16 @@ above:
 - **No microphone question at landing.** Every Mac answer is a press with the app running,
   so the question is asked at the press (dial or Answer), never at the first signed-in
   screen.
+- **The dial goes out after the microphone answer.** iOS places it only once CallKit has
+  performed its start action, with a ten-second watchdog for a start that never comes; the
+  Mac has neither, so `DialerModel` has no `startTimeoutSeconds`, no `notStarted` sentence
+  and no `endedReason(for:)`. The carrier hang-up is unchanged and also kept by `CallStack`,
+  so quitting mid-call waits up to three seconds for it.
+- **Rooms without the audio session, the flip or the speaker.** iOS hands `AVAudioSession`
+  back to LiveKit when a room joins; a Mac has none. A Mac has one camera facing the person,
+  so there is no Flip camera, and no earpiece, so the room's Speaker on/off is replaced by
+  the microphone and speaker pickers. The video tile is an `NSViewRepresentable` over the
+  same `VideoView`. Sleep yields a room like a call does (`RoomAudioYield.sleep`).
 
 ## Copy
 
@@ -121,10 +131,13 @@ Every user-visible string is the iOS app's, word for word. The iOS app is Englis
 its one `Localizable.strings` holds the six notification strings, which this app already
 carries, and there are no other localisations to port. Where a sentence has to differ on
 a Mac, the line carries a `⚠️` comment saying why, and the matching test is changed with
-it. So far there is one: the notifications line says "System Settings" where iOS says
-"iOS Settings".
+it. So far: the notifications line and the dialler's microphone refusal say "System
+Settings" where iOS says "iOS Settings" or "Settings"; the emergency-number hand-off says
+"Use a phone to call for help." where iOS names "the Phone app" (a Mac has none); and the
+call-backs' empty state says "one click" where iOS says "one tap".
 
-Mac-only copy (no iOS original) comes from district-linux where it has one: "Ring on this
+Mac-only copy (no iOS original) comes from district-linux where it has one, and is in the
+iOS sentences' shape otherwise (a room left because the Mac went to sleep): "Ring on this
 computer" and its caption (adapted to name the "Calls to you" card), the "Calls cannot ring
 here right now." line, and the ring window's "Incoming call" title. The app's own ring
 notification uses the APNs alert's strings (`push.call.title` and `push.call.body`), so the

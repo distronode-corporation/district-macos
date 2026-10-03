@@ -4,11 +4,24 @@ import Observation
 
 /// One microphone or speaker, as the pickers show it.
 struct AudioDeviceChoice: Identifiable, Hashable, Sendable {
-    /// LiveKit's device id. ⚠️ The empty string is the system default, which LiveKit
-    /// lists as a device of its own.
+    /// LiveKit's device id.
+    ///
+    /// ⚠️ LIVEKIT LISTS THE SYSTEM DEFAULT AS A DEVICE OF ITS OWN, WITH THE ID `default`
+    /// (measured on an iMac with one microphone: the list was `Internal Microphone`, id
+    /// `default`). The pickers show that entry as "System default" (``isSystemDefault``)
+    /// and store it as the empty string, so a remembered choice of "the default" follows
+    /// the system rather than pinning whichever device was default at the time.
     let id: String
     let name: String
     let isDefault: Bool
+
+    /// LiveKit's id for the system default device. See ``id``.
+    static let systemDefaultId = "default"
+
+    /// Whether this entry is the system default rather than a particular device.
+    var isSystemDefault: Bool {
+        id.isEmpty || id == Self.systemDefaultId
+    }
 }
 
 /// The microphone and speaker calls and rooms use, chosen through LiveKit's
