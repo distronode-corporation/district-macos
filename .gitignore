@@ -1,0 +1,46 @@
+# SwiftPM build output.
+.build/
+**/.build/
+
+# Xcode build output (CI and the local commands pass -derivedDataPath DerivedData).
+DerivedData/
+**/DerivedData/
+
+# Package checkouts from `xcodebuild -clonedSourcePackagesDirPath SourcePackages`.
+SourcePackages/
+
+# The Xcode project is generated from project.yml by XcodeGen and never committed.
+*.xcodeproj/
+*.xcworkspace/
+**/xcuserdata/
+**/.swiftpm/
+
+# Written by `xcodegen generate` from project.yml's `info:` blocks, one per target.
+App/Info.plist
+App/InfoDirect.plist
+
+build/
+
+*.log
+
+# App Store Connect API keys. They belong in the operator's environment, never here.
+*.p8
+
+# Signing certificates and provisioning profiles are never committed.
+*.p12
+*.mobileprovision
+*.provisionprofile
+*.cer
+
+# Sparkle's EdDSA private key, wherever `generate_keys -x` was told to write it.
+*.ed25519
+sparkle_private_key*
+
+# Release output.
+*.dmg
+*.xcarchive
+*.xcresult
+
+.DS_Store
+
+__pycache__/

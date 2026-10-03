@@ -1,0 +1,15 @@
+# gitleaks configuration: the default rules.
+#
+# ⛔ ANY ALLOWLIST ADDED HERE IS SCOPED TO ONE RULE, NAMED FILES AND THE EXACT VALUES, with
+# `condition = "AND"`, as in district-ios. A path-only allowlist would also hide a real
+# secret pasted into the same file later.
+#
+# ⚠️ Paths are matched with `(^|/)` rather than `^` because `gitleaks dir <path>` reports them
+# with the scanned directory in front, while `gitleaks git` reports them repository-relative.
+#
+# There is nothing to allow yet: this repository holds no test fixtures that look like
+# credentials, and the Sparkle public key in project.yml is a placeholder until the
+# release key is generated (a Sparkle public key is public by design in any case).
+
+[extend]
+useDefault = true

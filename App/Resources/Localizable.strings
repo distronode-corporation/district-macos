@@ -1,0 +1,24 @@
+/*
+  Localizable.strings (District AI for Mac)
+
+  ⛔ THE ONLY THING IN HERE IS THE COPY APNs DRAWS A NOTIFICATION FROM, the same six
+  keys and sentences as district-ios. The service builds `aps.alert` as `title-loc-key`
+  and `loc-key`, KEYS into this table that macOS resolves without waking the app. Every
+  other string in the client is an English literal in its view, by decision.
+
+  ⛔ THEY NAME NOBODY. The push carries ids only, so a notification cannot disclose who
+  is contacting whom to whoever can see the screen.
+
+  ⚠️ A KEY REMOVED HERE DOES NOT FAIL, IT SHOWS THE KEY: an unresolved `title-loc-key`
+  renders as the literal `push.message.title`. This file and the service's key list move
+  together, and the generic pair must exist even though nothing sends it today.
+*/
+
+"push.message.title" = "New message";
+"push.message.body" = "A new message arrived in your inbox.";
+
+"push.call.title" = "Incoming call";
+"push.call.body" = "Someone is calling your District line.";
+
+"push.generic.title" = "District AI";
+"push.generic.body" = "You have a new notification.";

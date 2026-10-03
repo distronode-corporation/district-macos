@@ -1,0 +1,296 @@
+# XcodeGen spec for District AI for Mac.
+#
+# ⛔ THIS FILE IS THE PROJECT. There is no `.xcodeproj` in the repo and there must never
+# be one: the generated bundle is gitignored so there is one source of truth.
+# `xcodegen generate` runs in CI immediately before `xcodebuild`.
+#
+# ⛔ TWO APP TARGETS FROM ONE TEMPLATE, NOT TWO BUILD CONFIGURATIONS OF ONE TARGET.
+#   - `DistrictMac` is the Mac App Store build.
+#   - `DistrictMacDirect` is the Developer ID build shipped as a notarised .dmg, updated
+#     by Sparkle and installable from the Homebrew tap.
+# Xcode cannot link a package product per configuration, and App Review rejects an app
+# that contains Sparkle, so the only way to keep Sparkle out of the store build is a
+# target that never links it. Everything else (sources, resources, packages, settings,
+# the shared entitlements) comes from the `DistrictMacApp` template below, so the two
+# cannot drift apart by accident.
+#
+# ⛔ THE SAME BUNDLE ID FOR BOTH (`com.distronode.district`, the iOS app's record, so the
+# Mac app is one universal purchase with it). The APNs topic, the Sign in with Apple
+# audience, the associated-domains file, `districtai://auth` and `districtai://handoff`
+# therefore stay exactly as the service already knows them. Installed side by side, the
+# two builds share the container, the keychain group and the URL scheme, which is why
+# the README says to install one, not both.
+#
+# ⚠️ NO TEAM AND NO SIGNING IDENTITY HERE, ON PURPOSE, as in district-ios. A
+# `DEVELOPMENT_TEAM` in the spec would make every CI build and every local scratch build
+# a signing decision, and a first `-allowProvisioningUpdates` run CREATES a profile on
+# the company account. Signing arrives as xcodebuild flags in the release lane
+# (`DEVELOPMENT_TEAM=...` from the environment), never as settings here. CI and local
+# builds sign ad hoc (`CODE_SIGN_IDENTITY=-`).
+# ⚠️ AN AD-HOC BUILD PROVES NOTHING ABOUT THE RESTRICTED ENTITLEMENTS (push, Sign in
+# with Apple, associated domains, the keychain group). They need a provisioning profile
+# that grants them, so they are proved on a signed build in Wave 4.2.
+name: DistrictMac
+
+options:
+  minimumXcodeGenVersion: "2.46"
+  bundleIdPrefix: com.distronode
+  createIntermediateGroups: true
+  # ⚠️ MUST NOT BE BELOW `.macOS(.v14)` IN district-core-swift's Package.swift. A
+  # deployment target below the package's floor fails to link with a message about the
+  # package, not about this line.
+  deploymentTarget:
+    macOS: "14.0"
+
+packages:
+  # The shared core: DistrictModel, DistrictAuthCore, DistrictNetwork, DistrictData and
+  # DistrictCall, the Linux-tested half of both Swift apps.
+  # TODO(Wave 1.1): pin `exactVersion: 1.0.0` once the tag exists, and delete `branch:`.
+  # A branch reference resolves whatever `main` is at resolve time, which is acceptable
+  # for the first scaffold commits and for nothing that ships.
+  DistrictCore:
+    url: https://github.com/distronode-corporation/district-core-swift
+    branch: main
+
+  # ⛔ THE SAME EXACT VERSIONS AS district-ios's project.yml. One WebRTC and one Sentry SDK
+  # across both apps, bumped together and deliberately. `exactVersion:` is XcodeGen's
+  # spelling, not SwiftPM's `exact:`.
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.29.2
+  LiveKit:
+    url: https://github.com/livekit/client-sdk-swift
+    exactVersion: 2.17.0
+
+  # ⛔ LINKED BY `DistrictMacDirect` ONLY. The package's single product is a binary
+  # XCFramework downloaded from the GitHub release and checked against the checksum in
+  # Sparkle's own Package.swift. Its floor is macOS 12, below this project's.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
+
+targetTemplates:
+  DistrictMacApp:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+      # ⛔ RESOURCES GO UNDER `sources:`: XcodeGen has no `resources:` key and assigns
+      # each file the build phase its type implies.
+      - path: App/Resources
+      # ⛔ THE PRIVACY MANIFEST MUST BE AT THE BUNDLE'S RESOURCES ROOT, and the build
+      # phase is stated because XcodeGen does not recognise `.xcprivacy` and would
+      # otherwise give it `buildPhase: none`, which builds green and ships no manifest.
+      - path: App/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      # All five products, listed explicitly: the package publishes five libraries and
+      # no umbrella, so `- package: DistrictCore` alone would link nothing.
+      - package: DistrictCore
+        products:
+          - DistrictModel
+          - DistrictAuthCore
+          - DistrictNetwork
+          - DistrictData
+          - DistrictCall
+      - package: Sentry
+        product: Sentry
+      - package: LiveKit
+        product: LiveKit
+    # ⚠️ GENERATED, NOT AUTHORED. xcodegen writes the plist at `path` from these
+    # properties on every `generate`; the file is gitignored. Each target sets its own
+    # `path` (two targets cannot share one generated plist) and the Direct target adds
+    # the Sparkle keys.
+    info:
+      properties:
+        CFBundleDisplayName: District AI
+        CFBundleName: District AI
+        # ⛔ `$(...)` REFERENCES, NOT LITERALS, for the reason district-ios documents: a
+        # literal is never substituted from the build setting the release lane passes.
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleDevelopmentRegion: en
+        LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
+        LSApplicationCategoryType: public.app-category.business
+        NSHumanReadableCopyright: Copyright 2026 Distronode Corporation
+        # ⛔ REQUIRED BY APP STORE CONNECT, AND FALSE IS THE TRUTHFUL ANSWER: HTTPS through
+        # URLSession and the keychain only.
+        ITSAppUsesNonExemptEncryption: false
+        # ⛔ REGISTERS `districtai://` WITH LAUNCH SERVICES. Sign-in does not need it
+        # (`ASWebAuthenticationSession` intercepts `districtai://auth` in-session); the
+        # scheduling hand-off does: leg 1 runs in the user's default browser, whose
+        # redirect to `districtai://handoff` reaches `.onOpenURL` only through this
+        # entry. ⚠️ Any app can claim the same scheme, which is why the callback is spent
+        # only against the state this app generated (`SchedulingHandoffFlow`).
+        CFBundleURLTypes:
+          - CFBundleURLName: com.distronode.district
+            CFBundleURLSchemes:
+              - districtai
+        # ⛔ WITHOUT THESE THE SANDBOX REFUSES THE DEVICE, and on macOS the refusal is
+        # silent: the capture session simply delivers nothing.
+        NSMicrophoneUsageDescription: "District AI uses the microphone for calls you place and answer."
+        NSCameraUsageDescription: "District AI uses the camera only in meeting rooms you join, never on phone calls."
+        # ⛔ THE SENTRY DSN REACHES THE APP THROUGH THIS KEY, NEVER A SOURCE LITERAL, and
+        # `SENTRY_DSN` is blank in `settings.base` below, so every CI and local build ships
+        # with the SDK inert. Only the release lane supplies a real one.
+        DistrictSentryDSN: "$(SENTRY_DSN)"
+        DistrictSentryEnvironment: "$(CONFIGURATION)"
+    # ⛔ GENERATED FROM `properties`, LIKE `info`. `xcodegen generate` OVERWRITES the
+    # .entitlements file on every run, so entitlements are edited here and never in the
+    # file. The file is committed anyway, because it is what a signing identity is
+    # checked against and a reviewer should be able to read it.
+    entitlements:
+      properties:
+        # The sandbox is mandatory on the Mac App Store and kept on the Developer ID
+        # build too, so both builds run under the same rules and share one container.
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.device.audio-input: true
+        com.apple.security.device.camera: true
+        com.apple.security.files.user-selected.read-write: true
+        # ⛔ PER CONFIGURATION, AS ON iOS. `Release` (every archive, both stores of
+        # distribution) is `production`; a `Debug` build signed with a development
+        # profile needs `development`. The values live under `settings.configs`.
+        com.apple.developer.aps-environment: $(APS_ENVIRONMENT)
+        # ⛔ APP STORE REVIEW GUIDELINE 4.8: the web sign-in offers Google and Microsoft
+        # SSO, so Sign in with Apple is offered beside it. `Default` is the only value and
+        # it is an array of one string.
+        com.apple.developer.applesignin:
+          - Default
+        # ⛔ `www.` ONLY, matching district-ios exactly. `distronode.ca` stays unclaimed.
+        com.apple.developer.associated-domains:
+          - applinks:www.distronode.com
+          - webcredentials:www.distronode.com
+        # ⛔ THE ONE KEYCHAIN GROUP BOTH BUILDS SHARE. `KeychainTokenStore` uses the
+        # data-protection keychain (`kSecUseDataProtectionKeychain`), which on macOS needs
+        # an access group entitlement; with it, the App Store and Developer ID builds
+        # (same team, same bundle id) read the same session without a keychain prompt.
+        keychain-access-groups:
+          - "$(AppIdentifierPrefix)com.distronode.district"
+    settings:
+      base:
+        # ⛔ THE iOS APP'S BUNDLE ID, and the server's APNs topic. See the note at the top.
+        PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district
+        MARKETING_VERSION: "1.0"
+        # ⚠️ A placeholder the release lane overrides with a build number App Store
+        # Connect has not seen.
+        CURRENT_PROJECT_VERSION: "1"
+        # ⛔ UNIVERSAL: arm64 AND x86_64 in every Release build. Debug builds only the
+        # active architecture (Xcode's default), which is what keeps local builds fast.
+        ARCHS: "$(ARCHS_STANDARD)"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: "NO"
+        # ⛔ Required for notarisation (the Developer ID build) and accepted by the store.
+        ENABLE_HARDENED_RUNTIME: "YES"
+        # ⛔ BLANK, AND BLANK MEANS SENTRY IS OFF. Never put the real DSN here.
+        SENTRY_DSN: ""
+        CODE_SIGN_STYLE: Automatic
+      configs:
+        Debug:
+          APS_ENVIRONMENT: development
+        Release:
+          APS_ENVIRONMENT: production
+
+targets:
+  # The Mac App Store build. Never links Sparkle.
+  DistrictMac:
+    templates:
+      - DistrictMacApp
+    info:
+      path: App/Info.plist
+    entitlements:
+      path: App/DistrictMac.entitlements
+
+  # The Developer ID build: the template, plus Sparkle and its sandbox plumbing.
+  DistrictMacDirect:
+    templates:
+      - DistrictMacApp
+    sources:
+      # Code that names Sparkle. Compiled into this target only, so the store build
+      # cannot reference the framework even by accident.
+      - path: App/Direct
+    dependencies:
+      - package: Sparkle
+        product: Sparkle
+    info:
+      path: App/InfoDirect.plist
+      properties:
+        # ⛔ THE FEED IS A CNAME TO GITHUB PAGES, DNS-ONLY IN CLOUDFLARE, generated from
+        # the GitHub Releases (never a Release asset itself: Releases are immutable).
+        SUFeedURL: https://updates.distronode.com/district/macos/appcast.xml
+        # ⛔ A PLACEHOLDER UNTIL THE RELEASE KEY IS GENERATED (Sparkle `generate_keys`,
+        # Wave 0d). With this value Sparkle refuses every update, which is the safe
+        # failure; the release lane must refuse to build a Direct release while it is
+        # still here.
+        SUPublicEDKey: REPLACE_WITH_SPARKLE_PUBLIC_KEY
+        # ⛔ A SANDBOXED APP CANNOT INSTALL ITS OWN UPDATE. This asks Sparkle to use its
+        # bundled installer launcher XPC service, which the mach-lookup exceptions below
+        # let the sandbox reach.
+        SUEnableInstallerLauncherService: true
+        SUEnableAutomaticChecks: true
+    entitlements:
+      path: App/DistrictMacDirect.entitlements
+      properties:
+        # ⛔ SPARKLE'S INSTALLER TALKS TO THE APP OVER THESE TWO MACH SERVICES, named after
+        # the bundle id. Without the exception the sandbox blocks them and every update
+        # fails after the download. Developer ID only: the store build has no Sparkle and
+        # App Review questions any temporary exception.
+        com.apple.security.temporary-exception.mach-lookup.global-name:
+          - "$(PRODUCT_BUNDLE_IDENTIFIER)-spks"
+          - "$(PRODUCT_BUNDLE_IDENTIFIER)-spki"
+    settings:
+      base:
+        # ⚠️ `$(inherited)` keeps the project-level `DEBUG` in the Debug configuration.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) DEVELOPER_ID"
+
+  # ⛔ A UNIT-TEST BUNDLE WITH A HOST APP: `@testable import DistrictMac` needs the app
+  # module built and loadable. `TEST_HOST` and `BUNDLE_LOADER` are stated rather than
+  # inferred, so a future XcodeGen that changed the inference fails as a spec error.
+  # Hosted by the store target; both targets compile the same `App/Sources`.
+  DistrictMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App/Tests
+    dependencies:
+      - target: DistrictMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district.tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/DistrictMac.app/Contents/MacOS/DistrictMac"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "6.0"
+
+# ⛔ SCHEMES ARE DECLARED, NOT AUTOCREATED: Xcode autocreates them only when a human opens
+# the project, which never happens on a runner.
+schemes:
+  DistrictMac:
+    build:
+      targets:
+        DistrictMac: all
+        # `[test]`: built when the scheme is tested, never by a plain build or an archive.
+        DistrictMacTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - DistrictMacTests
+    archive:
+      config: Release
+  DistrictMacDirect:
+    build:
+      targets:
+        DistrictMacDirect: all
+        DistrictMacTests: [test]
+    run:
+      config: Debug
+    # ⚠️ The same test bundle, hosted by the store target. The Direct build differs from
+    # it only by `App/Direct` and the Sparkle link, which `build-for-testing` compiles.
+    test:
+      config: Debug
+      targets:
+        - DistrictMacTests
+    archive:
+      config: Release

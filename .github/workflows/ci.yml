@@ -1,0 +1,334 @@
+name: CI
+
+# `lint`, `hygiene`, `gitleaks` and `zizmor` run on Linux on every push and pull request:
+# format and lint (SwiftLint and SwiftFormat parse Swift without compiling it, so they
+# can inspect the app from Linux), no dashes, internal host names or GitLab URLs, the
+# licence files, no secrets anywhere in the history, and workflows that pass static
+# analysis. `app` builds both app targets with Xcode and runs the unit tests.
+#
+# No job reads a secret, so pull requests from forks run the same checks as `main`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_mac:
+        description: Run the macOS job on this dispatch (needed only while the repository is private)
+        type: boolean
+        default: false
+
+# Least privilege at the top level, so a job added later starts read-only.
+permissions:
+  contents: read
+
+# Per ref and per trigger. Only pull requests cancel in flight: a superseded PR run is
+# waste, a superseded main run is history. A manual dispatch gets its own group, so a push
+# arriving behind a pending dispatch cannot cancel it.
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: lint (Linux)
+    runs-on: ubuntu-24.04
+    # ⚠️ PINNED BY TAG AND DIGEST, the same image district-core-swift's `verify` job uses.
+    # The dynamic SwiftLint loads sourcekitd from this toolchain; Swift 6.2 is the Swift
+    # Xcode 26.3 ships, which is what `.swiftformat` declares.
+    container: swift:6.2.4@sha256:29b983751c605c2d3102d2ab93438c6e0cadf110d9d2aa6e929b6dec9dcb7cbc
+    timeout-minutes: 15
+    env:
+      # The same versions, URLs and SHA-256 sums as district-ios and district-core-swift.
+      SWIFTLINT_VERSION: 0.65.1
+      SWIFTLINT_SHA256: caeed6f4a679c35539ffaf124f6c4ab4a8416917f7d8796279dc52b74026059d
+      SWIFTFORMAT_VERSION: 0.63.0
+      SWIFTFORMAT_SHA256: b4a3cbb8c852a0baaf9adf853e221ff1dabf921a3d8957a602e0bda3af8470f1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # libxml2 is for the dynamic SwiftLint binary, which otherwise dies at startup on a
+      # missing libxml2.so.2.
+      - name: Install system packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl unzip libxml2
+          rm -rf /var/lib/apt/lists/*
+
+      # ⛔ THE DYNAMIC `swiftlint`, NOT `swiftlint-static`: the static build has SourceKit
+      # compiled out, skips every rule that needs it, and still reports "0 violations".
+      # The checksum is what tells the real archive from a redirect page.
+      - name: Install SwiftLint and SwiftFormat
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o swiftlint.zip \
+            "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_amd64.zip"
+          echo "${SWIFTLINT_SHA256}  swiftlint.zip" | sha256sum -c -
+          unzip -q swiftlint.zip -d swiftlint-extract
+          install -m 0755 swiftlint-extract/swiftlint /usr/local/bin/swiftlint
+          curl -fsSL -o swiftformat.zip \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"
+          echo "${SWIFTFORMAT_SHA256}  swiftformat.zip" | sha256sum -c -
+          unzip -q swiftformat.zip -d swiftformat-extract
+          install -m 0755 swiftformat-extract/swiftformat_linux /usr/local/bin/swiftformat
+          rm -rf swiftlint.zip swiftlint-extract swiftformat.zip swiftformat-extract
+
+      - name: Toolchain
+        run: |
+          swift --version
+          swiftlint version
+          swiftformat --version
+
+      # `--lint` writes nothing and exits non-zero on any file that would change.
+      - name: swiftformat --lint
+        run: swiftformat --lint .
+
+      # `--strict` promotes every warning to an error.
+      - name: swiftlint --strict
+        run: swiftlint --strict
+
+  hygiene:
+    name: hygiene
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Before the scan, so a rule that has stopped matching anything fails here instead
+      # of letting the scan pass quietly.
+      - name: The public-hygiene rules still catch what they claim to
+        run: python3 scripts/check-public-hygiene.py --self-test
+
+      - name: Public hygiene (dashes, internal host names, GitLab URLs)
+        run: python3 scripts/check-public-hygiene.py
+
+      # Checked by content, because an empty or replaced file passes an existence check.
+      - name: LICENSE is Apache 2.0, and NOTICE carries the copyright and trademark terms
+        run: |
+          set -euo pipefail
+          grep -q 'Apache License' LICENSE
+          grep -q 'Version 2.0, January 2004' LICENSE
+          grep -q 'Copyright 2026 Distronode Corporation' NOTICE
+          grep -q 'Apache License, Version 2.0' NOTICE
+          grep -q 'trademarks of Distronode Corporation' NOTICE
+          echo "LICENSE and NOTICE are in place"
+
+      # ⛔ THE STORE BUILD MUST NEVER LINK SPARKLE. project.yml gives it to
+      # `DistrictMacDirect` only, and only `App/Direct` may import it; App Review rejects
+      # an app that contains it. A grep, so it holds on Linux before any Mac builds.
+      - name: Sparkle is imported only under App/Direct
+        run: |
+          stray=$(grep -rnE '^[[:space:]]*import[[:space:]]+Sparkle\b' App --include='*.swift' | grep -v '^App/Direct/' || true)
+          if [ -n "$stray" ]; then
+            echo "FATAL - Sparkle is imported outside App/Direct:"
+            echo "$stray"
+            exit 1
+          fi
+          echo "Sparkle is imported only under App/Direct"
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the whole history, not just the tip
+
+      # gitleaks/gitleaks-action needs a paid licence for an organization repository. The
+      # CLI is free (MIT); `go install` of a tagged module is checked against the Go
+      # checksum database. `.gitleaks.toml` is picked up from the root.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.25"
+          cache: false
+
+      # `--log-opts="HEAD"`: the history reachable from this checkout only, so one open
+      # pull request's finding cannot red every other pull request's run.
+      - name: gitleaks git
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" git --no-banner --redact -v --log-opts="HEAD" .
+
+  # Static analysis of these workflows. Annotations mode, not SARIF: uploading SARIF needs
+  # code scanning, which a private repository on the free plan does not have, so zizmor
+  # FAILS the job on a finding instead.
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          advanced-security: false
+          annotations: true
+
+  app:
+    name: app (macOS)
+    # ⛔ SKIPPED WHILE THE REPOSITORY IS PRIVATE, unless started by hand with `run_mac`. The
+    # free plan bills a private repository's macOS minutes at ten times the Linux rate.
+    # Once the repository is public it runs on every push and pull request.
+    if: ${{ !github.event.repository.private || inputs.run_mac }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      # Recommended by xcbeautify: without it xcodebuild buffers its output when piped.
+      NSUnbufferedIO: "YES"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # ⚠️ Xcode 26.3, not the image default, asserted rather than trusted, so an image
+      # rotation that drops it fails here, naming the reason.
+      - name: Select Xcode
+        id: xcode
+        env:
+          XCODE_APP: /Applications/Xcode_26.3.app
+          XCODE_VERSION: "26.3"
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          # Not `| head -n 1`: under pipefail with unbuffered output, xcodebuild aborts on
+          # the closed pipe (exit 134). Read everything, keep the first line.
+          have_all="$(xcodebuild -version)"
+          have="${have_all%%$'\n'*}"
+          echo "$have"
+          if [ "$have" != "Xcode $XCODE_VERSION" ]; then
+            echo "::error::expected Xcode $XCODE_VERSION at $XCODE_APP, got '$have'"
+            exit 1
+          fi
+          echo "version=$XCODE_VERSION" >>"$GITHUB_OUTPUT"
+          sw_vers
+          uname -m
+
+      # The upstream release zip, checked against a pinned SHA-256 (district-ios's pin).
+      - name: Install XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o xcodegen.zip \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  xcodegen.zip" | shasum -a 256 -c -
+          unzip -q xcodegen.zip
+          sudo ./xcodegen/install.sh
+          xcodegen --version
+
+      # ⛔ THE PROJECT IS GENERATED, NEVER COMMITTED. And the generated entitlements must
+      # equal the committed ones: a key edited into the file instead of project.yml would
+      # vanish on the next generate.
+      - name: xcodegen generate
+        run: |
+          xcodegen generate --spec project.yml
+          git diff --exit-code -- App/DistrictMac.entitlements App/DistrictMacDirect.entitlements
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: SourcePackages
+          key: sourcepackages-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('project.yml') }}
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project DistrictMac.xcodeproj \
+            -scheme DistrictMacDirect \
+            -clonedSourcePackagesDirPath SourcePackages
+
+      # ⛔ BOTH TARGETS, SIGNED AD HOC WITH THEIR REAL ENTITLEMENTS, then build-for-testing
+      # with `App/AdHoc.entitlements`: macOS refuses to launch an ad-hoc app claiming push,
+      # Sign in with Apple, associated domains or a keychain group, so the test host is
+      # signed with the sandbox and device keys only (see that file). The raw log is
+      # grepped because a piped xcodebuild can exit 0 on a build that did not finish.
+      - name: Build both targets
+        run: |
+          set -o pipefail
+          for scheme in DistrictMac DistrictMacDirect; do
+            echo "=== $scheme ==="
+            xcodebuild build \
+              -project DistrictMac.xcodeproj \
+              -scheme "$scheme" \
+              -destination 'platform=macOS' \
+              -derivedDataPath DerivedData \
+              -clonedSourcePackagesDirPath SourcePackages \
+              CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+              2>&1 | tee "xcodebuild-$scheme.log" | xcbeautify --renderer github-actions
+            grep -q '\*\* BUILD SUCCEEDED \*\*' "xcodebuild-$scheme.log"
+          done
+
+      - name: Build for testing
+        run: |
+          set -o pipefail
+          for scheme in DistrictMac DistrictMacDirect; do
+            echo "=== $scheme ==="
+            xcodebuild build-for-testing \
+              -project DistrictMac.xcodeproj \
+              -scheme "$scheme" \
+              -destination 'platform=macOS' \
+              -derivedDataPath DerivedData \
+              -clonedSourcePackagesDirPath SourcePackages \
+              CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+              CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
+              2>&1 | tee "xcodebuild-testing-$scheme.log" | xcbeautify --renderer github-actions
+            grep -q '\*\* TEST BUILD SUCCEEDED \*\*' "xcodebuild-testing-$scheme.log"
+          done
+
+      - name: DistrictMacTests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project DistrictMac.xcodeproj \
+            -scheme DistrictMac \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            -clonedSourcePackagesDirPath SourcePackages \
+            -resultBundlePath DistrictMacTests.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
+            2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
+
+      # ⛔ A BUNDLE THAT DISCOVERS NOTHING REPORTS SUCCESS. The floor is a ratchet, set at
+      # the count (19 on 2026-10-03): raise it when tests are added, and lower it only in
+      # the commit that deletes tests on purpose, saying so.
+      - name: DistrictMacTests were discovered
+        run: |
+          minimum=19
+          executed=$(sed -n 's/.*Executed \([0-9]*\) tests\{0,1\}, with.*/\1/p' xcodebuild-test.log | sort -n | tail -1)
+          echo "app-target tests executed - ${executed:-0} (at least $minimum expected)"
+          if [ -z "$executed" ] || [ "$executed" -lt "$minimum" ]; then
+            echo "FATAL - expected at least $minimum DistrictMacTests, saw ${executed:-0}."
+            exit 1
+          fi
+
+      - name: Tail the logs on failure
+        if: failure()
+        run: |
+          for log in xcodebuild-*.log xcodebuild-test.log; do
+            echo "=== last 200 lines of $log ==="
+            tail -n 200 "$log" 2>/dev/null || echo "(no log written)"
+          done
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: app-logs
+          path: |
+            xcodebuild*.log
+            *.xcresult
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,78 @@
+# SwiftLint configuration for district-macos.
+#
+# The same rules as district-ios (the default rule set, no opt-in rules, NO BASELINE),
+# so a file ported from the iOS app lints the same here. Opt-in rules land alongside
+# the code that justifies them.
+#
+# CI runs `swiftlint --strict` (SwiftLint 0.65.1) from the project root, which promotes
+# every warning to an error. A warning tier in CI is a tier nobody reads.
+
+included:
+  # ⚠️ SwiftLint fails outright ("No lintable files found") on an `included` path that
+  # does not exist.
+  - App
+
+excluded:
+  - .build
+  - DerivedData
+  - SourcePackages
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: false
+  ignores_urls: true
+
+file_length:
+  warning: 500
+  error: 800
+
+type_body_length:
+  warning: 300
+  error: 400
+
+function_body_length:
+  warning: 60
+  error: 100
+
+# ⛔ CASE ARMS ARE NOT COMPLEXITY HERE. The house style is an EXHAUSTIVE switch with no
+# `default`, so adding a case fails to compile at every site that must handle it;
+# counting arms would push contributors to merge unrelated arms or add a `default`.
+cyclomatic_complexity:
+  ignores_case_statements: true
+
+# ⚠️ `id`, `to`, `at` and `ok` mirror wire names in the shared core's DTOs.
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  excluded:
+    - id
+    - to
+    - at
+    - ok
+
+nesting:
+  type_level:
+    warning: 2
+
+# ⛔ SwiftFormat ADDS a trailing comma to a multi-line collection literal and SwiftLint's
+# default REMOVES it. Configured to agree, so the rule stays live for single-line
+# literals instead of being switched off.
+trailing_comma:
+  mandatory_comma: true
+
+# ⛔ A bare MainActor-isolated method reference as a `Binding` setter (`set: retype`)
+# aborts the Swift 6 compiler in IRGen (swiftlang/swift#91702) with no `error:` line.
+# Carried over from district-ios unchanged; see the long note there for why the pattern
+# is exactly this narrow and why `match_kinds` lists `keyword`.
+custom_rules:
+  binding_setter_method_reference:
+    name: "Binding Setter Method Reference"
+    regex: '\bset:\s*(?!(?:nil|true|false)\b)[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\s*[,)]'
+    match_kinds:
+      - argument
+      - identifier
+      - keyword
+    message: "Use a closure literal, not a method reference: `set: { thing($0) }`. A bare MainActor-isolated method reference as a Binding setter aborts the compiler in IRGen under Swift 6 (swiftlang/swift#91702), with no error: line to point back at the file."
+    severity: error

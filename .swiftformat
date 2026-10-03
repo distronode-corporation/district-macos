@@ -1,0 +1,39 @@
+# SwiftFormat configuration for district-macos.
+#
+# The same options as district-ios and district-core-swift, so code moved between the
+# three repositories formats identically. Deliberately minimal: the default rule set,
+# with only the options that pin house style so `swiftformat --lint` in CI is
+# reproducible.
+#
+# ⚠️ RUN `swiftformat .` FROM THE PROJECT ROOT (the directory holding this file).
+# The tool discovers this file by walking up from each input path.
+#
+# CI runs `swiftformat --lint .` (SwiftFormat 0.63.0), which formats nothing and exits
+# non-zero on any file that would change.
+
+# ⚠️ MUST TRACK the Swift that Xcode 26.3 ships (6.2) and the swift image in the
+# workflow. A version newer than the toolchain makes the formatter emit code the
+# compiler rejects; older, and it silently skips modernisation rules.
+--swiftversion 6.2
+
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--closingparen balanced
+# ⚠️ `collections-only`, NOT the `always` default. `always` also adds a trailing comma to
+# function argument lists, which is Swift 6.1+ syntax; collections have taken one since
+# Swift 1.
+--trailing-commas collections-only
+--trimwhitespace always
+--stripunusedargs closure-only
+--self remove
+--importgrouping alpha
+
+# Generated and vendored trees. All are gitignored, but --lint would still walk them.
+--exclude .build,**/.build,DerivedData,**/DerivedData,SourcePackages,*.xcodeproj
+
+# ⚠️ `redundantInit` OFF, as in district-ios: it has historically got `map(Foo.init)`
+# wrong inside result-builder bodies.
+--disable redundantInit
