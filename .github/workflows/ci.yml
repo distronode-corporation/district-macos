@@ -115,6 +115,11 @@ jobs:
       - name: Release script tests (asc_release.py)
         run: python3 scripts/asc_release_test.py
 
+      # Also run by release.yml and publish.yml; here too, so a change to the appcast
+      # writer is proven on the pull request rather than at publish time.
+      - name: Publish script tests (appcast.py)
+        run: python3 scripts/appcast_test.py
+
       # Checked by content, because an empty or replaced file passes an existence check.
       - name: LICENSE is Apache 2.0, and NOTICE carries the copyright and trademark terms
         run: |

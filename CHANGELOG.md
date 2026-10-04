@@ -22,6 +22,14 @@ not sent.
   SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
   requests get dependency review, and a test uses a fictional email address.
 
+### Release process
+
+- The Developer ID build can be published: `publish.yml` (called by `release.yml` on an
+  approved tag, or dispatched for a tag built earlier) makes it an immutable GitHub
+  Release with its Sparkle signature, checksums and provenance attestation, and adds it
+  to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
+  publishes nothing.
+
 ## [2.0]
 
 Voice Studio comes to the Mac.

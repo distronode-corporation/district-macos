@@ -1,0 +1,284 @@
+name: Publish the Developer ID build
+
+# Publishes a Developer ID build that release.yml's `direct` job has already built from
+# a `v*` tag: an immutable GitHub Release on that tag with four assets, then the
+# release's item in the Sparkle appcast, served from distronode-corporation/updates at
+# https://updates.distronode.com/district/macos/appcast.xml (`SUFeedURL` in project.yml).
+#
+#   DistrictAI-<version>-<build>.dmg              signed, notarised, stapled
+#   DistrictAI-<version>-<build>.dmg.sig          its Sparkle EdDSA signature
+#   SHA256SUMS                                    the .dmg and the .sig
+#   DistrictAI-<version>-<build>.dmg.intoto.jsonl its build provenance attestation
+#
+# Called by release.yml's `publish` job on the tag it has just built, or dispatched on
+# main with the tag and the release.yml run that built it (the `release` environment
+# admits main and `v*` tags only). Dispatching it is how a tag built before this
+# workflow existed is published, v1.0 among them: a dispatch runs the workflow file of
+# the ref it is dispatched on, and that tag's release.yml has no publish job.
+#
+# ⛔ ONLY WITH THE MAINTAINERS' APPROVAL, as for submit.yml: anything but the exact
+# approval text fails at the first step and publishes nothing. `dry_run` needs no
+# approval and does everything else: it checks the build, writes the appcast against
+# the live feed and the release notes, and keeps them with the four assets as this
+# run's artifact, without creating the Release or pushing the feed.
+#
+# Every check runs before anything is public (scripts/release-publish.sh): exactly the
+# three files the direct job writes, their checksums, the EdDSA signature against the
+# SUPublicEDKey in project.yml, the attestation (release.yml, this repository, the tag,
+# a GitHub-hosted runner), the feed's own rules, and the deploy key, by cloning the feed
+# repository with it. The Release is created as a draft, read back and its .dmg
+# verified as a user downloads it, and only then published.
+#
+# ⛔ THE FEED IS PUSHED WITH A DEPLOY KEY, NOT A TOKEN: `UPDATES_DEPLOY_KEY`, a secret of
+# the `release` environment, is the private half of a write deploy key on
+# distronode-corporation/updates and nothing else. GitHub's SSH host key is pinned below
+# (published at https://api.github.com/meta).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to publish, e.g. v1.0
+        type: string
+        required: true
+      run_id:
+        description: The id of the release.yml run whose Developer ID build to publish
+        type: string
+        required: true
+      approval:
+        description: The maintainers' approval text (not needed for a dry run)
+        type: string
+        default: ""
+      dry_run:
+        description: Check everything and keep the result as an artifact; publish nothing
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      run_id:
+        type: string
+        required: true
+      approval:
+        type: string
+        default: ""
+      dry_run:
+        type: boolean
+        default: false
+
+permissions: {}
+
+# One publish at a time across every tag, never cancelled halfway: each run reads the
+# feed, adds to it and pushes it, and two at once would race for the same file.
+concurrency:
+  group: publish-developer-id
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-24.04
+    environment: release
+    timeout-minutes: 30
+    permissions:
+      contents: write # create the Release on the tag (and read the scripts)
+      actions: read # download the build from the release.yml run that made it
+      attestations: read # fetch and verify the .dmg's provenance attestation
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+      RUN_ID: ${{ inputs.run_id }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      FEED_REPO: distronode-corporation/updates
+      FEED_PATH: district/macos/appcast.xml
+      FEED_URL: https://updates.distronode.com/district/macos/appcast.xml
+    steps:
+      # ⛔ FIRST, before any checkout or credential. Inputs arrive through env, never
+      # interpolated into the script.
+      - name: Approval and inputs
+        env:
+          APPROVAL: ${{ inputs.approval }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            echo "::error::tag '$TAG' is not of the form v<version>. Nothing was published."
+            exit 1
+          fi
+          if ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_id '$RUN_ID' is not a run id. Nothing was published."
+            exit 1
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::notice::Dry run: nothing will be published."
+          elif [ "$APPROVAL" != "approved for release" ]; then
+            echo "::error::No approval was given. Nothing was published."
+            echo "**Nothing was published:** the approval input was not the maintainers' approval." >>"$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Publish script tests
+        run: python3 scripts/appcast_test.py
+
+      # The build must come from release.yml in this repository. For a release its run
+      # must be on the tag; a dry run may also check a build of main. The attestation
+      # check in `verify` then holds the .dmg itself to the same ref.
+      - name: The build's run
+        id: source
+        run: |
+          set -euo pipefail
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq '"\(.path) \(.head_branch)"')"
+          path="${run%% *}"
+          branch="${run#* }"
+          if [ "$path" != ".github/workflows/release.yml" ]; then
+            echo "::error::run $RUN_ID is $path, not release.yml."
+            exit 1
+          fi
+          if [ "$branch" = "$TAG" ]; then
+            ref="refs/tags/$TAG"
+          elif [ "$DRY_RUN" = "true" ] && [ "$branch" = "main" ]; then
+            ref="refs/heads/main"
+          else
+            echo "::error::run $RUN_ID built '$branch', not $TAG."
+            exit 1
+          fi
+          echo "run $RUN_ID: release.yml at $ref"
+          echo "ref=$ref" >>"$GITHUB_OUTPUT"
+
+      # Without a token the action reads this run (release.yml calling this workflow);
+      # with one, the run named, for a dispatch.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: DistrictAI-*-developer-id
+          merge-multiple: true
+          path: ${{ runner.temp }}/assets
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ inputs.run_id != github.run_id && github.token || '' }}
+
+      - name: Verify the build
+        id: verify
+        env:
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        run: scripts/release-publish.sh verify "$RUNNER_TEMP/assets"
+
+      # The deploy key, written once with mode 0600 under the runner's temporary
+      # directory and removed by the last step whatever happens. A dry run clones the
+      # public feed over HTTPS instead and never reads the key.
+      - name: Clone the feed
+        env:
+          UPDATES_DEPLOY_KEY: ${{ secrets.UPDATES_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          if [ "$DRY_RUN" = "true" ]; then
+            git clone --quiet --depth 1 "https://github.com/$FEED_REPO.git" "$RUNNER_TEMP/feed"
+            exit 0
+          fi
+          if [ -z "$UPDATES_DEPLOY_KEY" ]; then
+            echo "::error::UPDATES_DEPLOY_KEY is not set in the release environment. Nothing was published."
+            exit 1
+          fi
+          mkdir -m 0700 "$RUNNER_TEMP/ssh"
+          (umask 077 && printf '%s\n' "$UPDATES_DEPLOY_KEY" >"$RUNNER_TEMP/ssh/key")
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >"$RUNNER_TEMP/ssh/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/ssh/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts -o StrictHostKeyChecking=yes"
+          git clone --quiet --depth 1 "git@github.com:$FEED_REPO.git" "$RUNNER_TEMP/feed"
+
+      - name: Write the appcast item
+        id: appcast
+        run: |
+          set -euo pipefail
+          result="$(scripts/release-publish.sh appcast "$RUNNER_TEMP/assets" "$RUNNER_TEMP/feed/$FEED_PATH")"
+          echo "appcast: $result"
+          echo "result=$result" >>"$GITHUB_OUTPUT"
+          # The feed repository's own check, run on the result before anything is public.
+          python3 "$RUNNER_TEMP/feed/.github/scripts/check-feeds.py"
+          git -C "$RUNNER_TEMP/feed" diff
+
+      - name: Release notes
+        run: scripts/release-publish.sh notes "$RUNNER_TEMP/assets" >"$RUNNER_TEMP/release-notes.md"
+
+      - name: Keep the dry run's result
+        if: inputs.dry_run
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dry-run"
+          cp "$RUNNER_TEMP/assets/"* "$RUNNER_TEMP/release-notes.md" "$RUNNER_TEMP/dry-run/"
+          cp "$RUNNER_TEMP/feed/$FEED_PATH" "$RUNNER_TEMP/dry-run/appcast.xml"
+          ls -l "$RUNNER_TEMP/dry-run"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: inputs.dry_run
+        with:
+          name: publish-dry-run-${{ steps.verify.outputs.version }}-${{ steps.verify.outputs.build }}
+          path: ${{ runner.temp }}/dry-run/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Create and publish the Release
+        if: ${{ !inputs.dry_run }}
+        run: scripts/release-publish.sh release "$RUNNER_TEMP/assets"
+
+      - name: Push the appcast
+        if: ${{ !inputs.dry_run && steps.appcast.outputs.result == 'added' }}
+        env:
+          VERSION: ${{ steps.verify.outputs.version }}
+          BUILD: ${{ steps.verify.outputs.build }}
+        run: |
+          set -euo pipefail
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/ssh/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts -o StrictHostKeyChecking=yes"
+          cd "$RUNNER_TEMP/feed"
+          git add "$FEED_PATH"
+          git -c user.name=Distronode -c user.email=opensource@distronode.com \
+            commit --quiet -m "District AI for macOS $VERSION ($BUILD)" \
+            -m "Added by $GITHUB_REPOSITORY's publish workflow, run $GITHUB_RUN_ID, for $TAG."
+          git push --quiet origin HEAD:main
+          echo "pushed $(git rev-parse HEAD) to $FEED_REPO"
+
+      # GitHub Pages rebuilds the site after the push; the item is live when the feed
+      # URL serves it.
+      - name: The feed serves the new item
+        if: ${{ !inputs.dry_run }}
+        env:
+          BUILD: ${{ steps.verify.outputs.build }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$FEED_URL" | grep -q "<sparkle:version>$BUILD</sparkle:version>"; then
+              echo "$FEED_URL serves build $BUILD"
+              exit 0
+            fi
+            echo "not served yet (attempt $attempt)"
+            sleep 20
+          done
+          echo "::error::$FEED_URL does not serve build $BUILD after 10 minutes. The Release is published; check the updates repository's Pages build."
+          exit 1
+
+      - name: Summary
+        if: success()
+        env:
+          VERSION: ${{ steps.verify.outputs.version }}
+          BUILD: ${{ steps.verify.outputs.build }}
+          RESULT: ${{ steps.appcast.outputs.result }}
+        run: |
+          {
+            echo "### District AI for macOS $VERSION ($BUILD), Developer ID"
+            echo
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "**Dry run: nothing was published.** The four release assets, the release notes and the appcast as it would be pushed are this run's artifact."
+            else
+              echo "Published: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
+              echo
+              echo "Appcast ($RESULT): $FEED_URL"
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ssh"

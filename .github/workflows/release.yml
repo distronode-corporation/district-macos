@@ -7,15 +7,21 @@ name: Release
 #   - `direct`: the Developer ID build, signed with the team's Developer ID certificate
 #     and provisioning profile, notarised, stapled, in a signed and notarised
 #     .dmg with its Sparkle signature, checksums and a provenance attestation, kept as
-#     this run's workflow artifact. Nothing is published: no GitHub Release, no appcast.
+#     this run's workflow artifact.
 #
-# Submission for App Review is a separate, explicitly approved step:
+# Submission for App Review and publishing the Developer ID build (an immutable GitHub
+# Release and the Sparkle appcast) are separate, explicitly approved steps:
 #
-#   - A `v*` tag push builds that version. Nothing is submitted.
-#   - A dispatch on `main` builds main. Nothing is submitted, whatever the approval
-#     input says.
+#   - A `v*` tag push builds that version. Nothing is submitted or published.
+#   - A dispatch on `main` builds main. Nothing is submitted or published, whatever the
+#     approval input says.
 #   - A dispatch on a `v*` tag with the maintainers' approval input also submits the
-#     store build for review once it is valid, by calling submit.yml.
+#     store build for review once it is valid, by calling submit.yml, and publishes the
+#     Developer ID build, by calling publish.yml.
+#   - A dispatch with `dry_run` builds the Developer ID build only (no App Store upload,
+#     no submission) and runs publish.yml's dry run on it: every check, the appcast and
+#     the release notes, kept as an artifact, with no Release and no feed push. It
+#     needs no approval, and works on main as well as on a tag.
 #
 # ⛔ NO SIGNING MATERIAL LIVES IN THIS REPOSITORY OR IN GITHUB. The `release` environment
 # (branch `main` and tags `v*` only) is the one place a job can obtain a Google Cloud
@@ -35,9 +41,13 @@ on:
   workflow_dispatch:
     inputs:
       approval:
-        description: Leave empty for an upload only. Submission for review needs the maintainers' approval text and a v* tag.
+        description: Leave empty for an upload only. Submission for review and publishing need the maintainers' approval text and a v* tag.
         type: string
         default: ""
+      dry_run:
+        description: Build the Developer ID build and dry-run its publishing; no App Store upload, nothing submitted or published
+        type: boolean
+        default: false
 
 # Nothing at the top level; each job asks for exactly what it uses.
 permissions: {}
@@ -70,6 +80,8 @@ env:
 jobs:
   appstore:
     name: App Store build
+    # A dry run is about the Developer ID build: nothing goes to App Store Connect.
+    if: ${{ !inputs.dry_run }}
     runs-on: macos-26
     environment: release
     timeout-minutes: 120
@@ -102,6 +114,7 @@ jobs:
           bash scripts/release-preflight.test.sh
           bash scripts/asc-key.test.sh
           python3 scripts/asc_release_test.py
+          python3 scripts/appcast_test.py
 
       # The provider and the service account live in the action, shared with submit.yml.
       - name: Authenticate to Google Cloud
@@ -215,6 +228,10 @@ jobs:
       contents: read # check out the source
       id-token: write # the Google Cloud token for the release secrets, and the attestation
       attestations: write # the build provenance attestation of the .dmg
+    outputs:
+      version: ${{ steps.preflight.outputs.version }}
+      build: ${{ steps.preflight.outputs.build }}
+      kind: ${{ steps.preflight.outputs.kind }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -315,7 +332,8 @@ jobs:
 
       # ⛔ A WORKFLOW ARTIFACT, NOT A RELEASE. It is downloadable by anyone who can see
       # this run, which on a public repository is everyone, and it expires; publishing
-      # (an immutable Release and the appcast) is a separate, approved step.
+      # (an immutable Release and the appcast) is publish.yml, an approved step, which
+      # reads it from here.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: DistrictAI-${{ steps.preflight.outputs.version }}-${{ steps.preflight.outputs.build }}-developer-id
@@ -338,7 +356,7 @@ jobs:
             cat "$RUNNER_TEMP/build/out/SHA256SUMS"
             echo '```'
             echo
-            echo "**Not published.** The .dmg, its Sparkle signature and the checksums are this run's artifact only."
+            echo "The .dmg, its Sparkle signature and the checksums are this run's artifact. They are published only by the **publish** job, with the maintainers' approval on a tag (or checked by its dry run)."
           } >>"$GITHUB_STEP_SUMMARY"
 
       - name: Remove the keys, the keychain and the build
@@ -354,7 +372,7 @@ jobs:
     needs: appstore
     # ⛔ Only a dispatch on a tag, and only with the approval input exactly as the
     # maintainers give it. Anything else skips this job.
-    if: github.event_name == 'workflow_dispatch' && needs.appstore.outputs.kind == 'tag' && inputs.approval == 'approved for release'
+    if: github.event_name == 'workflow_dispatch' && needs.appstore.outputs.kind == 'tag' && inputs.approval == 'approved for release' && !inputs.dry_run
     permissions:
       contents: read # submit.yml checks out the tag
       id-token: write # the Google Cloud token for the App Store Connect key
@@ -362,3 +380,26 @@ jobs:
     with:
       tag: ${{ github.ref_name }}
       approval: ${{ inputs.approval }}
+
+  # The one publishing path, publish.yml, called here rather than copied, as submit is:
+  # it checks the approval again, verifies this run's Developer ID build, creates the
+  # immutable Release on the tag and pushes the appcast. Dispatched on its own, it
+  # publishes a tag built by an earlier run.
+  publish:
+    name: publish the Developer ID build
+    needs: direct
+    # ⛔ Only a dispatch, and then only on a tag with the approval input exactly as the
+    # maintainers give it, or as a dry run (which publishes nothing). Anything else
+    # skips this job.
+    if: github.event_name == 'workflow_dispatch' && (inputs.dry_run || (needs.direct.outputs.kind == 'tag' && inputs.approval == 'approved for release'))
+    permissions:
+      contents: write # publish.yml creates the Release
+      actions: read # publish.yml downloads this run's build
+      attestations: read # publish.yml verifies the .dmg's attestation
+    uses: ./.github/workflows/publish.yml # zizmor: ignore[self-repository]
+    with:
+      # A dry run of a main build names the tag its version would have.
+      tag: ${{ needs.direct.outputs.kind == 'tag' && github.ref_name || format('v{0}', needs.direct.outputs.version) }}
+      run_id: ${{ format('{0}', github.run_id) }}
+      approval: ${{ inputs.approval }}
+      dry_run: ${{ inputs.dry_run }}
