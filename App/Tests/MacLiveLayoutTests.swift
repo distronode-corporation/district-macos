@@ -9,8 +9,8 @@ import XCTest
 @MainActor
 final class DistrictAvatarTests: XCTestCase {
     func test_MAC_AVATAR_1_aRealNameGivesUpToTwoInitials() {
-        XCTAssertEqual(DistrictAvatar.initials(for: "Sean Dean"), "SD")
-        XCTAssertEqual(DistrictAvatar.initials(for: "paul alavathil"), "PA")
+        XCTAssertEqual(DistrictAvatar.initials(for: "Maya Okafor"), "MO")
+        XCTAssertEqual(DistrictAvatar.initials(for: "jordan tremblay"), "JT")
         XCTAssertEqual(DistrictAvatar.initials(for: "Distronode Corporation Canada"), "DC")
         XCTAssertEqual(DistrictAvatar.initials(for: "reviewer@example.com"), "R")
         XCTAssertEqual(DistrictAvatar.initials(for: "  Anita  "), "A")
