@@ -327,11 +327,12 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         SWIFT_VERSION: "6.0"
 
-  # ⛔ THE STORE SCREENSHOT UI TESTS, AND NEVER RUN BY CI. They drive the app signed in to
-  # the review workspace on a minted production session (docs/screenshots.md), so they live
-  # only in the `DistrictMacScreenshots` scheme: CI builds that scheme for testing and never
-  # tests it, and the case skips without a session anyway. Not in `DistrictMac`'s test
-  # action, which CI runs.
+  # ⛔ THE STORE SCREENSHOT UI TESTS, AND THE SCREENSHOT CASE IS NEVER RUN BY CI. It drives
+  # the app signed in to the review workspace on a minted production session
+  # (docs/screenshots.md), so the target lives only in the `DistrictMacScreenshots` scheme,
+  # and the case skips without a session anyway. CI runs `LaunchSmokeTests` alone from it
+  # (`-only-testing`), on a dummy session and a closed loopback port. Not in
+  # `DistrictMac`'s test action.
   # ⚠️ THE A11yID FILES ARE COMPILED IN, because a `bundle.ui-testing` target cannot import
   # the app; they have no imports for that reason.
   DistrictMacUITests:
@@ -380,8 +381,8 @@ schemes:
     archive:
       config: Release
   # ⛔ THE STORE SCREENSHOTS, RUN BY HAND ON A MAC WITH A MINTED REVIEW SESSION
-  # (docs/screenshots.md). CI only builds it for testing. Debug, because the session seam
-  # (`UITestSession`) exists in Debug only.
+  # (docs/screenshots.md). CI tests only `LaunchSmokeTests` from it. Debug, because the
+  # session seam (`UITestSession`) exists in Debug only.
   DistrictMacScreenshots:
     build:
       targets:

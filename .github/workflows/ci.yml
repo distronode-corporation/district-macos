@@ -322,12 +322,11 @@ jobs:
             exit 1
           fi
 
-      # ⛔ BUILT, NEVER TESTED. The store screenshot UI tests sign in to production on a
-      # minted review session and run only by hand on a Mac (docs/screenshots.md). Building
-      # them here keeps them compiling; nothing in this workflow runs them, and the case
-      # skips without a session regardless. After the unit tests, so it cannot disturb
-      # their products.
-      - name: Build the screenshot UI tests (not run)
+      # ⛔ THE SCREENSHOT CASE IS BUILT, NEVER RUN. It signs in to production on a minted
+      # review session and runs only by hand on a Mac (docs/screenshots.md); it also skips
+      # without a session. Building it here keeps it compiling. After the unit tests, so it
+      # cannot disturb their products.
+      - name: Build the screenshot UI tests
         run: |
           set -o pipefail
           xcodebuild build-for-testing \
@@ -340,6 +339,24 @@ jobs:
             CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
             2>&1 | tee xcodebuild-screenshots.log | xcbeautify --renderer github-actions
           grep -q '\*\* TEST BUILD SUCCEEDED \*\*' xcodebuild-screenshots.log
+
+      # ⛔ THE LAUNCH THE SCREENSHOT RUN USES, PROVED ON A DUMMY SESSION: `LaunchSmokeTests`
+      # alone (`-only-testing`), never `StoreScreenshotTests`. Its tokens are made up and its
+      # base URL is a closed loopback port, so it reaches no server. It exists because a
+      # launch argument once left the app with no window, and the screenshot run, the only
+      # thing that launched the app that way, reported it as a bad session.
+      - name: Launch smoke UI test
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project DistrictMac.xcodeproj \
+            -scheme DistrictMacScreenshots \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData-screenshots \
+            -only-testing:DistrictMacUITests/LaunchSmokeTests \
+            -resultBundlePath LaunchSmoke.xcresult \
+            2>&1 | tee xcodebuild-launch-smoke.log | xcbeautify --renderer github-actions
+          grep -q 'Executed 1 test, with 0 failures' xcodebuild-launch-smoke.log
 
       - name: Tail the logs on failure
         if: failure()

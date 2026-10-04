@@ -7,9 +7,9 @@ import XCTest
 /// a session for the review account with `mint-native-session.ts` and exports it to the run.
 /// The steps are in docs/screenshots.md.
 ///
-/// ⛔ NEVER RUN BY CI, TWICE OVER. This target is only in the `DistrictMacScreenshots` scheme,
-/// which CI builds and never tests, and the case skips when the run carries no session, so
-/// even a stray `xcodebuild test` of that scheme cannot reach production.
+/// ⛔ NEVER RUN BY CI, TWICE OVER. CI tests the `DistrictMacScreenshots` scheme with
+/// `-only-testing` of ``LaunchSmokeTests`` alone, and this case skips when the run carries no
+/// session, so even a stray `xcodebuild test` of that scheme cannot reach production.
 ///
 /// ⛔ ONE LAUNCH. The injected refresh token is single-use; a second launch replays it and the
 /// server revokes the whole family. Everything happens in the one case below.
@@ -20,17 +20,6 @@ import XCTest
 /// display the frames are 1440x900, which App Store Connect also takes, but the case asserts
 /// the 2x size so a run on the wrong display fails instead of producing a weaker set.
 final class StoreScreenshotTests: XCTestCase {
-    /// ⛔ THE LAUNCH CONTRACT, DUPLICATED ON PURPOSE: `UITestSession` is `#if DEBUG` inside the
-    /// app target, which a `bundle.ui-testing` target cannot import. These literals must match
-    /// it.
-    private enum Launch {
-        static let argument = "-UITestSession"
-        static let sessionVariable = "DISTRICT_UITEST_SESSION"
-        static let baseURLVariable = "DISTRICT_UITEST_BASE_URL"
-        static let windowVariable = "DISTRICT_UITEST_WINDOW_POINTS"
-        static let windowPoints = "1440x900"
-    }
-
     /// Where the PNGs are written, when the run names a folder (exported to xcodebuild as
     /// `TEST_RUNNER_DISTRICT_STORE_SCREENSHOTS_DIR`). They are attachments in the result
     /// bundle either way.
@@ -59,20 +48,15 @@ final class StoreScreenshotTests: XCTestCase {
     @MainActor
     func test_captureStoreScreenshots() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let session = environment[Launch.sessionVariable], !session.isEmpty else {
+        guard let session = environment[AppLaunch.sessionVariable], !session.isEmpty else {
             throw XCTSkip("no minted review session in this run; see docs/screenshots.md")
         }
-        let app = XCUIApplication()
-        // ⚠️ `-ApplePersistenceIgnoreState YES`: a restored window would come back at its old
-        // size and position before the sizer runs.
-        app.launchArguments = [Launch.argument, "-ApplePersistenceIgnoreState", "YES"]
-        app.launchEnvironment[Launch.sessionVariable] = session
-        app.launchEnvironment[Launch.windowVariable] = Launch.windowPoints
-        if let base = environment[Launch.baseURLVariable], !base.isEmpty {
-            app.launchEnvironment[Launch.baseURLVariable] = base
-        }
+        // ⚠️ THE SAME LAUNCH CI PROVES ON A DUMMY SESSION (``LaunchSmokeTests``).
+        let app = AppLaunch.app(session: session, baseURL: environment[AppLaunch.baseURLVariable])
         app.launch()
 
+        // ⚠️ THE WINDOW FIRST, so a launch that opens none is not reported as a bad session.
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 60), "the app opened no window")
         let overview = app.descendants(matching: .any)[A11yID.Sidebar.overview]
         XCTAssertTrue(
             overview.waitForExistence(timeout: 60),
