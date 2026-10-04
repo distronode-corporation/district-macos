@@ -13,8 +13,8 @@ import Foundation
 ///
 /// ⛔ AND NOTHING HERE PROMISES PLAYBACK. `MeetingResponses.swift` says it outright:
 /// the `Meeting` model has no recording column, neither meetings route has a
-/// recording sibling, and the only recording surface on this API is a telephone
-/// call's. The artefacts are the minutes and the transcript, and the copy offers
+/// recording sibling, and District AI keeps no call or meeting audio at all. The
+/// artefacts are the minutes and the transcript, and the copy offers
 /// exactly those.
 ///
 /// ⛔ THE COMPANION IS NAMED BEFORE ANYBODY JOINS, NOT AFTER. It is dispatched into

@@ -15,15 +15,20 @@ import Foundation
 /// ``WebAuthLoginController/codeExchangeRequest(code:verifier:deviceId:deviceName:)``
 /// and ``AppleSignInController/signInRequest(identityToken:nonce:deviceId:deviceName:)``,
 /// with `.macos`.
+///
+/// ⚠️ `@retroactive` BECAUSE BOTH SIDES OF EVERY CONFORMANCE BELOW ARE IMPORTED (the
+/// types from one core module, the protocols from another). It silences Swift 6's
+/// warning and records the deliberate choice: if the core ever declares one of these
+/// conformances itself, delete the line here.
 typealias AppNativeAuthClient = NativeAuthClient<NativeTokenResponse, RefreshResult, RevokeOutcome>
-extension NativeTokenResponse: NativeAuthTokenWire {}
+extension NativeTokenResponse: @retroactive NativeAuthTokenWire {}
 
-extension RefreshResult: NativeRefreshOutcome {}
+extension RefreshResult: @retroactive NativeRefreshOutcome {}
 
-extension RevokeDeferral: NativeRevokeDeferral {}
+extension RevokeDeferral: @retroactive NativeRevokeDeferral {}
 
-extension RevokeOutcome: NativeRevokeOutcome {}
+extension RevokeOutcome: @retroactive NativeRevokeOutcome {}
 
-extension NativeAuthClient: RefreshClient where Refresh == RefreshResult {}
+extension NativeAuthClient: @retroactive RefreshClient where Refresh == RefreshResult {}
 
-extension NativeAuthClient: RevokeClient where Revoke == RevokeOutcome {}
+extension NativeAuthClient: @retroactive RevokeClient where Revoke == RevokeOutcome {}

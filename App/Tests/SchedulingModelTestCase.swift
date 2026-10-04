@@ -24,10 +24,6 @@ class SchedulingModelTestCase: XCTestCase {
         SchedulingRepository(client: client(transport))
     }
 
-    func media(_ transport: SchedulingTestTransport) -> SchedulingAdminMediaRepository {
-        SchedulingAdminMediaRepository(client: client(transport))
-    }
-
     func workspaces(_ transport: SchedulingTestTransport) -> WorkspaceRepository {
         WorkspaceRepository(client: client(transport))
     }
@@ -88,17 +84,6 @@ class SchedulingModelTestCase: XCTestCase {
         SchedulingTeamModel(
             repository: admin(transport),
             workspaces: workspaces(transport),
-            workspaceId: "ws_1"
-        )
-    }
-
-    /// ⚠️ THE ONE MODEL THAT TAKES ``SchedulingAdminMediaRepository``, because a download
-    /// is a 302 rather than an `op` post.
-    @MainActor
-    func recordings(_ transport: SchedulingTestTransport) -> SchedulingRecordingsModel {
-        SchedulingRecordingsModel(
-            repository: admin(transport),
-            media: media(transport),
             workspaceId: "ws_1"
         )
     }

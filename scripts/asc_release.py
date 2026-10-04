@@ -137,6 +137,10 @@ def whats_new(changelog: Path, version: str) -> str:
     """The release notes for App Store Connect: the version's CHANGELOG section as plain
     text, refused if it is longer than App Store Connect accepts. A submission with no
     release notes, or with notes cut off mid-sentence, is worse than none at all.
+
+    ⚠️ ONLY THE `## [version]` SECTION, NEVER `[Unreleased]` OR ANYTHING BELOW IT, so the
+    repository's working changelog and the store's release notes stay separate: the
+    version section is written for App Store readers, everything else for this repo.
     """
     text = changelog_section(changelog, version)
     if len(text) > WHATS_NEW_LIMIT:
@@ -364,6 +368,61 @@ def submission_versions(client: Client, submission: str) -> dict[str, str]:
     return {vid: names.get(vid, "?") for vid in ids if vid}
 
 
+def first_version(client: Client, app: str, version_id: str) -> bool:
+    """Whether this is the platform's first version: no OTHER version of MAC_OS has ever
+    been approved. App Store Connect has no What's New for an app's first version on a
+    platform (there is nothing it is new relative to) and refuses the field there.
+    """
+    records = client.get(
+        f"/apps/{app}/appStoreVersions?filter[platform]={PLATFORM}&limit=200"
+        "&fields[appStoreVersions]=versionString,appStoreState,appVersionState"
+    )["data"]
+    for record in records:
+        if record["id"] == version_id:
+            continue
+        attrs = record["attributes"]
+        if {attrs.get("appVersionState") or "", attrs.get("appStoreState") or ""} & APPROVED_STATES:
+            return False
+    return True
+
+
+def set_whats_new(client: Client, app: str, version: str, version_id: str, notes: str) -> None:
+    """Sets What's New on every localization of the version record.
+
+    ⛔ SKIPPED, NOT FAILED, ON THE PLATFORM'S FIRST VERSION. App Store Connect refuses
+    whatsNew on a first version (a 409), which used to stop 1.0's submission after the
+    record and before the build was attached. A 409 on a later version is skipped the
+    same way, with Apple's reason printed: the notes are worth having, not worth a
+    release. The CHANGELOG section is still read and checked before anything changes.
+    """
+    if first_version(client, app, version_id):
+        print(
+            f"whatsNew: SKIPPED. {version} is the first {PLATFORM} version, and App Store Connect "
+            "takes no release notes for a first version. The CHANGELOG section was checked but not sent."
+        )
+        return
+    localizations = client.get(f"/appStoreVersions/{version_id}/appStoreVersionLocalizations")["data"]
+    if not localizations:
+        die(f"version {version} has no localizations to carry the release notes.")
+    for loc in localizations:
+        locale = loc["attributes"]["locale"]
+        if loc["attributes"].get("whatsNew") == notes:
+            print(f"whatsNew ({locale}): already set")
+            continue
+        code, answer = client.call(
+            "PATCH",
+            f"/appStoreVersionLocalizations/{loc['id']}",
+            {"data": {"type": "appStoreVersionLocalizations", "id": loc["id"], "attributes": {"whatsNew": notes}}},
+            ok=(200, 409),
+        )
+        if code == 409:
+            errors = answer.get("errors", []) if isinstance(answer, dict) else []
+            reason = "; ".join(f"{e.get('code')}: {e.get('detail') or e.get('title')}" for e in errors)
+            print(f"whatsNew ({locale}): SKIPPED. App Store Connect refused it (409: {reason or 'no detail'}).")
+            continue
+        print(f"whatsNew ({locale}): set")
+
+
 def submit(client: Client, version: str, build: str, notes: str, timeout: int) -> None:
     app = app_id(client)
     built = wait_valid(client, app, version, build, timeout)
@@ -396,20 +455,9 @@ def submit(client: Client, version: str, build: str, notes: str, timeout: int) -
         print(f"version {version}: created record {record['id']}")
     version_id = record["id"]
 
-    # 2. Release notes on every localization the record has.
-    localizations = client.get(f"/appStoreVersions/{version_id}/appStoreVersionLocalizations")["data"]
-    if not localizations:
-        die(f"version {version} has no localizations to carry the release notes.")
-    for loc in localizations:
-        if loc["attributes"].get("whatsNew") == notes:
-            print(f"whatsNew ({loc['attributes']['locale']}): already set")
-            continue
-        client.call(
-            "PATCH",
-            f"/appStoreVersionLocalizations/{loc['id']}",
-            {"data": {"type": "appStoreVersionLocalizations", "id": loc["id"], "attributes": {"whatsNew": notes}}},
-        )
-        print(f"whatsNew ({loc['attributes']['locale']}): set")
+    # 2. Release notes on every localization the record has, unless this is the
+    # platform's first version (see first_version).
+    set_whats_new(client, app, version, version_id, notes)
 
     # 3. The build. A build attaches only to the record whose version string equals its
     # CFBundleShortVersionString, which the lookup above already guarantees.

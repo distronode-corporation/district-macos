@@ -232,20 +232,19 @@ final class SchedulingWritesBSettingsTests: XCTestCase {
 
     // MARK: - Automation
 
-    /// ⛔ ONLY THE CHANGED SECTIONS ARE SENT. Each is a separate write against the
-    /// workspace's 120-an-hour budget, and `settings.llm.patch` with neither field is
-    /// a valid no-op the server would accept without objecting.
-    func testOnlyTheSectionsThatChangedAreWritten() async throws {
-        let transport = SettingsTransport([Fixtures.ok(Fixtures.notetaker(true))])
+    /// ⛔ THE ASSISTANT IS THE ONLY WRITE THIS SHEET MAKES. The recordings and notetaker
+    /// toggles are gone with their server ops, so a changed toggle is exactly one
+    /// `settings.llm.patch` and nothing else.
+    func testAChangedAssistantIsOneLLMPatch() async throws {
+        let transport = SettingsTransport([Fixtures.ok(Fixtures.llm(enabled: false, instructions: ""))])
         let model = try Self.automationModel(transport)
-        model.editNotetaker(true)
+        model.editAssistant(false)
         await model.save()
 
         XCTAssertEqual(transport.requests.count, 1)
-        XCTAssertEqual(Fixtures.op(transport), "settings.notetaker.patch")
-        XCTAssertEqual(Fixtures.params(transport)["enabled"] as? Bool, true)
-        // ⛔ `enabled`, NOT `notetaker_enabled`, and the schema is `z.strictObject`.
-        XCTAssertEqual(Fixtures.params(transport).count, 1)
+        XCTAssertEqual(Fixtures.op(transport), "settings.llm.patch")
+        XCTAssertEqual(Fixtures.params(transport)["enabled"] as? Bool, false)
+        XCTAssertFalse(model.assistantEnabled)
         XCTAssertEqual(Fixtures.done(model.state), SchedulingSettingsWriteCopy.automationDone)
     }
 
@@ -256,21 +255,6 @@ final class SchedulingWritesBSettingsTests: XCTestCase {
 
         XCTAssertTrue(transport.requests.isEmpty)
         XCTAssertFalse(model.isDirty)
-    }
-
-    /// ⛔ THE RECORDING TOGGLE CANNOT BE TURNED ON WITHOUT STORAGE. Turning it on
-    /// there succeeds and records nothing, which is the wrong answer a customer
-    /// finds out about later.
-    func testRecordingsCannotBeEnabledWhileTheRegionHasNoStorage() async throws {
-        let transport = SettingsTransport([])
-        let model = try Self.automationModel(transport, ready: false)
-        model.editRecordings(true)
-
-        XCTAssertFalse(model.canEnableRecordings)
-        XCTAssertFalse(model.recordingsEnabled)
-        XCTAssertEqual(model.recordingsHint, SchedulingSettingsWriteCopy.recordingsNotReadyHint)
-        await model.save()
-        XCTAssertTrue(transport.requests.isEmpty)
     }
 
     func testTheAssistantInstructionsCeilingIsEnforcedBeforeAnyRequest() async throws {
@@ -335,27 +319,15 @@ final class SchedulingWritesBSettingsTests: XCTestCase {
 
     private static func automationModel(
         _ transport: SettingsTransport,
-        ready: Bool = true,
         instructions: String = ""
     ) throws -> SchedulingAutomationModel {
-        let decoder = JSONDecoder()
-        let storage = try decoder.decode(
-            SchedulingStorageSettings.self,
-            from: Data(SchedulingWritesBFixtures.storage(enabled: false, ready: ready).utf8)
-        )
-        let notetaker = try decoder.decode(
-            SchedulingNotetakerSettings.self,
-            from: Data(SchedulingWritesBFixtures.notetaker(false).utf8)
-        )
-        let llm = try decoder.decode(
+        let llm = try JSONDecoder().decode(
             SchedulingLLMSettings.self,
             from: Data(SchedulingWritesBFixtures.llm(enabled: true, instructions: instructions).utf8)
         )
         return SchedulingAutomationModel(
             admin: SchedulingWritesBFixtures.repository(transport),
             workspaceId: SchedulingWritesBFixtures.workspaceId,
-            storage: storage,
-            notetaker: notetaker,
             llm: llm,
             onSaved: {}
         )

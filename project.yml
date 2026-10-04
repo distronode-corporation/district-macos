@@ -122,8 +122,12 @@ targetTemplates:
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         LSApplicationCategoryType: public.app-category.business
         NSHumanReadableCopyright: Copyright 2026 Distronode Corporation
-        # ⛔ REQUIRED BY APP STORE CONNECT, AND FALSE IS THE TRUTHFUL ANSWER: HTTPS through
-        # URLSession and the keychain only.
+        # ⛔ REQUIRED BY APP STORE CONNECT. The app's encryption: HTTPS through URLSession,
+        # the keychain, swift-crypto (linked through district-core-swift), and LiveKit's
+        # end-to-end media encryption (AES-GCM), which Rooms turns on when the server sends
+        # a room key (`RoomEngine.options(e2eeKey:)`). Whether that is exempt is the
+        # export compliance determination, which is the maintainers' call and not this
+        # file's: the value records their answer. Do not change it without them.
         ITSAppUsesNonExemptEncryption: false
         # ⛔ REGISTERS `districtai://` WITH LAUNCH SERVICES. Sign-in does not need it
         # (`ASWebAuthenticationSession` intercepts `districtai://auth` in-session); the
@@ -137,7 +141,7 @@ targetTemplates:
               - districtai
         # ⛔ WITHOUT THESE THE SANDBOX REFUSES THE DEVICE, and on macOS the refusal is
         # silent: the capture session simply delivers nothing.
-        NSMicrophoneUsageDescription: "District AI uses the microphone for calls you place and answer."
+        NSMicrophoneUsageDescription: "District AI uses the microphone for calls you place and answer, meeting rooms you join, and persona previews you start."
         NSCameraUsageDescription: "District AI uses the camera only in meeting rooms you join, never on phone calls."
         # ⛔ THE SENTRY DSN REACHES THE APP THROUGH THIS KEY, NEVER A SOURCE LITERAL, and
         # `SENTRY_DSN` is blank in `settings.base` below, so every CI and local build ships
@@ -162,7 +166,10 @@ targetTemplates:
         com.apple.security.network.server: true
         com.apple.security.device.audio-input: true
         com.apple.security.device.camera: true
-        com.apple.security.files.user-selected.read-write: true
+        # READ-ONLY: the app only reads the images you pick to attach to a message or to
+        # use as the Desk logo (`.fileImporter` in `ComposerBar` and `DeskSettingsView`).
+        # Nothing is ever written to a file you chose.
+        com.apple.security.files.user-selected.read-only: true
         # ⛔ PER CONFIGURATION, AS ON iOS. `Release` (every archive, both stores of
         # distribution) is `production`; a `Debug` build signed with a development
         # profile needs `development`. The values live under `settings.configs`.

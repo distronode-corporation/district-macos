@@ -36,7 +36,7 @@ final class URLSessionHTTPTransport: NSObject, HTTPTransport, URLSessionTaskDele
         }
 
         // ⛔ THE DELEGATE IS THE WHOLE REDIRECT POLICY, attached per task so refusing a
-        // redirect (a recording's presigned `Location`) never applies to other calls.
+        // redirect (the scheduler hand-off's `Location`) never applies to other calls.
         let (data, response) = try await session.data(
             for: urlRequest,
             delegate: followRedirects ? nil : self

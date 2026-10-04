@@ -6,7 +6,7 @@ import SwiftUI
 /// Every booking in the workspace, upcoming and past.
 ///
 /// ⛔ THE ONLY PAGED SCREEN ON THIS SURFACE, AND IT PAGES BY OFFSET OVER LIVE DATA. Event
-/// types, recordings, teams, keys, apps and webhooks all arrive whole; this one does not,
+/// types, teams, keys, apps and webhooks all arrive whole; this one does not,
 /// and the consequences are the ones ``OffsetPager`` was written for, the same row can
 /// arrive on two pages when a booking is created between requests, and the offset must
 /// advance by the RAW page size rather than the deduplicated one or the list never ends.
