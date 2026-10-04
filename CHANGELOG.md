@@ -16,30 +16,20 @@ not sent.
 
 ## [Unreleased]
 
-The version this ships in is not decided yet (Mac 1.0 ships without Voice Studio, or Voice
-Studio arrives as Mac 2.0), so `MARKETING_VERSION` is unchanged.
+## [2.0]
 
-### Added
+Voice Studio comes to the Mac.
 
-- Voice Studio, native, as its own row in workspace settings (ported from district-ios
-  732a3bc): recipes in a Stable/Latest tier, the signal chain Ear, Turn-taking, Brain and
-  Voice (a realtime engine is one block) with channel badges and where each leg is
-  processed, the time-to-first-word meter, a leg editor with the voice picker, "Start
-  speaking sooner" and Advanced tuning in a disclosure group, and the "Based on" line.
-  Labels are the server's, in the reader's portal language. A save sends only the changed
-  keys through the persona PATCH, reads the Studio back, and shows the server's
-  `saveFailed` label when the stored value differs; `invalid_engine_mix` and
-  `model_unavailable_in_region` are said as what they are. Save is ⌘↩.
-- After a persona language save, a chain of the member's own that no longer fits the
-  language is refitted, saved and read back (`VoiceStudioRefit`), with an outcome line.
-
-### Changed
-
-- district-core-swift 2.0.0 to 3.1.0 (3.0.0 removed the recording and scheduler notes
-  APIs, which this app no longer called; 3.1.0 adds the Voice Studio).
-- The persona form keeps the name, greeting, personality, language and answer length, and
-  links to Voice Studio; the engine, voice and tuning controls moved there, so a stale
-  persona form can never resend an engine id the Studio changed.
+- Voice Studio, in workspace settings: start from a recipe, or build your agent's voice
+  from its ear, turn-taking, brain and voice, each showing where it is processed and how
+  quickly it answers.
+- See the time to the agent's first word before you save, from measured calls.
+- Choose a voice, let the agent start speaking sooner, and fine-tune each step under
+  Advanced.
+- When you change your agent's language, a voice setup that no longer speaks it is
+  adjusted to one that does, and you are told what changed.
+- The agent persona keeps its name, greeting, personality, language and answer length,
+  with a link to Voice Studio.
 
 ## [1.0]
 
