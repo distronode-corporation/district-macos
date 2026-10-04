@@ -12,7 +12,7 @@ final class DistrictAvatarTests: XCTestCase {
         XCTAssertEqual(DistrictAvatar.initials(for: "Sean Dean"), "SD")
         XCTAssertEqual(DistrictAvatar.initials(for: "paul alavathil"), "PA")
         XCTAssertEqual(DistrictAvatar.initials(for: "Distronode Corporation Canada"), "DC")
-        XCTAssertEqual(DistrictAvatar.initials(for: "sean@distronode.com"), "S")
+        XCTAssertEqual(DistrictAvatar.initials(for: "reviewer@example.com"), "R")
         XCTAssertEqual(DistrictAvatar.initials(for: "  Anita  "), "A")
     }
 

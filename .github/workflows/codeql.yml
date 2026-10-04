@@ -29,6 +29,13 @@ on:
 # Nothing at the top level; each job below asks for exactly what it uses.
 permissions: {}
 
+# Per ref and per trigger, as in ci.yml. Only pull requests cancel in flight: a
+# superseded PR run is waste, a superseded main or weekly run is history. The jobs keep
+# their own groups below, so a Swift build is never cancelled mid-trace.
+concurrency:
+  group: codeql-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   actions:
     name: Analyze (actions)
