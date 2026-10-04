@@ -152,7 +152,7 @@ enum Route: Hashable, Sendable {
     /// transfer numbers and the operator's own prompt.
     case workspaceSettings(workspaceId: String, role: WorkspaceRole?, section: SettingsSection)
 
-    /// The scheduling surface: its hub, its nine sections, and the two drill-downs.
+    /// The scheduling surface: its hub, its eight sections, and the two drill-downs.
     ///
     /// ⛔ ONE CASE FOR THE WHOLE FAMILY, THE SAME SHAPE AS
     /// ``workspaceSettings(workspaceId:role:section:)`` AND FOR THE SAME REASON. The
@@ -162,11 +162,11 @@ enum Route: Hashable, Sendable {
     /// is already at SwiftLint's ceiling.
     ///
     /// ⚠️ THE ROLE IS CARRIED AGAIN AND IT IS NOT THE GATE ON `canManage`. Beyond
-    /// ``OverviewEntry``, it decides whether the recordings screen offers a DOWNLOAD, which is the one affordance on
-    /// this surface whose bar is `agency`/`client` while the list beside it admits a
-    /// viewer. ⛔ It still does not decide Enable: the status route answers `canManage`
-    /// for that, and re-deriving it from a role STRING would hide the button from an
-    /// owner whose role did not parse. See the ⛔ in ``RouteDestinations``.
+    /// ``OverviewEntry``, it decides whether the sections offer their WRITE controls,
+    /// whose bar is `client` while the reads beside them admit a viewer. ⛔ It still
+    /// does not decide Enable: the status route answers `canManage` for that, and
+    /// re-deriving it from a role STRING would hide the button from an owner whose
+    /// role did not parse. See the ⛔ in ``RouteDestinations``.
     ///
     /// ⚠️ NO ANDROID COUNTERPART EXISTS YET. `Routes` has no scheduling destination,
     /// so this case is iOS-first rather than ported, and the Android client will need

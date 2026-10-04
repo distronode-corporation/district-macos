@@ -115,7 +115,7 @@ enum RouteDestinations {
         case let .workspaceSettings(workspaceId, role, section):
             SettingsDestinations.view(for: section, container: container, workspaceId: workspaceId, role: role)
 
-        // ⚠️ THE HUB, ITS NINE SECTIONS AND THE TWO DRILL-DOWNS, one line here and one per
+        // ⚠️ THE HUB, ITS EIGHT SECTIONS AND THE TWO DRILL-DOWNS, one line here and one per
         // section in ``SchedulingDestinations``, as iOS splits it. The sidebar's Scheduling
         // row and the settings hub's both arrive here at `section: .hub`.
         case let .scheduling(workspaceId, role, section):

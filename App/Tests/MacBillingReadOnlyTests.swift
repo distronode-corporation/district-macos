@@ -65,7 +65,7 @@ final class MacBillingReadOnlyTests: XCTestCase {
     // MARK: - Scheduling
 
     /// ⛔ SCHEDULING KEEPS IN THE APP WHAT iOS KEEPS IN THE APP, and leaves it only where iOS
-    /// does. Every section, every booking and every recording is drawn and edited here; the
+    /// does. Every section and every booking is drawn and edited here; the
     /// two ways out are the two iOS takes out of the app into a Safari sheet, which a Mac
     /// can only open in the default browser: the hand-off into our own scheduler
     /// (``SchedulingHubView``'s "Open in browser", S33) and the calendar provider's consent
@@ -76,17 +76,16 @@ final class MacBillingReadOnlyTests: XCTestCase {
     /// ⚠️ THE ALLOWANCES ARE PER FILE AND PER CALL, and each is a thing iOS also does: the
     /// hand-off's two `NSWorkspace.open` calls, the calendar connect's one `BrowserHandOff`,
     /// the booking link's `ShareLink` (a share picker, as iOS's share sheet, and it carries
-    /// our own booking page), and three `URL(string:)` parses that open nothing (the
-    /// presigned recording address for the in-app player, the SSO route's `Location`, and
-    /// the branding form's check that a privacy or terms address is absolute).
+    /// our own booking page), and two `URL(string:)` parses that open nothing (the SSO
+    /// route's `Location`, and the branding form's check that a privacy or terms address
+    /// is absolute).
     func test_MAC_BILLING_5_schedulingOpensOnlyTheDocumentedHandOff() throws {
         try assertNothingOpens(
             in: "Scheduling",
-            atLeast: 90,
+            atLeast: 85,
             "scheduling stays in the app except for the documented hand-off",
             allowing: [
                 "SchedulingHubView.swift": ["NSWorkspace", "ShareLink", "URL(string"],
-                "SchedulingRecordingsView.swift": ["URL(string"],
                 "SchedulingCalendarConnectSection.swift": ["BrowserHandOff"],
                 "SchedulingSSOClient.swift": ["URL(string"],
                 "SchedulingBrandingModel.swift": ["URL(string"],

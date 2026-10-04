@@ -150,8 +150,8 @@ final class AppContainer {
     /// error nothing a user does can cause.
     let schedulingAdmin: SchedulingAdminRepository
 
-    /// Recording downloads and the image uploads. ⛔ Its own type because neither call is
-    /// an `op` post: a download is a **302** to a presigned URL, an upload is multipart.
+    /// The image uploads (the profile avatar and the branding images). ⛔ Its own type
+    /// because an upload is multipart rather than an `op` post.
     let schedulingAdminMedia: SchedulingAdminMediaRepository
 
     /// The scheduler hand-off whose 302 is read rather than followed, for the calendar

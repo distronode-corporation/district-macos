@@ -8,8 +8,8 @@ import Foundation
 /// ⛔ IT LIVES IN `App/` RATHER THAN IN `DistrictNetwork`, AND THAT IS THE SAME
 /// DECISION `DistrictEndpoints+Scheduling.swift` RECORDS. `GET
 /// /api/district/scheduling/sso` answers a 302 and not a JSON body, and it does
-/// not belong on ``RedirectEndpoints`` either: that list exists for
-/// `calls/{id}/recording`, where following the redirect merely wastes bandwidth.
+/// not belong on ``RedirectEndpoints`` either: that list exists for routes where
+/// following the redirect merely wastes bandwidth.
 /// Here following it SPENDS a single-use credential on a transport the user never
 /// sees, so the request is issued here, once, and the `Location` is handed
 /// straight to a browser sheet.

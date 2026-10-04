@@ -12,9 +12,9 @@ final class SchedulingRoutingTests: XCTestCase {
     // MARK: - The gate
 
     /// ⛔ `.partial` FOR A VIEWER RATHER THAN `.hidden` OR `.none`, AND ALL THREE ARE
-    /// MEANINGFUL. `.hidden` would withhold nine screens the server would serve; `.none`
+    /// MEANINGFUL. `.hidden` would withhold eight screens the server would serve; `.none`
     /// would claim nothing on the surface is gated, which stopped being true when the
-    /// recordings download arrived.
+    /// `client`-level writes arrived.
     func test_IOS_SCHLINK_10_aViewerReachesSchedulingReadOnly() {
         let route = Route.scheduling(workspaceId: "ws_1", role: .viewer, section: .hub)
         guard case .partial = RouteGate.gate(for: route, role: .viewer) else {
@@ -63,7 +63,7 @@ final class SchedulingRoutingTests: XCTestCase {
     }
 
     /// ⛔ AND THE ROW OPENS THE HUB, not a section. A workspace with no booking page has
-    /// nothing in any of the nine, so landing elsewhere would be a screen whose every read
+    /// nothing in any of the eight, so landing elsewhere would be a screen whose every read
     /// answers `scheduling_not_ready`.
     func test_IOS_SCHLINK_15_theOverviewRowOpensTheHub() {
         let entry = OverviewEntry.all(workspaceId: "ws_1", role: .agency)

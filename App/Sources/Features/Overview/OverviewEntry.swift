@@ -72,10 +72,10 @@ extension OverviewEntry {
     /// settings hub, because it is a workspace-level configuration rather than an
     /// operating screen.
     ///
-    /// ⚠️ ITS GATE RESOLVES TO ``RouteGate/partial`` FOR A VIEWER. The hub leads to nine
-    /// sections, one of which (recordings) carries a download a viewer may not spend, so
-    /// the row carries the "Read-only" caption below, which is the honest summary. ⛔ It
-    /// is still not `.hidden`: every read on all nine sections is `viewer`-level, so a viewer can fill every screen.
+    /// ⚠️ ITS GATE RESOLVES TO ``RouteGate/partial`` FOR A VIEWER. The hub leads to eight
+    /// sections whose writes a viewer may not make, so the row carries the "Read-only"
+    /// caption below, which is the honest summary. ⛔ It is still not `.hidden`: every
+    /// read on all eight sections is `viewer`-level, so a viewer can fill every screen.
     static func all(workspaceId: String, role: WorkspaceRole?) -> [OverviewEntry] {
         let targets: [(String, OverviewEntryTarget)] = [
             ("Call Logs", .tab(.calls)),
@@ -106,7 +106,7 @@ extension OverviewEntry {
             ("Dial", .route(.dialer(workspaceId: workspaceId, role: role))),
             // ⚠️ THE ROW OPENS THE HUB, NOT A SECTION. The hub is where the tenancy card
             // and Enable live, and a workspace with no booking page has nothing to show
-            // in any of the nine sections, so landing anywhere else would be a screen
+            // in any of the eight sections, so landing anywhere else would be a screen
             // whose every read answers `scheduling_not_ready`.
             ("Scheduling", .route(.scheduling(workspaceId: workspaceId, role: role, section: .hub))),
             // ⛔ "Support" IS HELP **FROM DISTRONODE** AND MUST NOT BE RENAMED TO

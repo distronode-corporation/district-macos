@@ -7,10 +7,8 @@ import SwiftUI
 /// outcome two ways, and every fix had to be made twice.
 ///
 /// ⛔ A SUCCESS CARRIES A SENTENCE RATHER THAN BEING A BARE `saved`, BECAUSE SOME OF
-/// THESE WRITES DO NOT HAVE ONE FIXED OUTCOME. `recordings.deleteAll` answers a TALLY
-/// and a partial failure is a **200**, so "all deleted" is a sentence this client has
-/// to compose from the numbers rather than one it may assume; the reschedule names the
-/// new time because "Booking moved" alone does not let an operator check they moved it
+/// THESE WRITES DO NOT HAVE ONE FIXED OUTCOME. The reschedule names the new time
+/// because "Booking moved" alone does not let an operator check they moved it
 /// to the day they meant. The web flashes exactly these strings and they are ported
 /// rather than re-invented.
 ///

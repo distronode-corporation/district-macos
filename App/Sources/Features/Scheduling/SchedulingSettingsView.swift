@@ -3,7 +3,18 @@ import DistrictModel
 import Observation
 import SwiftUI
 
-/// The booking page, the recordings, the profile and the notifications.
+/// The four settings tabs, in the web's order and with the web's ids.
+///
+/// ⛔ NOT `SchedulingSettingsFormat.settingsTabIds`. The pinned core still lists a
+/// "recordings" tab whose reads (`settings.storage.get`, `settings.notetaker.get`) the
+/// server no longer has; the web replaced it with "assistant", which reads only
+/// `settings.llm.get`.
+enum SchedulingSettingsTabs {
+    static let ids = ["booking-page", "assistant", "profile", "notifications"]
+    static let labels = ["Booking page", "Booking assistant", "Your profile", "Your notifications"]
+}
+
+/// The booking page, the booking assistant, the profile and the notifications.
 ///
 /// ⛔ FOUR TABS, AND ONLY THE ACTIVE ONE READS. The web mounts one tab's content at a time
 /// for the same reason: four reads on entry would spend three requests for panels nobody
@@ -12,20 +23,11 @@ import SwiftUI
 @MainActor
 @Observable
 final class SchedulingSettingsModel {
-    private(set) var tab = SchedulingSettingsFormat.settingsTabIds[0]
+    private(set) var tab = SchedulingSettingsTabs.ids[0]
 
     private(set) var branding: SchedulingSectionState<SchedulingBranding>?
-    private(set) var recordings: SchedulingSectionState<RecordingSettings>?
+    private(set) var assistant: SchedulingSectionState<SchedulingLLMSettings>?
     private(set) var profile: SchedulingSectionState<SchedulingMe>?
-
-    /// ⚠️ THREE READS BEHIND ONE TAB, so the tab has one state rather than three. They are
-    /// all storage-shaped and a partial answer here would be a panel that could not say
-    /// whether recording is on.
-    struct RecordingSettings {
-        let storage: SchedulingStorageSettings
-        let notetaker: SchedulingNotetakerSettings
-        let llm: SchedulingLLMSettings
-    }
 
     private let repository: SchedulingAdminRepository
     private let workspaceId: String
@@ -57,12 +59,13 @@ final class SchedulingSettingsModel {
         switch tab {
         case "booking-page" where branding == nil:
             await loadBranding()
-        case "recordings" where recordings == nil:
-            await loadRecordings()
+        case "assistant" where assistant == nil:
+            await loadAssistant()
         // ⛔ THE PROFILE TAB AND THE NOTIFICATIONS TAB SHARE ONE READ, because they are two
         // views of one `me.get` payload. Reading it twice would spend a request to display
-        // fields the client is already holding.
-        case "profile", "notifications" where profile == nil:
+        // fields the client is already holding. ⚠️ The nil check is in the body, not a
+        // `where`: a `where` binds to the LAST pattern only, so it would not cover "profile".
+        case "profile", "notifications":
             if profile == nil {
                 await loadProfile()
             }
@@ -74,7 +77,7 @@ final class SchedulingSettingsModel {
     func reload() async {
         switch tab {
         case "booking-page": branding = nil
-        case "recordings": recordings = nil
+        case "assistant": assistant = nil
         default: profile = nil
         }
         await loadCurrentTab()
@@ -89,19 +92,12 @@ final class SchedulingSettingsModel {
         }
     }
 
-    private func loadRecordings() async {
-        recordings = .loading
+    private func loadAssistant() async {
+        assistant = .loading
         do {
-            async let storage = repository.storageSettings(workspaceId: workspaceId)
-            async let notetaker = repository.notetakerSettings(workspaceId: workspaceId)
-            async let llm = repository.llmSettings(workspaceId: workspaceId)
-            recordings = try await .ready(RecordingSettings(
-                storage: storage,
-                notetaker: notetaker,
-                llm: llm
-            ))
+            assistant = try await .ready(repository.llmSettings(workspaceId: workspaceId))
         } catch {
-            recordings = .failed(SchedulingFailureCopy.text(forAny: error))
+            assistant = .failed(SchedulingFailureCopy.text(forAny: error))
         }
     }
 
@@ -124,8 +120,8 @@ final class SchedulingSettingsModel {
     // it. ``branding`` is a `SchedulingSectionState` so the guard is
     // structural.
     //
-    // ⛔ AND THE ROLE RULES DIFFER WITHIN THIS ONE SCREEN, WHICH IS THE TRAP. Branding,
-    // storage, notetaker and LLM are `client`-level; `me.patch` and `me.avatar.delete`
+    // ⛔ AND THE ROLE RULES DIFFER WITHIN THIS ONE SCREEN, WHICH IS THE TRAP. Branding
+    // and LLM are `client`-level; `me.patch` and `me.avatar.delete`
     // are `viewer`-level, because they touch only the caller's OWN profile, a viewer who
     // cannot set their own timezone is offered every booking window in the wrong hours.
     // So the Profile and Notifications tabs must stay editable for a viewer while the
@@ -164,7 +160,7 @@ struct SchedulingSettingsView: View {
     }
 
     /// ⛔ THIS GATES TWO OF THE FOUR TABS AND MUST NEVER GATE THE OTHER TWO.
-    /// Branding, storage, notetaker and LLM are `client`-level; `me.patch` and
+    /// Branding and LLM are `client`-level; `me.patch` and
     /// `me.avatar.delete` are `viewer`-level, because they touch only the caller's
     /// OWN profile, a viewer who cannot set their own timezone is offered every
     /// booking window in the wrong hours.
@@ -189,10 +185,10 @@ struct SchedulingSettingsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DistrictSpacing.tight) {
                 ForEach(
-                    Array(SchedulingSettingsFormat.settingsTabIds.enumerated()),
+                    Array(SchedulingSettingsTabs.ids.enumerated()),
                     id: \.offset
                 ) { index, id in
-                    Button(SchedulingSettingsFormat.settingsTabLabels[index]) {
+                    Button(SchedulingSettingsTabs.labels[index]) {
                         Task { await model.selectTab(id) }
                     }
                     .buttonStyle(DistrictButtonStyle(
@@ -208,14 +204,14 @@ struct SchedulingSettingsView: View {
     private var content: some View {
         switch model.tab {
         case "booking-page": brandingTab
-        case "recordings": recordingsTab
+        case "assistant": assistantTab
         case "profile": profileTab
         default: notificationsTab
         }
     }
 
     private var brandingTab: some View {
-        SchedulingCard(eyebrow: SchedulingSettingsFormat.settingsTabLabels[0]) {
+        SchedulingCard(eyebrow: SchedulingSettingsTabs.labels[0]) {
             switch model.branding {
             case .loading, .none:
                 SettingsSkeleton()
@@ -262,44 +258,29 @@ struct SchedulingSettingsView: View {
         }
     }
 
-    private var recordingsTab: some View {
-        SchedulingCard(eyebrow: SchedulingSettingsFormat.settingsTabLabels[1]) {
-            switch model.recordings {
+    private var assistantTab: some View {
+        SchedulingCard(eyebrow: SchedulingSettingsTabs.labels[1]) {
+            switch model.assistant {
             case .loading, .none:
                 SettingsSkeleton()
             case let .failed(failure):
                 FailureView(failure: failure, onRetry: reload)
-            case let .ready(settings):
-                // ⛔ THE DESCRIPTION TRACKS STORAGE READINESS AND NOT THE TOGGLE: a region
-                // with no storage cannot record whatever the switch says.
-                Text(SchedulingSettingsFormat.recordingDescription(settings.storage))
-                    .font(DistrictType.bodySmall)
-                    .foregroundStyle(colors.mutedForeground)
-                SchedulingReadOnlyRow(
-                    label: SchedulingCopy.recordingsEnabled,
-                    value: SchedulingCopy.onOff(settings.storage.recordingsEnabled)
-                )
-                SchedulingReadOnlyRow(
-                    label: SchedulingCopy.notetakerEnabled,
-                    value: SchedulingCopy.onOff(settings.notetaker.enabled)
-                )
+            case let .ready(llm):
                 SchedulingReadOnlyRow(
                     label: SchedulingCopy.assistantEnabled,
-                    value: SchedulingCopy.onOff(settings.llm.enabled)
+                    value: SchedulingCopy.onOff(llm.enabled)
                 )
-                if !settings.llm.extraInstructions.isEmpty {
+                if !llm.extraInstructions.isEmpty {
                     SchedulingReadOnlyRow(
                         label: SchedulingCopy.assistantInstructions,
-                        value: settings.llm.extraInstructions
+                        value: llm.extraInstructions
                     )
                 }
                 if canManage {
                     SchedulingAutomationEditButton(
                         admin: admin,
                         workspaceId: workspaceId,
-                        storage: settings.storage,
-                        notetaker: settings.notetaker,
-                        llm: settings.llm,
+                        llm: llm,
                         onSaved: reload
                     )
                 }
@@ -308,7 +289,7 @@ struct SchedulingSettingsView: View {
     }
 
     private var profileTab: some View {
-        SchedulingCard(eyebrow: SchedulingSettingsFormat.settingsTabLabels[2]) {
+        SchedulingCard(eyebrow: SchedulingSettingsTabs.labels[2]) {
             switch model.profile {
             case .loading, .none:
                 SettingsSkeleton()
