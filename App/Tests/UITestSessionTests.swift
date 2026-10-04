@@ -99,6 +99,7 @@ final class UITestSessionTests: XCTestCase {
         )
         XCTAssertEqual(session?.baseURL?.absoluteString, "https://review.example.com")
     }
+
     // MARK: - The screenshot window size
 
     func testTheWindowSizeNeedsTheArgument() {
