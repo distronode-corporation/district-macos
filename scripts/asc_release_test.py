@@ -246,6 +246,62 @@ class SubmitTests(unittest.TestCase):
         )
 
 
+class WhatsNewOnSubmitTests(unittest.TestCase):
+    """What's New is set on an update, and skipped (never fatal) on the platform's first
+    version or when App Store Connect refuses it."""
+
+    def run_set(self, client: FakeClient) -> str:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            try:
+                asc_release.set_whats_new(client, "app1", "1.3", "v13", "new notes")
+            except SystemExit as exit_:
+                out.write(f"\nEXIT {exit_.code}")
+        return out.getvalue()
+
+    @staticmethod
+    def gets(*others: tuple[str, str]) -> dict[str, dict]:
+        records = [{"id": "v13", "attributes": {"versionString": "1.3", "appVersionState": "PREPARE_FOR_SUBMISSION"}}]
+        records += [{"id": f"v{vs}", "attributes": {"versionString": vs, "appVersionState": st}} for vs, st in others]
+        return {
+            "/apps/app1/appStoreVersions?": {"data": records},
+            "/appStoreVersions/v13/appStoreVersionLocalizations": {
+                "data": [{"id": "loc1", "attributes": {"locale": "en-US", "whatsNew": None}}]
+            },
+        }
+
+    def test_first_version_is_skipped_without_a_write(self) -> None:
+        client = FakeClient(self.gets())
+        out = self.run_set(client)
+        self.assertIn("whatsNew: SKIPPED. 1.3 is the first MAC_OS version", out)
+        self.assertNotIn("EXIT", out)
+        self.assertEqual(client.writes(), [])
+        self.assertFalse(any("Localizations" in path for _, path in client.calls))
+
+    def test_a_rejected_earlier_version_still_counts_as_first(self) -> None:
+        client = FakeClient(self.gets(("1.2", "REJECTED")))
+        self.assertIn("SKIPPED", self.run_set(client))
+        self.assertEqual(client.writes(), [])
+
+    def test_an_update_gets_the_notes(self) -> None:
+        client = FakeClient(self.gets(("1.2", "READY_FOR_DISTRIBUTION")))
+        out = self.run_set(client)
+        self.assertIn("whatsNew (en-US): set", out)
+        self.assertEqual(client.writes(), [("PATCH", "/appStoreVersionLocalizations/loc1")])
+
+    def test_a_refusal_is_skipped_with_apples_reason(self) -> None:
+        class Refusing(FakeClient):
+            def call(self, method, path, body=None, ok=(200, 201, 204)):
+                self.calls.append((method, path))
+                assert 409 in ok, "the whatsNew PATCH must accept a 409"
+                return 409, {"errors": [{"code": "STATE_ERROR", "detail": "whatsNew cannot be edited"}]}
+
+        client = Refusing(self.gets(("1.2", "READY_FOR_SALE")))
+        out = self.run_set(client)
+        self.assertIn("whatsNew (en-US): SKIPPED. App Store Connect refused it (409: STATE_ERROR: whatsNew cannot be edited)", out)
+        self.assertNotIn("EXIT", out)
+
+
 class HighestBuildTests(unittest.TestCase):
     def test_highest_number_numerically(self) -> None:
         builds = {"data": [{"attributes": {"version": v}} for v in ("4110", "999", "4123", "4104")]}

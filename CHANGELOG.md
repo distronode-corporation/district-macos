@@ -6,7 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 are the app's version (`MARKETING_VERSION` in `project.yml`), the same on the Mac App
 Store and the direct download.
 
+⚠️ A version's `## [x.y]` section is its App Store release notes, word for word:
+`scripts/asc_release.py` sends that section and nothing else (never `[Unreleased]`, never
+the development history), and refuses one over 4000 characters. Write it for App Store
+readers: what changed for them, with no Sparkle, direct-download or build details. Detail
+for this repository goes under `[Unreleased]` or the history below. App Store Connect
+takes no release notes for a platform's first version, so 1.0's section is checked but
+not sent.
+
 ## [Unreleased]
+
+## [1.0]
+
+The first release of District AI for Mac.
+
+- Inbox: read and answer conversations, with search, drafts, image attachments, and
+  reporting and blocking.
+- Calls: the call log and each call's details and transcript. Calls handed to you ring
+  on this Mac while the app is open, with Answer, Decline, Mute and Hang up.
+- Dial: place calls from your Mac, with the country each number rings shown beside it
+  and recent callers to call back.
+- Rooms: start or join a meeting room with video, share a guest link, and read past
+  meetings' minutes.
+- Contacts: sortable tables, adding a contact, and each contact's details.
+- Scheduling: your booking page, event types, hours, bookings, calendar connections and
+  your team.
+- Overview, Account, Workspaces and Devices, including signing devices out and deleting
+  your account.
+- Menu commands and keyboard shortcuts, and the unread count on the Dock icon.
+
+## Development history before 1.0
 
 ### Added
 
@@ -33,14 +62,14 @@ Store and the direct download.
   the note-taking Companion shown, a guest link to share, and past meetings' minutes.
 - A contact's Video call button, which sends them a guest link and opens the room.
 - Scheduling, as on the iPad: the booking page's state and Enable, the register, event
-  types, hours, bookings with each booking's answers, notes and transcript, calendar
-  connections, the team, recordings with their consent, settings and the developer tab.
+  types, hours, bookings with each booking's answers, calendar connections, the team,
+  settings and the developer tab.
   Bookings and event types are tables you can sort by any column, and the week's hours
   are laid out as a week. "Open in browser" opens the scheduler in your browser, signed
   in.
 - Scheduling's editing, as on the iPad: cancel, reschedule or reassign a booking; create
   and edit event types, their hosts and questions; set weekly hours and date overrides;
-  connect calendars; manage teams, recordings, branding, your profile and notifications,
+  connect calendars; manage teams, branding, your profile and notifications,
   API keys and webhooks. Command-N creates on the screen that offers it (an event type, a
   team, a key or a webhook).
 - Menu commands: File > New Message (Command-N) and New Contact (Shift-Command-N),
@@ -63,6 +92,9 @@ Store and the direct download.
 - Ring on this computer, and the update check in Settings, are switches like every other
   setting.
 - Rooms no longer offers "Read the minutes" for a meeting with no minutes.
+- Call details no longer offer a recording, and Scheduling no longer has a Recordings
+  section, a recording setting or booking notes: District AI keeps no call or meeting
+  recordings, and the service no longer offers those features.
 - The booking page's Share button matches Copy link beside it.
 - Devices names each platform properly (macOS, iOS, Android, Linux) and shows when a
   device was last active as a date.

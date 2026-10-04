@@ -10,8 +10,10 @@
 #
 # Fetches the App Store Connect key for this run only with scripts/asc-key.sh (mode 0600,
 # masked, under a temporary directory removed on exit), then runs `asc_release.py
-# submit`, which waits for the build to be VALID, sets the release notes from
-# CHANGELOG.md, attaches the build and submits it, doing only what is not already done.
+# submit`, which waits for the build to be VALID, sets the release notes from the
+# version's own `## [x.y]` section of CHANGELOG.md (skipped, with a log line, on the
+# platform's first version, where App Store Connect takes none), attaches the build and
+# submits it, doing only what is not already done.
 set -euo pipefail
 
 die() {

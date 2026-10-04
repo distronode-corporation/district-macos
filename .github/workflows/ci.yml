@@ -110,6 +110,11 @@ jobs:
       - name: Public hygiene (dashes, internal host names, GitLab URLs)
         run: python3 scripts/check-public-hygiene.py
 
+      # Also run by release.yml before an upload; here too, so a change to the submit
+      # path is proven on the pull request rather than at release time.
+      - name: Release script tests (asc_release.py)
+        run: python3 scripts/asc_release_test.py
+
       # Checked by content, because an empty or replaced file passes an existence check.
       - name: LICENSE is Apache 2.0, and NOTICE carries the copyright and trademark terms
         run: |
