@@ -81,7 +81,7 @@ final class RoomEngine: @unchecked Sendable {
 
     /// ⛔ THE ONE EXPRESSION IN THE ROOMS FEATURE THAT NAMES THE SDK'S ENCRYPTION TYPES,
     /// AND IT IS ISOLATED HERE ON PURPOSE. The Linux tier cannot compile a LiveKit
-    /// symbol, so the shape of `RoomOptions`, `E2EEOptions` and `BaseKeyProvider` is
+    /// symbol, so the shape of `RoomOptions`, `EncryptionOptions` and `BaseKeyProvider` is
     /// checked only by the app build; keeping it to one function means a correction is
     /// one function rather than a sweep.
     ///
@@ -89,6 +89,11 @@ final class RoomEngine: @unchecked Sendable {
     /// `LiveKitCallEngine` says why in its own ⚠️: they are video-only knobs and the
     /// softphone publishes no video. A phone-sized grid of remote cameras is exactly
     /// what they exist for.
+    ///
+    /// ⚠️ `encryptionOptions`, NOT THE DEPRECATED `e2eeOptions`. The media frames are
+    /// encrypted exactly as before (the same shared-key provider, AES-GCM). The newer
+    /// type also encrypts data-channel packets; a room on this Mac sends none and reads
+    /// none, so nothing it does depends on whether the other participants do.
     private static func options(e2eeKey: String?) -> RoomOptions {
         guard let e2eeKey, !e2eeKey.isEmpty else {
             return RoomOptions(adaptiveStream: true, dynacast: true)
@@ -97,7 +102,7 @@ final class RoomEngine: @unchecked Sendable {
         return RoomOptions(
             adaptiveStream: true,
             dynacast: true,
-            e2eeOptions: E2EEOptions(keyProvider: provider)
+            encryptionOptions: EncryptionOptions(keyProvider: provider)
         )
     }
 

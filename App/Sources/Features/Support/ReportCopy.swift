@@ -104,7 +104,7 @@ enum ReportCopy {
     /// raised from the contact form and from an unresolved phone call (the wire field
     /// is `source`), and a moderation report needs telling apart from a support
     /// question at a glance.
-    static let preamble = "Objectionable content was reported from the District AI iOS app."
+    static let preamble = "Objectionable content was reported from the District AI Mac app."
 
     /// ⚠️ THE KEY AS THE APP HOLDS IT, PREFIX AND ALL. `contact:<id>` and
     /// `addr:<normalized>` are the drafts table's own vocabulary, so an agent can
