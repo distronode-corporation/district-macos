@@ -307,19 +307,39 @@ jobs:
             2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
 
       # ⛔ A BUNDLE THAT DISCOVERS NOTHING REPORTS SUCCESS. The floor is a ratchet, set at
-      # the count (599 on 2026-10-04, after the recording, storage, notetaker and booking
-      # notes surfaces and their tests were removed on purpose; 612 before): raise it when
+      # the count (611 on 2026-10-04 with UITestSessionTests; 599 after the recording,
+      # storage, notetaker and booking notes surfaces and their tests were removed on
+      # purpose, 612 before that): raise it when
       # tests are added, and lower it only in the commit that deletes tests on purpose,
       # saying so.
       - name: DistrictMacTests were discovered
         run: |
-          minimum=599
+          minimum=611
           executed=$(sed -n 's/.*Executed \([0-9]*\) tests\{0,1\}, with.*/\1/p' xcodebuild-test.log | sort -n | tail -1)
           echo "app-target tests executed - ${executed:-0} (at least $minimum expected)"
           if [ -z "$executed" ] || [ "$executed" -lt "$minimum" ]; then
             echo "FATAL - expected at least $minimum DistrictMacTests, saw ${executed:-0}."
             exit 1
           fi
+
+      # ⛔ BUILT, NEVER TESTED. The store screenshot UI tests sign in to production on a
+      # minted review session and run only by hand on a Mac (docs/screenshots.md). Building
+      # them here keeps them compiling; nothing in this workflow runs them, and the case
+      # skips without a session regardless. After the unit tests, so it cannot disturb
+      # their products.
+      - name: Build the screenshot UI tests (not run)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project DistrictMac.xcodeproj \
+            -scheme DistrictMacScreenshots \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData-screenshots \
+            -clonedSourcePackagesDirPath SourcePackages \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
+            2>&1 | tee xcodebuild-screenshots.log | xcbeautify --renderer github-actions
+          grep -q '\*\* TEST BUILD SUCCEEDED \*\*' xcodebuild-screenshots.log
 
       - name: Tail the logs on failure
         if: failure()

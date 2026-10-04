@@ -152,6 +152,14 @@ built="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info
 if [ "$LANE" = "appstore" ] && [ -e "$APP/Contents/Frameworks/Sparkle.framework" ]; then
   die "the App Store archive contains Sparkle.framework; App Review rejects it. Nothing was exported."
 fi
+# ⛔ THE UI-TEST SESSION SEAM MUST NOT SHIP. `UITestSession` and the window sizer are
+# `#if DEBUG` and every archive is Release, so their strings cannot be in this binary; this
+# proves it per archive rather than trusting the configuration. `grep -c` on `strings`,
+# because a Release build inlines and mangles symbols but keeps string literals.
+seam_hits="$(strings "$APP/Contents/MacOS/$PRODUCT" | grep -c 'DISTRICT_UITEST' || true)"
+[ "$seam_hits" = "0" ] ||
+  die "the archived binary contains 'DISTRICT_UITEST' ($seam_hits hits): the UI-test seam is in a Release build. Nothing was exported."
+echo "UI-test seam strings in the binary: 0"
 
 # ⛔ THE INGEST HOST AND THE API HOST ARE DIFFERENT THINGS: sentry-cli does not read
 # the DSN and defaults to the US silo, where an EU org does not exist, and a

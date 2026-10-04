@@ -117,10 +117,13 @@ App/
   Direct/               Sparkle. Compiled into DistrictMacDirect only
   Resources/            The notification strings
   Tests/                DistrictMacTests
+  UITests/              DistrictMacUITests: the store screenshots, run by hand on a
+                        Mac and never in CI (docs/screenshots.md)
   PrivacyInfo.xcprivacy The App Store privacy manifest
   AdHoc.entitlements    The entitlements an ad-hoc build is signed with
 project.yml             The XcodeGen spec: this is the project; the .xcodeproj is
                         generated and never committed
+docs/screenshots.md     How the Mac App Store screenshots are taken
 PORTING.md              Which district-ios commit each ported screen came from
 scripts/                The public-hygiene check
 ```
