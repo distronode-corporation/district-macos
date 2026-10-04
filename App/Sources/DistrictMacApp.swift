@@ -43,6 +43,11 @@ struct DistrictMacApp: App {
         ringPresenter = presenter
         ringPanel = RingPanelController(model: incoming, devices: container.callStack.devices)
         _session = State(initialValue: SessionModel(container: container, push: push, live: live))
+        #if DEBUG
+            // ⚠️ A NO-OP OUTSIDE A SCREENSHOT RUN, AND ABSENT FROM RELEASE. ⛔ NOT A VIEW
+            // MODIFIER: see `UITestWindowSize.swift` for the window that never opened.
+            UITestWindowSizer.startIfRequested()
+        #endif
     }
 
     var body: some Scene {
@@ -51,8 +56,6 @@ struct DistrictMacApp: App {
                 // ⚠️ WIDE ENOUGH FOR A LIST SECTION'S THREE COLUMNS: the sidebar, a sortable
                 // table (Calls, Contacts) and the open row beside it.
                 .frame(minWidth: 1000, minHeight: 560)
-                // ⚠️ A NO-OP OUTSIDE A SCREENSHOT RUN, AND ABSENT FROM RELEASE (`UITestWindowSize.swift`).
-                .uiTestWindowSize()
                 // ⚠️ On EVERY launch, signed in or not: a sign-out whose revoke failed
                 // last time is retried here.
                 .task { await container.drainPendingRevoke() }
