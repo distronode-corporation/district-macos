@@ -160,7 +160,15 @@ Distronode's Google Cloud for its own length):
   attestation as the run's artifact.
 
 Submission to the App Store ([`submit.yml`](.github/workflows/submit.yml)) and publishing
-the `.dmg` here happen only with the maintainers' explicit approval. Builds from a fork
+the `.dmg` here ([`publish.yml`](.github/workflows/publish.yml)) happen only with the
+maintainers' explicit approval. Publishing checks the build (checksums, the Sparkle
+signature against the key in `project.yml`, the provenance attestation), makes it an
+immutable GitHub Release with the `.dmg`, its `.sig`, `SHA256SUMS` and the attestation
+bundle (`.intoto.jsonl`), and adds it to the Sparkle appcast at
+<https://updates.distronode.com/district/macos/appcast.xml>, kept in
+[distronode-corporation/updates](https://github.com/distronode-corporation/updates). Its
+`dry_run` does all of that except the Release and the appcast push. Verify a download
+with `gh attestation verify DistrictAI-<version>-<build>.dmg --repo distronode-corporation/district-macos`. Builds from a fork
 report no crashes: crash reporting (Sentry) starts only when a DSN is supplied at build
 time, and `project.yml` ships it empty.
 

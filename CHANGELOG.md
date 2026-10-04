@@ -16,6 +16,14 @@ not sent.
 
 ## [Unreleased]
 
+### Release process
+
+- The Developer ID build can be published: `publish.yml` (called by `release.yml` on an
+  approved tag, or dispatched for a tag built earlier) makes it an immutable GitHub
+  Release with its Sparkle signature, checksums and provenance attestation, and adds it
+  to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
+  publishes nothing.
+
 ## [2.0]
 
 Voice Studio comes to the Mac.
