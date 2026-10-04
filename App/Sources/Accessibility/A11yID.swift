@@ -17,8 +17,8 @@
 /// ⚠️ NO IMPORTS, AND `internal` RATHER THAN `public`. On iOS this file is compiled
 /// into BOTH the app target and `DistrictAIUITests` from `App/Shared`, because a
 /// `bundle.ui-testing` target cannot `@testable import` the app under test.
-/// ⚠️ ON THE MAC IT IS COPIED FROM district-ios UNCHANGED (see PORTING.md) and only the
-/// app compiles it: there is no UI-test bundle yet. The identifiers are kept verbatim so
+/// ⚠️ ON THE MAC IT IS COPIED FROM district-ios UNCHANGED (see PORTING.md), and the app
+/// and `DistrictMacUITests` (the store screenshots) both compile it. The identifiers are kept verbatim so
 /// one cross-platform test plan addresses the same element on all three clients.
 enum A11yID {
     /// `"\(base)-\(id)"`, a row addressed by the server's own id.

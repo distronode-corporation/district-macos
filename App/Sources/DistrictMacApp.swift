@@ -25,7 +25,7 @@ struct DistrictMacApp: App {
     init() {
         // Before anything else can crash. A no-op unless the build carries a DSN.
         DistrictSentry.startIfConfigured()
-        let container = AppContainer()
+        let container = AppContainer.live()
         let push = PushRegistrar(container: container)
         let presenter = RingPresenter()
         let incoming = IncomingCallModel(container: container, presenter: presenter)
@@ -51,6 +51,8 @@ struct DistrictMacApp: App {
                 // ⚠️ WIDE ENOUGH FOR A LIST SECTION'S THREE COLUMNS: the sidebar, a sortable
                 // table (Calls, Contacts) and the open row beside it.
                 .frame(minWidth: 1000, minHeight: 560)
+                // ⚠️ A NO-OP OUTSIDE A SCREENSHOT RUN, AND ABSENT FROM RELEASE (`UITestWindowSize.swift`).
+                .uiTestWindowSize()
                 // ⚠️ On EVERY launch, signed in or not: a sign-out whose revoke failed
                 // last time is retried here.
                 .task { await container.drainPendingRevoke() }
