@@ -307,12 +307,13 @@ jobs:
             2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
 
       # ⛔ A BUNDLE THAT DISCOVERS NOTHING REPORTS SUCCESS. The floor is a ratchet, set at
-      # the count (612 on 2026-10-03, with all of Wave 9, the sign-in crash fix and the live
-      # layout fixes from build 20019): raise it when tests are added, and lower it only in
-      # the commit that deletes tests on purpose, saying so.
+      # the count (599 on 2026-10-04, after the recording, storage, notetaker and booking
+      # notes surfaces and their tests were removed on purpose; 612 before): raise it when
+      # tests are added, and lower it only in the commit that deletes tests on purpose,
+      # saying so.
       - name: DistrictMacTests were discovered
         run: |
-          minimum=612
+          minimum=599
           executed=$(sed -n 's/.*Executed \([0-9]*\) tests\{0,1\}, with.*/\1/p' xcodebuild-test.log | sort -n | tail -1)
           echo "app-target tests executed - ${executed:-0} (at least $minimum expected)"
           if [ -z "$executed" ] || [ "$executed" -lt "$minimum" ]; then
