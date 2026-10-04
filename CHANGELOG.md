@@ -16,6 +16,12 @@ not sent.
 
 ## [Unreleased]
 
+### Changed
+
+- The repository meets the public-repo standard: a Scorecard badge, the README and
+  SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
+  requests get dependency review, and a test uses a fictional email address.
+
 ### Release process
 
 - The Developer ID build can be published: `publish.yml` (called by `release.yml` on an
