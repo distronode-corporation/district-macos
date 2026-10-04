@@ -16,6 +16,12 @@ not sent.
 
 ## [Unreleased]
 
+### Changed
+
+- The repository meets the public-repo standard: a Scorecard badge, the README and
+  SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
+  requests get dependency review, and a test uses a fictional email address.
+
 ## [2.0]
 
 Voice Studio comes to the Mac.

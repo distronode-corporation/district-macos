@@ -20,7 +20,8 @@ you get is credit in the changelog entry for the fix, if you want it.
 
 ## Supported versions
 
-Nothing has been released yet. Once it has, only the current release is supported, on
+Version 1.0 is submitted to the Mac App Store and in review; the direct download arrives
+with this repository's first GitHub Release. Only the current release is supported, on
 both distributions (the Mac App Store and the direct download), and fixes ship in a new
 release rather than being backported.
 

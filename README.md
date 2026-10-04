@@ -1,16 +1,18 @@
 # District AI for Mac
 
-The native macOS client for [District AI](https://www.distronode.com/district-ai), the AI
-receptionist service by Distronode. It is being built to match the iPad app section for
-section: calls placed and answered on the Mac, the inbox, contacts, meeting rooms and the
-settings of a District AI workspace.
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/distronode-corporation/district-macos/badge)](https://scorecard.dev/viewer/?uri=github.com/distronode-corporation/district-macos)
 
-**Status: in development, not released.** This build has every section of the iPad app:
-it signs in, shows the Overview, the Inbox, Calls, Contacts and the workspace's sections
-(District HQ, Analytics, Billing, Phone numbers, Workflows, Desk, Support, Scheduling and
-Workspace settings), places calls from Dial, joins Rooms, and rings for calls handed to you
-and answers them. Nothing is on the Mac App Store or in a GitHub Release yet. See
-[CHANGELOG.md](CHANGELOG.md).
+The native macOS client for [District AI](https://www.distronode.com/district-ai), the AI
+receptionist service by Distronode. It matches the iPad app section for section: calls
+placed and answered on the Mac, the inbox, contacts, meeting rooms and the settings of a
+District AI workspace.
+
+**Status: version 1.0 is submitted to the Mac App Store and in review.** It has every
+section of the iPad app: it signs in, shows the Overview, the Inbox, Calls, Contacts and
+the workspace's sections (District HQ, Analytics, Billing, Phone numbers, Workflows, Desk,
+Support, Scheduling and Workspace settings), places calls from Dial, joins Rooms, and rings
+for calls handed to you and answers them. The direct download arrives with this
+repository's first GitHub Release. See [CHANGELOG.md](CHANGELOG.md).
 
 **How calls reach a Mac.** While District AI is open and you are signed in, a call handed
 to you rings on this Mac: a small call window, a notification with Answer and Decline,
@@ -31,21 +33,20 @@ use them with, so we are asking before we build anything:
 SwiftUI, Swift 6 language mode, macOS 14 Sonoma and later, one universal app for Apple
 silicon and Intel Macs.
 
-## Two ways to install it, once released
+## Two ways to install it
 
 - **The Mac App Store.** The Mac app shares its App Store record with District AI for
   iPhone and iPad, so it is one purchase across all three, and the App Store updates it.
-- **A direct download.** A Developer ID signed and notarised `.dmg` on this repository's
-  GitHub Releases, which keeps itself up to date with
-  [Sparkle](https://sparkle-project.org). The same build is in our Homebrew tap:
-
-  ```sh
-  brew install distronode-corporation/tap/district-ai
-  ```
+  Version 1.0 is in App Review.
+- **A direct download**, with this repository's first GitHub Release: a Developer ID
+  signed and notarised `.dmg`, which keeps itself up to date with
+  [Sparkle](https://sparkle-project.org). The same build comes to our Homebrew tap with
+  that release, as `brew install distronode-corporation/tap/district-ai`. Neither the
+  Release nor the cask exists yet.
 
 **Install one, not both.** The two builds are the same app (one bundle identifier), so
 they share their settings, their saved session and the `districtai://` links; installed
-side by side, either one may answer a link or a notification. Neither is available yet.
+side by side, either one may answer a link or a notification.
 
 ## Requirements
 
@@ -125,7 +126,9 @@ project.yml             The XcodeGen spec: this is the project; the .xcodeproj i
                         generated and never committed
 docs/screenshots.md     How the Mac App Store screenshots are taken
 PORTING.md              Which district-ios commit each ported screen came from
-scripts/                The public-hygiene check
+scripts/                The release toolchain (archive, Developer ID packaging,
+                        Sparkle signing, App Store Connect upload and submission)
+                        with its tests, and the public-hygiene check
 ```
 
 `App/DistrictMac.entitlements` and `App/DistrictMacDirect.entitlements` are written by
@@ -141,15 +144,17 @@ every pull request, and uses no secrets:
 - **gitleaks** (Linux): the full git history, with [`.gitleaks.toml`](.gitleaks.toml).
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
-  store target for testing and runs `DistrictMacTests`. While the repository is private it runs only when started by
-  hand, because private macOS minutes are billed at ten times the Linux rate.
+  store target for testing and runs `DistrictMacTests`.
 
-[`codeql.yml`](.github/workflows/codeql.yml) and
-[`scorecard.yml`](.github/workflows/scorecard.yml) run once the repository is public.
+[`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows and the
+Swift build, [`dependency-review.yml`](.github/workflows/dependency-review.yml) checks
+the dependencies a pull request adds, and [`scorecard.yml`](.github/workflows/scorecard.yml)
+publishes the OpenSSF Scorecard result behind the badge above.
 
 ## Releases
 
-None yet. [`release.yml`](.github/workflows/release.yml) builds both builds of one commit
+Version 1.0 is submitted to the Mac App Store; there is no GitHub Release yet.
+[`release.yml`](.github/workflows/release.yml) builds both builds of one commit
 on GitHub-hosted macOS runners, from `main` or a protected `v*` tag, with no signing key
 or store credential stored in this repository or in GitHub (each run borrows them from
 Distronode's Google Cloud for its own length):
@@ -170,6 +175,7 @@ time, and `project.yml` ships it empty.
 - [SECURITY.md](SECURITY.md): report vulnerabilities privately, not in an issue.
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - [SUPPORT](.github/SUPPORT.md): where questions, bugs and account problems go.
+- [CHANGELOG.md](CHANGELOG.md).
 
 Questions about a District AI account, number or bill go to
 [District AI support](https://www.distronode.com/support).
