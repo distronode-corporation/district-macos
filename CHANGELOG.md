@@ -16,6 +16,21 @@ not sent.
 
 ## [Unreleased]
 
+## [2.0]
+
+Voice Studio comes to the Mac.
+
+- Voice Studio, in workspace settings: start from a recipe, or build your agent's voice
+  from its ear, turn-taking, brain and voice, each showing where it is processed and how
+  quickly it answers.
+- See the time to the agent's first word before you save, from measured calls.
+- Choose a voice, let the agent start speaking sooner, and fine-tune each step under
+  Advanced.
+- When you change your agent's language, a voice setup that no longer speaks it is
+  adjusted to one that does, and you are told what changed.
+- The agent persona keeps its name, greeting, personality, language and answer length,
+  with a link to Voice Studio.
+
 ## [1.0]
 
 The first release of District AI for Mac.

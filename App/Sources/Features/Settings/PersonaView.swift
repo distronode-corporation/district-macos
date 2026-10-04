@@ -10,16 +10,15 @@ import SwiftUI
 /// is that a save is built on a successful read, and the load-failure branch below
 /// renders a retry and nothing else. See the ⛔ on ``SettingsLoadFailureView``.
 ///
-/// ⛔ THE ENGINE PANEL IS FILLED ONLY FROM THE SERVER'S CATALOGUE. Every field on it
-/// COERCES rather than rejects server-side, an unrecognised `modelId` is silently
-/// rewritten to `deepgram-pipeline`, an unrecognised `voice` is stored verbatim and
-/// then replaced by the agent's own fallback at synthesis time, both with a 200, so
-/// the choice is between offering free text that produces a persona nobody chose and
-/// reading the catalogue the web derives its own pickers from. `persona/options` is that
-/// catalogue, and ``PersonaEngineDraft`` is the only thing that may fill these
-/// controls. ⛔ WHEN IT DOES NOT LOAD THE PANEL FALLS BACK TO SHOWING THE STORED VALUES
-/// AND NOTHING ELSE, never to a built-in list, which would be the same drifting second
-/// copy wearing a Swift literal.
+/// ⛔ THE LANGUAGE PANEL IS FILLED ONLY FROM THE SERVER'S CATALOGUE. Every field on it
+/// COERCES rather than rejects server-side, so the choice is between offering free text
+/// that produces a persona nobody chose and reading the catalogue the web derives its own
+/// pickers from. `persona/options` is that catalogue, and ``PersonaIdentityDraft`` is the
+/// only thing that may fill these controls. ⛔ WHEN IT DOES NOT LOAD THE PANEL FALLS BACK
+/// TO SHOWING THE STORED VALUES AND NOTHING ELSE, never to a built-in list.
+///
+/// ⛔ THE ENGINE, THE VOICE AND THE TUNING ARE THE VOICE STUDIO'S, its own row in workspace
+/// settings (``VoiceStudioView``), and the panel says so.
 ///
 /// ⛔ THE AVATAR ROW IS A STATUS AND NEVER A CONTROL. Turning video on starts a
 /// billable Tavus stream, and App Store Review Guideline 3.1.3(b) plus the ⛔ on
@@ -45,10 +44,12 @@ struct PersonaView: View {
         ))
         self.container = container
         self.workspaceId = workspaceId
+        self.role = role
     }
 
     private let container: AppContainer
     private let workspaceId: String
+    private let role: WorkspaceRole?
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
@@ -80,7 +81,8 @@ struct PersonaView: View {
             SettingsSkeleton()
         case .ready:
             form
-            PersonaEngineSection(model: model)
+            PersonaIdentitySection(model: model)
+            openVoiceStudio
             avatar
         case let .failed(failure):
             SettingsLoadFailureView(failure: failure, onRetry: reload)
@@ -112,8 +114,43 @@ struct PersonaView: View {
             )
             .accessibilityIdentifier(A11yID.Persona.personality)
             SettingsSaveNotice(state: model.save, onReread: reload, onDismiss: model.dismissNotice)
+            refitLine
             saveButton
             previewButton
+        }
+    }
+
+    /// ⛔ A LINK TO THE STUDIO, NEVER THE STUDIO'S CONTROLS. The engine, the voice and the
+    /// tuning are saved there and nowhere else, so this form can never resend an engine id the
+    /// Studio changed. ⚠️ Drawn only where ``RouteGate`` would draw the Studio's own row.
+    @ViewBuilder
+    private var openVoiceStudio: some View {
+        if let route = Self.voiceStudioRoute(workspaceId: workspaceId, role: role) {
+            NavigationLink(value: route) {
+                Text(SettingsCopy.personaOpenVoiceStudio)
+            }
+            .buttonStyle(.districtSecondary)
+            .accessibilityIdentifier(A11yID.Persona.openVoiceStudio)
+        }
+    }
+
+    /// The Studio's route, or nil where ``RouteGate`` hides it.
+    static func voiceStudioRoute(workspaceId: String, role: WorkspaceRole?) -> Route? {
+        let route = Route.workspaceSettings(workspaceId: workspaceId, role: role, section: .voiceStudio)
+        if case .hidden = RouteGate.gate(for: route, role: role) {
+            return nil
+        }
+        return route
+    }
+
+    /// What fitting the voice chain to a new language did (``PersonaModel/refit``).
+    @ViewBuilder
+    private var refitLine: some View {
+        if let line = model.refit?.line {
+            Text(line)
+                .font(DistrictType.caption)
+                .foregroundStyle(colors.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

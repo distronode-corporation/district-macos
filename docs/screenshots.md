@@ -48,23 +48,29 @@ on any other size rather than writing a wrong set.
 2. Mint a session for the review account and save the JSON to a file outside the repository,
    readable only by you (`chmod 600`). Note its `deviceId` for step 5.
 
-3. Run the screenshot scheme, with the session and an output folder exported to the test
-   runner (`TEST_RUNNER_` is stripped on the way in). Export them as environment variables:
-   a value passed as a trailing `NAME=value` build setting does not reach the runner.
+3. Run the screenshot scheme, with the session exported to the test runner (`TEST_RUNNER_`
+   is stripped on the way in). Export it as an environment variable: a value passed as a
+   trailing `NAME=value` build setting does not reach the runner.
 
    ```sh
    export TEST_RUNNER_DISTRICT_UITEST_SESSION="$(cat /path/to/session.json)"
-   export TEST_RUNNER_DISTRICT_STORE_SCREENSHOTS_DIR="$HOME/Desktop/district-mac-screenshots"
+   mkdir -p "$HOME/district-mac-screenshots"
    xcodebuild test \
      -project DistrictMac.xcodeproj \
      -scheme DistrictMacScreenshots \
      -destination 'platform=macOS' \
      -scmProvider system \
-     -resultBundlePath "$HOME/Desktop/district-mac-screenshots.xcresult" \
+     -resultBundlePath "$HOME/district-mac-screenshots/run.xcresult" \
      CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
      CODE_SIGN_ENTITLEMENTS="$PWD/App/AdHoc.entitlements"
    unset TEST_RUNNER_DISTRICT_UITEST_SESSION
    ```
+
+   ⛔ Do not point `TEST_RUNNER_DISTRICT_STORE_SCREENSHOTS_DIR` at `~/Desktop` (or
+   `~/Documents`, `~/Downloads`). macOS folder protection refuses the test runner, and the
+   case fails with "Operation not permitted" creating `mac-16x10`. The frames are taken from
+   the result bundle (step 4), so the variable is not needed; if you want loose files too,
+   export it as an unprotected folder such as `"$TMPDIR/district-mac-screenshots"`.
 
    The first UI-test run on a Mac asks to allow UI automation (an administrator password in a
    system dialog, or `automationmodetool enable-automationmode-without-authentication` once).
@@ -75,13 +81,13 @@ on any other size rather than writing a wrong set.
    were bad. A run that fails with "the app opened no window" is a launch problem, not a
    session one.
 
-4. The PNGs are in `$HOME/Desktop/district-mac-screenshots/mac-16x10/` (`1-overview.png` and
-   so on). They are also attachments in the result bundle:
+4. Take the frames from the result bundle's attachments, named `STORE-MAC-1-overview` and so
+   on (the export's `manifest.json` maps each attachment name to its exported file):
 
    ```sh
    xcrun xcresulttool export attachments \
-     --path "$HOME/Desktop/district-mac-screenshots.xcresult" \
-     --output-path "$HOME/Desktop/district-mac-screenshots-attachments"
+     --path "$HOME/district-mac-screenshots/run.xcresult" \
+     --output-path "$HOME/district-mac-screenshots/attachments"
    ```
 
    Check each one is 2880x1800 (`sips -g pixelWidth -g pixelHeight *.png`) and shows only the

@@ -50,10 +50,10 @@ packages:
   # lands in district-core-swift, is tagged, and arrives here as a one-line bump.
   DistrictCore:
     url: https://github.com/distronode-corporation/district-core-swift
-    exactVersion: 2.0.0
+    exactVersion: 3.1.0
   # ⛔ LINKED BY NOTHING, DECLARED ONLY TO PIN IT. swift-crypto takes swift-asn1 by range,
   # so without this root-level constraint Xcode resolves the newest one on a cache miss.
-  # 1.7.3 is what district-core-swift 2.0.0's Package.resolved records. Bump with the core.
+  # 1.7.3 is what district-core-swift 3.1.0's Package.resolved records. Bump with the core.
   swift-asn1:
     url: https://github.com/apple/swift-asn1.git
     exactVersion: 1.7.3
@@ -208,7 +208,7 @@ targetTemplates:
         # scheme at a time, and the test host is the store build (see `DistrictMacTests`).
         PRODUCT_NAME: District AI
         PRODUCT_MODULE_NAME: DistrictMac
-        MARKETING_VERSION: "1.0"
+        MARKETING_VERSION: "2.0"
         # ⚠️ A placeholder the release lane overrides with a build number App Store
         # Connect has not seen.
         CURRENT_PROJECT_VERSION: "1"
