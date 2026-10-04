@@ -31,6 +31,14 @@ final class AppContainer {
     // MARK: - Repositories (each wraps the one `api`, so all share one coordinator)
 
     let workspaces: WorkspaceRepository
+    /// The native Voice Studio: one read, and a save through the persona PATCH that is
+    /// always followed by that read.
+    ///
+    /// ⚠️ COMPUTED, NOT STORED, ON THE MAC: the repository is a stateless value over ``api``,
+    /// and one more assignment would take `init` past SwiftLint's 60-line body limit.
+    var voiceStudio: VoiceStudioRepository {
+        VoiceStudioRepository(client: api)
+    }
 
     /// Who answers a call, and whether THIS person can be rung for one (Account's
     /// "Calls to you" card).
