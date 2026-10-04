@@ -122,13 +122,17 @@ targetTemplates:
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         LSApplicationCategoryType: public.app-category.business
         NSHumanReadableCopyright: Copyright 2026 Distronode Corporation
-        # ⛔ REQUIRED BY APP STORE CONNECT. The app's encryption: HTTPS through URLSession,
-        # the keychain, swift-crypto (linked through district-core-swift), and LiveKit's
-        # end-to-end media encryption (AES-GCM), which Rooms turns on when the server sends
-        # a room key (`RoomEngine.options(e2eeKey:)`). Whether that is exempt is the
-        # export compliance determination, which is the maintainers' call and not this
-        # file's: the value records their answer. Do not change it without them.
-        ITSAppUsesNonExemptEncryption: false
+        # ⛔ REQUIRED BY APP STORE CONNECT, AND TRUE IS THE MAINTAINERS' DECLARATION. The
+        # app's encryption: HTTPS through URLSession, the keychain, swift-crypto (linked
+        # through district-core-swift), and LiveKit's end-to-end media encryption (AES-GCM),
+        # which Rooms turns on when the server sends a room key
+        # (`RoomEngine.options(e2eeKey:)`). Every algorithm is standard and published; none
+        # is proprietary. Rooms' end-to-end encryption goes beyond the HTTPS-only exemption,
+        # so the app is declared as using non-exempt encryption: a mass-market item,
+        # self-classified 5A992.c under License Exception ENC section 740.17(b)(1), with the
+        # matching declaration in App Store Connect and no documentation upload. Do not
+        # change it without the maintainers.
+        ITSAppUsesNonExemptEncryption: true
         # ⛔ REGISTERS `districtai://` WITH LAUNCH SERVICES. Sign-in does not need it
         # (`ASWebAuthenticationSession` intercepts `districtai://auth` in-session); the
         # scheduling hand-off does: leg 1 runs in the user's default browser, whose
