@@ -81,6 +81,18 @@ final class MacVoiceStudioTests: XCTestCase {
         XCTAssertEqual(studio, persona.map { $0 + 1 })
     }
 
+    /// ⛔ THE HUB'S ROW IS "Voice", UNDER DISTRICT STUDIO, RIGHT AFTER PERSONA, as the web's
+    /// District Studio pages are. The screen it opens keeps the wire heading's "Voice Studio".
+    func test_MAC_STUDIO_07_theHubRowIsVoiceUnderDistrictStudio() throws {
+        let studioGroup = try XCTUnwrap(SettingsHubView.groups.first)
+        XCTAssertEqual(studioGroup.title, "District Studio")
+        let sections = studioGroup.entries.map(\.section)
+        let voice = try XCTUnwrap(sections.firstIndex(of: .voiceStudio))
+        XCTAssertEqual(sections.firstIndex(of: .persona), voice - 1)
+        XCTAssertEqual(studioGroup.entries[voice].title, "Voice")
+        XCTAssertEqual(VoiceStudioCopy.title, "Voice Studio")
+    }
+
     private static func isHidden(_ gate: RouteGate) -> Bool {
         if case .hidden = gate {
             return true
