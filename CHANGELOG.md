@@ -18,6 +18,8 @@ not sent.
 
 ### Changed
 
+- DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
+  new District Studio link section is not used here.
 - The Voice screen is titled "Voice" before its settings load, the same word District AI
   now sends as its heading.
 - Workspace settings groups the receptionist's settings under District Studio, as the web
