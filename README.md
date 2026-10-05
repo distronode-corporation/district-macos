@@ -177,6 +177,12 @@ with `gh attestation verify DistrictAI-<version>-<build>.dmg --repo distronode-c
 Builds from a fork report no crashes: crash reporting (Sentry) starts only when a DSN is supplied at build
 time, and `project.yml` ships it empty.
 
+What's New is the version's `CHANGELOG.md` section for English and
+`release-notes/<locale>/<version>.txt` (for example `release-notes/fr-CA/2.0.txt`, plain text
+exactly as the store shows it) for every other language, as on district-android. A
+localization in a language with no notes stops the submission; English is never sent in its
+place.
+
 ## Contributing, security and conduct
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): the local gate and the rules CI enforces.

@@ -20,14 +20,13 @@ not sent.
 
 - DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
   new District Studio link section is not used here.
-- The Voice screen is titled "Voice" before its settings load, the same word District AI
-  now sends as its heading.
-- Workspace settings groups the receptionist's settings under District Studio, as the web
-  dashboard now does: Persona, Voice, how calls are answered, dynamic persona rules, the
-  transfer directory, Skills and Knowledge, in the order of the web's pages. Messaging,
-  Members and Scheduling follow under Workspace. Four rows take the web's page names:
-  Agent persona is Persona, Voice Studio is Voice, Capabilities is Skills and Knowledge
-  base is Knowledge.
+- The settings hub groups the receptionist's settings under District Studio, in the web's
+  order, and the Voice screen is called Voice everywhere, its title before the read lands
+  included. The [2.0] notes below say so for App Store readers.
+- Release notes per language: What's New for every App Store localization other than English
+  comes from `release-notes/<locale>/<version>.txt`, as on district-android, and a
+  localization with no notes in its language stops the submission rather than showing
+  English.
 - The repository meets the public-repo standard: a Scorecard badge, the README and
   SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
   requests get dependency review, and a test uses a fictional email address.
@@ -42,18 +41,21 @@ not sent.
 
 ## [2.0]
 
-Voice Studio comes to the Mac.
+District Studio and Voice come to the Mac.
 
-- Voice Studio, in workspace settings: start from a recipe, or build your agent's voice
-  from its ear, turn-taking, brain and voice, each showing where it is processed and how
-  quickly it answers.
-- See the time to the agent's first word before you save, from measured calls.
-- Choose a voice, let the agent start speaking sooner, and fine-tune each step under
-  Advanced.
-- When you change your agent's language, a voice setup that no longer speaks it is
+- Your receptionist's settings are grouped under District Studio in workspace settings, in
+  the same order and with the same names as on the web: Persona, Voice, call handling,
+  Skills and Knowledge.
+- Voice: start from a recipe, or build your receptionist's voice from its ear, turn-taking,
+  brain and voice, each showing where it is processed and how quickly it answers.
+- See how long your receptionist takes to say its first word before you save, from
+  measured calls.
+- Choose a voice, let your receptionist start speaking sooner, and fine-tune each step
+  under Advanced.
+- When you change your receptionist's language, a voice setup that no longer speaks it is
   adjusted to one that does, and you are told what changed.
-- The agent persona keeps its name, greeting, personality, language and answer length,
-  with a link to Voice Studio.
+- Persona keeps your receptionist's name, greeting, personality, language and answer
+  length, with a link to Voice.
 
 ## [1.0]
 

@@ -1,0 +1,8 @@
+District Studio et l'écran Voice arrivent sur Mac.
+
+- Dans les paramètres de l'espace de travail, les réglages de votre réceptionniste sont regroupés sous District Studio, dans le même ordre et sous les mêmes noms que sur le Web.
+- Voice : partez d'une recette, ou composez la voix de votre réceptionniste à partir de son écoute, de sa gestion des tours de parole, de son cerveau et de sa voix, avec, pour chacun, l'endroit où il est traité et la rapidité de sa réponse.
+- Avant d'enregistrer, voyez combien de temps votre réceptionniste met à prononcer son premier mot, d'après des appels mesurés.
+- Choisissez une voix, laissez votre réceptionniste commencer à parler plus tôt et affinez chaque étape sous Advanced.
+- Quand vous changez la langue de votre réceptionniste, une configuration vocale qui ne la parle pas est remplacée par une qui la parle, et on vous indique ce qui a changé.
+- Persona conserve le nom, la salutation, la personnalité, la langue et la longueur des réponses de votre réceptionniste, avec un lien vers Voice.
