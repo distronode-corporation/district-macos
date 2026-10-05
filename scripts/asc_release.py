@@ -9,7 +9,7 @@ profile, and submit a build for review.
     ... python3 scripts/asc_release.py wait-valid --version 1.0 --build 20005
     ... python3 scripts/asc_release.py profile --id 4F2465QW2Z --out /path/x.provisionprofile
     ... python3 scripts/asc_release.py submit --version 1.0 --build 20005
-    python3 scripts/asc_release.py whats-new --version 1.0    # no credentials needed
+    python3 scripts/asc_release.py whats-new [--locale fr-CA] --version 1.0    # no credentials needed
 
 Used by scripts/release-preflight.sh (highest-build and train-open, before anything is
 built), .github/workflows/release.yml (wait-valid after the upload), scripts/direct-release.sh
@@ -146,6 +146,74 @@ def whats_new(changelog: Path, version: str) -> str:
     if len(text) > WHATS_NEW_LIMIT:
         die(f"the release notes for {version} are {len(text)} characters; App Store Connect accepts {WHATS_NEW_LIMIT}.")
     return text
+
+
+# ── Release notes per language ───────────────────────────────────────────────
+
+# English is the version's CHANGELOG section; every other language is a committed plain-text
+# file, release-notes/<locale>/<version>.txt, as on district-android (there the locale is the
+# Play language code; here it is the App Store Connect locale, e.g. fr-CA).
+NOTES_ROOT = Path(__file__).resolve().parent.parent / "release-notes"
+
+
+class ReleaseNotes:
+    """What's New for one version, in every language this repository writes it in.
+
+    ⛔ NEVER ENGLISH IN ANOTHER LANGUAGE'S PLACE. An App Store localization in a language
+    with no notes here stops the submission before anything is written, exactly as a
+    missing CHANGELOG section does. A French listing showing English notes is a worse
+    outcome than a failed run, which says which file to add.
+
+    ⚠️ A LOCALE FALLS BACK ONLY TO ANOTHER LOCALE OF ITS OWN LANGUAGE: fr-FR, with no
+    release-notes/fr-FR/, takes fr-CA's file (the first in name order). English locales
+    (en-US, en-GB, en-CA, ...) all take the CHANGELOG section.
+
+    Every language directory is read and checked when this is built, before any request is
+    made, so a missing, empty or too long file stops the run with nothing half done.
+    """
+
+    def __init__(self, changelog: Path, version: str, root: Path = NOTES_ROOT) -> None:
+        self.version = version
+        self.root = root
+        self.english = whats_new(changelog, version)
+        self.translations: dict[str, str] = {}
+        if root.is_dir():
+            for folder in sorted(d for d in root.iterdir() if d.is_dir()):
+                self.translations[folder.name] = self._read(folder / f"{version}.txt")
+
+    def _read(self, path: Path) -> str:
+        if not path.is_file():
+            die(
+                f"{path} is missing. Every language under {self.root.name}/ needs its own notes "
+                f"for {self.version}; none is filled in from English."
+            )
+        text = path.read_text(encoding="utf-8").strip()
+        if not text:
+            die(f"{path} is empty.")
+        if len(text) > WHATS_NEW_LIMIT:
+            die(f"{path} is {len(text)} characters; App Store Connect accepts {WHATS_NEW_LIMIT}.")
+        return text
+
+    def for_locale(self, locale: str) -> str:
+        language = locale.split("-")[0].lower()
+        if language == "en":
+            return self.english
+        if locale in self.translations:
+            return self.translations[locale]
+        for name, text in self.translations.items():
+            if name.split("-")[0].lower() == language:
+                return text
+        die(
+            f"App Store Connect has a {locale} localization and {self.root.name}/ has no notes in "
+            f"that language for {self.version}; English is never sent in its place. "
+            f"Add {self.root.name}/{locale}/{self.version}.txt."
+        )
+        raise AssertionError("unreachable")  # die() exits
+
+
+def notes_for(notes: "str | ReleaseNotes", locale: str) -> str:
+    """One localization's text: a plain string is every locale's (the tests' shorthand)."""
+    return notes if isinstance(notes, str) else notes.for_locale(locale)
 
 
 # ── Authentication ───────────────────────────────────────────────────────────
@@ -386,7 +454,7 @@ def first_version(client: Client, app: str, version_id: str) -> bool:
     return True
 
 
-def set_whats_new(client: Client, app: str, version: str, version_id: str, notes: str) -> None:
+def set_whats_new(client: Client, app: str, version: str, version_id: str, notes: "str | ReleaseNotes") -> None:
     """Sets What's New on every localization of the version record.
 
     ⛔ SKIPPED, NOT FAILED, ON THE PLATFORM'S FIRST VERSION. App Store Connect refuses
@@ -404,15 +472,19 @@ def set_whats_new(client: Client, app: str, version: str, version_id: str, notes
     localizations = client.get(f"/appStoreVersions/{version_id}/appStoreVersionLocalizations")["data"]
     if not localizations:
         die(f"version {version} has no localizations to carry the release notes.")
+    # Every locale's text is chosen before the first write, so a language with no notes
+    # stops the run with no localization half updated.
+    texts = {loc["id"]: notes_for(notes, loc["attributes"]["locale"]) for loc in localizations}
     for loc in localizations:
         locale = loc["attributes"]["locale"]
-        if loc["attributes"].get("whatsNew") == notes:
+        text = texts[loc["id"]]
+        if loc["attributes"].get("whatsNew") == text:
             print(f"whatsNew ({locale}): already set")
             continue
         code, answer = client.call(
             "PATCH",
             f"/appStoreVersionLocalizations/{loc['id']}",
-            {"data": {"type": "appStoreVersionLocalizations", "id": loc["id"], "attributes": {"whatsNew": notes}}},
+            {"data": {"type": "appStoreVersionLocalizations", "id": loc["id"], "attributes": {"whatsNew": text}}},
             ok=(200, 409),
         )
         if code == 409:
@@ -423,7 +495,7 @@ def set_whats_new(client: Client, app: str, version: str, version_id: str, notes
         print(f"whatsNew ({locale}): set")
 
 
-def submit(client: Client, version: str, build: str, notes: str, timeout: int) -> None:
+def submit(client: Client, version: str, build: str, notes: "str | ReleaseNotes", timeout: int) -> None:
     app = app_id(client)
     built = wait_valid(client, app, version, build, timeout)
 
@@ -548,6 +620,8 @@ def main() -> None:
             p.add_argument("--build", required=True, help="the build number (CFBundleVersion)")
             p.add_argument("--timeout", type=int, default=3600, help="seconds to wait for VALID")
         p.add_argument("--changelog", default=str(Path(__file__).resolve().parent.parent / "CHANGELOG.md"))
+        if name == "whats-new":
+            p.add_argument("--locale", default="en-US", help="an App Store Connect locale, e.g. fr-CA")
     p = sub.add_parser("profile")
     p.add_argument("--id", required=True, help="the App Store Connect profile id, e.g. 4F2465QW2Z")
     p.add_argument("--out", required=True, help="where to write the profile")
@@ -560,7 +634,8 @@ def main() -> None:
         print(f"uuid={uuid}\nname={name}")
         return
     if args.command == "whats-new":
-        print(whats_new(Path(args.changelog), args.version))
+        # Builds every language's notes, so this is also the pre-flight check of all of them.
+        print(ReleaseNotes(Path(args.changelog), args.version).for_locale(args.locale))
         return
     if args.command in ("highest-build", "train-open"):
         if not re.fullmatch(r"\d+(\.\d+){1,2}", args.version):
@@ -580,8 +655,8 @@ def main() -> None:
         print(f"VALID - build {args.version} ({args.build}), id {found['id']}")
     else:
         # The notes are read BEFORE anything is changed in App Store Connect, so a missing
-        # CHANGELOG section stops the run with nothing half done.
-        submit(client, args.version, args.build, whats_new(Path(args.changelog), args.version), args.timeout)
+        # CHANGELOG section or language file stops the run with nothing half done.
+        submit(client, args.version, args.build, ReleaseNotes(Path(args.changelog), args.version), args.timeout)
 
 
 if __name__ == "__main__":
