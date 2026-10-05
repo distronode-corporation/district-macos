@@ -18,6 +18,8 @@ not sent.
 
 ### Changed
 
+- The Voice screen is titled "Voice" before its settings load, the same word District AI
+  now sends as its heading.
 - Workspace settings groups the receptionist's settings under District Studio, as the web
   dashboard now does: Persona, Voice, how calls are answered, dynamic persona rules, the
   transfer directory, Skills and Knowledge, in the order of the web's pages. Messaging,
