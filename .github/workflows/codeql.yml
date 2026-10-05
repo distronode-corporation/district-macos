@@ -9,9 +9,10 @@ name: CodeQL
 # Two jobs: `actions` reads the workflow files and needs no build; `swift` is traced
 # through the `xcodebuild build` below.
 #
-# ⛔ BOTH JOBS ARE SKIPPED WHILE THE REPOSITORY IS PRIVATE. Code scanning is not available
-# to a private repository on the free plan, so the upload would fail. `schedule` carries
-# `repository` in its payload too, so the weekly run is guarded the same way.
+# The `!github.event.repository.private` guard on both jobs matters only if the repository
+# is ever private again: code scanning is not available to a private repository on the
+# free plan, so the upload would fail. `schedule` carries `repository` in its payload too,
+# so the weekly run is guarded the same way.
 on:
   push:
     branches: [main]
