@@ -18,6 +18,12 @@ not sent.
 
 ### Changed
 
+- Workspace settings groups the receptionist's settings under District Studio, as the web
+  dashboard now does: Persona, Voice, how calls are answered, dynamic persona rules, the
+  transfer directory, Skills and Knowledge, in the order of the web's pages. Messaging,
+  Members and Scheduling follow under Workspace. Four rows take the web's page names:
+  Agent persona is Persona, Voice Studio is Voice, Capabilities is Skills and Knowledge
+  base is Knowledge.
 - The repository meets the public-repo standard: a Scorecard badge, the README and
   SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
   requests get dependency review, and a test uses a fictional email address.
