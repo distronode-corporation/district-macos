@@ -61,6 +61,9 @@ enum TranscriptFeed: Equatable, Sendable {
     case event(TranscriptEvent)
     /// `call_ended` for the call (this socket takes the workspace's events).
     case callEnded
+    /// `call_started` or `call_updated` for the call, with the status its row now has: the
+    /// call-status signal that may subscribe again after `not_live`.
+    case callStatus(String)
     /// The socket closed and will reopen (or the session stopped, for sleep or quit).
     case disconnected
     /// The socket ended for good: the member may not stream the workspace.
@@ -70,10 +73,17 @@ enum TranscriptFeed: Equatable, Sendable {
 /// Where the call screen's live transcript gets its frames: ``DesktopLive`` in the app.
 @MainActor
 protocol TranscriptChannel: AnyObject {
-    /// Start receiving `callId`'s live transcript; `onUpdate` is told everything about it
-    /// until ``stopWatchingTranscript(_:)`` with the id returned.
-    func watchTranscript(callId: String, onUpdate: @escaping @MainActor (TranscriptFeed) -> Void) -> UUID
+    /// Hear about `callId` until ``stopWatchingTranscript(_:)``; unsubscribed (after
+    /// `not_live`), only its status and end, with no subscription on the socket.
+    func watchTranscript(
+        callId: String,
+        subscribed: Bool,
+        onUpdate: @escaping @MainActor (TranscriptFeed) -> Void
+    ) -> UUID
     func stopWatchingTranscript(_ id: UUID)
+    /// Subscribe a watch, or drop its subscription and still hear the call's status: the
+    /// call-status signal is what subscribes again after `not_live`.
+    func setTranscriptSubscribed(_ id: UUID, _ subscribed: Bool)
     func resubscribeTranscript(callId: String)
 }
 
@@ -142,18 +152,21 @@ final class DesktopLive: TranscriptChannel {
     /// Whether the running session rings.
     private(set) var runningRings = false
 
-    /// The call screens watching a live transcript, by the id ``watchTranscript(callId:onUpdate:)``
-    /// returned.
+    /// The call screens watching a live transcript, by the id
+    /// ``watchTranscript(callId:subscribed:onUpdate:)`` returned.
     private var transcriptWatchers: [UUID: TranscriptWatcher] = [:]
 
     private struct TranscriptWatcher {
         let callId: String
+        var subscribed: Bool
         let onUpdate: @MainActor (TranscriptFeed) -> Void
     }
 
-    /// The calls whose live transcript is watched.
+    /// The calls whose live transcript is subscribed on the socket. ⚠️ A watch that is not
+    /// subscribed (after `not_live`) still keeps the socket running: it is how the screen
+    /// hears the call-status signal that may subscribe again.
     var watchedCallIds: Set<String> {
-        Set(transcriptWatchers.values.map(\.callId))
+        Set(transcriptWatchers.values.filter(\.subscribed).map(\.callId))
     }
 
     typealias Factory = @MainActor (LiveSessionRequest) async -> (any LiveSessionRunning)?
@@ -366,41 +379,61 @@ final class DesktopLive: TranscriptChannel {
 
     // MARK: - Live transcripts
 
-    func watchTranscript(callId: String, onUpdate: @escaping @MainActor (TranscriptFeed) -> Void) -> UUID {
+    func watchTranscript(
+        callId: String,
+        subscribed: Bool,
+        onUpdate: @escaping @MainActor (TranscriptFeed) -> Void
+    ) -> UUID {
         let id = UUID()
-        let new = !watchedCallIds.contains(callId)
-        transcriptWatchers[id] = TranscriptWatcher(callId: callId, onUpdate: onUpdate)
-        if new {
-            session?.subscribeTranscript(callId: callId)
-        }
+        transcriptWatchers[id] = TranscriptWatcher(callId: callId, subscribed: false, onUpdate: onUpdate)
+        setTranscriptSubscribed(id, subscribed)
         reconcile()
         return id
     }
 
     func stopWatchingTranscript(_ id: UUID) {
-        guard let watcher = transcriptWatchers.removeValue(forKey: id) else { return }
-        if !watchedCallIds.contains(watcher.callId) {
-            session?.unsubscribeTranscript(callId: watcher.callId)
-        }
+        guard transcriptWatchers[id] != nil else { return }
+        setTranscriptSubscribed(id, false)
+        transcriptWatchers[id] = nil
         reconcile()
+    }
+
+    /// ⚠️ A SECOND SCREEN ON A CALL ALREADY SUBSCRIBED SENDS THE SUBSCRIBE AGAIN: the server
+    /// answers a duplicate with a fresh snapshot (contract §4.12 Q5), which that screen needs
+    /// and the first applies as a heal. The last subscribed screen to leave unsubscribes.
+    func setTranscriptSubscribed(_ id: UUID, _ subscribed: Bool) {
+        guard let watcher = transcriptWatchers[id], watcher.subscribed != subscribed else { return }
+        let others = transcriptWatchers
+            .contains { $0.key != id && $0.value.subscribed && $0.value.callId == watcher.callId }
+        transcriptWatchers[id]?.subscribed = subscribed
+        switch (subscribed, others) {
+        case (true, false): session?.subscribeTranscript(callId: watcher.callId)
+        case (true, true): session?.resubscribeTranscript(callId: watcher.callId)
+        case (false, false): session?.unsubscribeTranscript(callId: watcher.callId)
+        case (false, true): break
+        }
     }
 
     func resubscribeTranscript(callId: String) {
         session?.resubscribeTranscript(callId: callId)
     }
 
-    /// Route one socket update to the screens it concerns.
+    /// Route one socket update to the screens it concerns. ⚠️ The open and the
+    /// `transcript_*` frames reach subscribed screens only; the rest reach every one.
     func transcriptUpdate(_ update: TelemetryUpdate) {
         switch update {
         case .connected:
-            deliver(.connected)
+            deliver(.connected, subscribedOnly: true)
         case let .event(envelope):
             if let event = envelope.transcriptEvent {
-                // ⚠️ AN ERROR THAT NAMES NO CALL CONCERNS NO SCREEN.
+                // ⚠️ AN ERROR THAT NAMES NO CALL CONCERNS NO SCREEN (its envelope `callId` is
+                // "", which names none).
                 guard let callId = event.callId else { return }
-                deliver(.event(event), to: callId)
+                deliver(.event(event), to: callId, subscribedOnly: true)
             } else if envelope.eventType == .callEnded {
                 deliver(.callEnded, to: envelope.callId)
+            } else if let status = Self.statusSignal(envelope) {
+                deliver(.callStatus(status), to: envelope.callId)
             }
         case .discarded:
             break
@@ -411,8 +444,17 @@ final class DesktopLive: TranscriptChannel {
         }
     }
 
-    private func deliver(_ feed: TranscriptFeed, to callId: String? = nil) {
-        for watcher in transcriptWatchers.values where callId == nil || watcher.callId == callId {
+    /// The status a `call_started` or `call_updated` carries: the call-status signal.
+    private static func statusSignal(_ envelope: TelemetryEnvelope) -> String? {
+        guard envelope.eventType == .callUpdated || envelope.eventType == .callStarted else { return nil }
+        return envelope.callStatus
+    }
+
+    private func deliver(_ feed: TranscriptFeed, to callId: String? = nil, subscribedOnly: Bool = false) {
+        let reached = transcriptWatchers.values.filter { watcher in
+            (callId == nil || watcher.callId == callId) && (watcher.subscribed || !subscribedOnly)
+        }
+        for watcher in reached {
             watcher.onUpdate(feed)
         }
     }

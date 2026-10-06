@@ -51,9 +51,13 @@ final class MacLiveTranscriptTests: XCTestCase {
         """.utf8))
     }
 
+    /// ⚠️ NEVER EMPTY WITH `lastSeq: 0`: the server holds a subscribe until the call's first
+    /// line exists, and answers with a snapshot that has it (contract §4.12 Q4).
     private func snapshot(_ callId: String) -> TelemetryEnvelope? {
         envelope("transcript_snapshot", callId: callId, data: """
-        {"v":1,"callId":"\(callId)","live":true,"complete":true,"epoch":1,"lastSeq":0,"segments":[],\
+        {"v":1,"callId":"\(callId)","live":true,"complete":true,"epoch":1,"lastSeq":1,"segments":[\
+        {"segmentId":"item_a1","index":0,"epoch":1,"seq":1,"rev":0,"speaker":"agent","speakerName":"Ava",\
+        "text":"Good afternoon","final":true,"interrupted":false,"language":"en","startedAt":"t","endedAt":"t"}],\
         "part":0,"more":false}
         """)
     }
@@ -68,7 +72,7 @@ final class MacLiveTranscriptTests: XCTestCase {
         await live.settled()
         XCTAssertTrue(sessions.isEmpty)
 
-        let watch = live.watchTranscript(callId: "call_1") { _ in }
+        let watch = live.watchTranscript(callId: "call_1", subscribed: true) { _ in }
         await live.settled()
         XCTAssertEqual(running.count, 1)
         XCTAssertEqual(running.first?.rings, false, "no presence, no gate")
@@ -81,15 +85,16 @@ final class MacLiveTranscriptTests: XCTestCase {
     }
 
     /// ⛔ RING ON: THE RINGING SESSION CARRIES THE TRANSCRIPT, with no second socket and no
-    /// restart: one subscribe per call however many screens watch it, one unsubscribe when
-    /// the last stops.
+    /// restart: one subscription per call however many screens watch it, one unsubscribe
+    /// when the last stops. ⚠️ A second screen sends the subscribe again, since the server
+    /// answers a duplicate with the fresh snapshot that screen needs (§4.12 Q5).
     func test_MAC_TRANSCRIPT_02_aRingingSessionCarriesTheTranscriptWithoutRestarting() async {
         let live = makeLive(ringHere: true)
         live.signedIn(workspaceId: "ws_1", workspaceName: nil)
         await live.settled()
 
-        let first = live.watchTranscript(callId: "call_1") { _ in }
-        let second = live.watchTranscript(callId: "call_1") { _ in }
+        let first = live.watchTranscript(callId: "call_1", subscribed: true) { _ in }
+        let second = live.watchTranscript(callId: "call_1", subscribed: true) { _ in }
         await live.settled()
         live.resubscribeTranscript(callId: "call_1")
         live.stopWatchingTranscript(first)
@@ -99,7 +104,7 @@ final class MacLiveTranscriptTests: XCTestCase {
 
         XCTAssertEqual(sessions.count, 1, "the ringing session is never restarted for a transcript")
         XCTAssertEqual(sessions.first?.rings, true)
-        XCTAssertEqual(sessions.first?.ops, ["+call_1", "~call_1", "-call_1"])
+        XCTAssertEqual(sessions.first?.ops, ["+call_1", "~call_1", "~call_1", "-call_1"])
         XCTAssertEqual(running.count, 1, "and it keeps ringing after")
     }
 
@@ -109,7 +114,7 @@ final class MacLiveTranscriptTests: XCTestCase {
         let live = makeLive(ringHere: true)
         live.signedIn(workspaceId: "ws_1", workspaceName: nil)
         var heard: [TranscriptFeed] = []
-        _ = live.watchTranscript(callId: "call_1") { heard.append($0) }
+        _ = live.watchTranscript(callId: "call_1", subscribed: true) { heard.append($0) }
         await live.settled()
 
         live.setRingHere(false)
@@ -126,7 +131,7 @@ final class MacLiveTranscriptTests: XCTestCase {
     func test_MAC_TRANSCRIPT_04_wakeStartsTheSessionAgainWithTheWatchedCall() async {
         let live = makeLive(ringHere: false)
         live.signedIn(workspaceId: "ws_1", workspaceName: nil)
-        _ = live.watchTranscript(callId: "call_1") { _ in }
+        _ = live.watchTranscript(callId: "call_1", subscribed: true) { _ in }
         await live.settled()
 
         center.post(name: NSWorkspace.willSleepNotification, object: nil)
@@ -147,8 +152,8 @@ final class MacLiveTranscriptTests: XCTestCase {
         live.signedIn(workspaceId: "ws_1", workspaceName: nil)
         var one: [TranscriptFeed] = []
         var two: [TranscriptFeed] = []
-        _ = live.watchTranscript(callId: "call_1") { one.append($0) }
-        _ = live.watchTranscript(callId: "call_2") { two.append($0) }
+        _ = live.watchTranscript(callId: "call_1", subscribed: true) { one.append($0) }
+        _ = live.watchTranscript(callId: "call_2", subscribed: true) { two.append($0) }
         await live.settled()
         let session = try XCTUnwrap(running.first)
 
@@ -235,6 +240,7 @@ final class MacLiveTranscriptTests: XCTestCase {
         model.activate()
         model.activate()
         XCTAssertEqual(channel.watching, ["call_1"], "one watch however often it is activated")
+        XCTAssertEqual(channel.subscribed, ["call_1"])
         model.handle(.connected)
         try model.handle(.event(XCTUnwrap(snapshot("call_1")?.transcriptEvent)))
         XCTAssertEqual(model.phase, .live)
@@ -246,7 +252,7 @@ final class MacLiveTranscriptTests: XCTestCase {
         "startedAt":"t","endedAt":"t"}}
         """)?.transcriptEvent)
         model.handle(.event(skipped))
-        XCTAssertEqual(model.lines.count, 1)
+        XCTAssertEqual(model.lines.count, 2)
         var moved: Int64 = 0
         while channel.resubscribes.isEmpty, moved < 5000 {
             clock.advance(by: 250)
@@ -273,22 +279,34 @@ final class MacLiveTranscriptTests: XCTestCase {
 
 /// A recording ``TranscriptChannel``.
 @MainActor
-private final class FakeChannel: TranscriptChannel {
-    private var watches: [UUID: String] = [:]
+final class FakeChannel: TranscriptChannel {
+    private var watches: [UUID: (callId: String, subscribed: Bool)] = [:]
     private(set) var resubscribes: [String] = []
 
     var watching: [String] {
-        Array(watches.values)
+        watches.values.map(\.callId)
     }
 
-    func watchTranscript(callId: String, onUpdate _: @escaping @MainActor (TranscriptFeed) -> Void) -> UUID {
+    var subscribed: [String] {
+        watches.values.filter(\.subscribed).map(\.callId)
+    }
+
+    func watchTranscript(
+        callId: String,
+        subscribed: Bool,
+        onUpdate _: @escaping @MainActor (TranscriptFeed) -> Void
+    ) -> UUID {
         let id = UUID()
-        watches[id] = callId
+        watches[id] = (callId, subscribed)
         return id
     }
 
     func stopWatchingTranscript(_ id: UUID) {
         watches[id] = nil
+    }
+
+    func setTranscriptSubscribed(_ id: UUID, _ subscribed: Bool) {
+        watches[id]?.subscribed = subscribed
     }
 
     func resubscribeTranscript(callId: String) {

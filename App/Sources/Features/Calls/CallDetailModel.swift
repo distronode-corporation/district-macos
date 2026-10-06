@@ -60,13 +60,22 @@ final class CallDetailModel {
         transcript = .idle
         switch await calls.detail(workspaceId: workspaceId, callId: callId) {
         case let .success(call):
-            if live == nil, let channel, CallDisplay(call).transcribesLive {
+            let display = CallDisplay(call)
+            if live == nil, let channel, display.transcribesLive {
                 let calls = calls
                 let workspaceId = workspaceId
                 let callId = callId
                 live = LiveTranscriptModel(callId: callId, channel: channel) {
                     await calls.transcript(workspaceId: workspaceId, callId: callId)
                 }
+            }
+            // ⚠️ A LOAD IS A CALL-STATUS SIGNAL TOO, beside the socket's `call_updated`: it
+            // sets the status the next signal is compared with, and a call no longer live has
+            // ended.
+            if display.live {
+                live?.callStatusChanged(to: display.status)
+            } else {
+                live?.callEnded()
             }
             state = .content(call)
         case let .failure(error):

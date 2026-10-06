@@ -49,8 +49,8 @@ final class LiveTranscriptModel {
     private var reducer: TranscriptReducer
     private var watch: UUID?
     private var timers: [Timer: Task<Void, Never>] = [:]
-    /// Set once the call no longer needs the socket (the full transcript is in, or the live
-    /// one is unavailable), so a later activation watches nothing.
+    /// Set once the call no longer needs the socket (the full transcript is in), so a later
+    /// activation watches nothing.
     private var finished = false
 
     private enum Timer: Hashable {
@@ -81,7 +81,31 @@ final class LiveTranscriptModel {
         }
         guard !finished, watch == nil, let channel else { return }
         connection = .connecting
-        watch = channel.watchTranscript(callId: callId) { [weak self] feed in self?.handle(feed) }
+        // ⚠️ AFTER `not_live` THE SCREEN WATCHES WITHOUT A SUBSCRIPTION: it hears only the
+        // call's status, which is what may subscribe again.
+        watch = channel.watchTranscript(callId: callId, subscribed: !unavailable) { [weak self] feed in
+            self?.handle(feed)
+        }
+    }
+
+    /// The call row was loaded with this status, still live: a call-status signal like
+    /// `call_updated` (see ``handle(_:)``).
+    func callStatusChanged(to status: String) {
+        perform(reducer.callStatusChanged(to: status))
+        publish()
+    }
+
+    /// The call row was loaded and the call is over.
+    func callEnded() {
+        perform(reducer.callEnded())
+        publish()
+    }
+
+    private var unavailable: Bool {
+        if case .unavailable = reducer.phase {
+            return true
+        }
+        return false
     }
 
     func deactivate() {
@@ -104,6 +128,10 @@ final class LiveTranscriptModel {
             perform(reducer.apply(event, atMilliseconds: clock.nowMilliseconds()))
         case .callEnded:
             perform(reducer.callEnded())
+        case let .callStatus(status):
+            // ⛔ THE ONLY WAY BACK FROM `not_live`, which is final for its subscribe: a changed
+            // status subscribes again (`TranscriptReducer`). Never a timer.
+            perform(reducer.callStatusChanged(to: status))
         case .disconnected:
             connection = .connecting
         case .failed:
@@ -129,8 +157,19 @@ final class LiveTranscriptModel {
             case let .fetchFinal(delay):
                 schedule(.fetch, after: delay) { [weak self] in await self?.fetchFinal() }
             case .unsubscribe:
-                finished = true
-                stopWatching()
+                // ⚠️ NOT LIVE (OR REFUSED): the subscription goes, the watch stays, so a
+                // call-status signal can still subscribe again. Done (the full transcript is
+                // in): the call is no longer watched at all.
+                if !unavailable {
+                    finished = true
+                    stopWatching()
+                } else if let watch {
+                    channel?.setTranscriptSubscribed(watch, false)
+                }
+            case .subscribe:
+                if let watch {
+                    channel?.setTranscriptSubscribed(watch, true)
+                }
             }
         }
     }

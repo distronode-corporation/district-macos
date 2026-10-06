@@ -24,6 +24,12 @@ not sent.
   subscription per watched call, sent again on every reconnect and renewal; the socket
   keeps the workspace's events, which ringing needs. With Ring on this computer off,
   watching a call runs that socket without ringing, and it stops when no call is watched.
+  ⚠️ When the assistant fails mid-call (`agent_error`) the pane says "Reconnecting…" rather
+  than "Call ended", and goes live again if a fresh assistant takes the call. After
+  `not_live` the screen keeps hearing the call (its `call_updated` status, its end) with no
+  subscription, and subscribes again only when that status changes, never on a timer. A
+  second screen on a call already watched sends the subscribe again, for the fresh snapshot
+  it needs.
 
 ### Changed
 
