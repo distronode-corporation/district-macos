@@ -1,25 +1,23 @@
 name: CodeQL
 
-# Code scanning in ADVANCED setup, because default setup would analyse nothing useful:
-# its Swift autobuilder looks for an .xcodeproj, and there is none in the repository
-# (XcodeGen generates it from project.yml). This workflow generates the project and
-# builds the Developer ID target itself, which compiles every file under App/Sources
-# and App/Direct.
+# Code scanning of the workflow files (CodeQL's `actions` language), in ADVANCED setup. It
+# needs no build, runs on Linux in about a minute, and so runs on every pull request and
+# on every push to main that changes a workflow or a local action.
+# The Swift analysis is codeql-swift.yml: a traced build of the app on macOS, nightly and
+# on demand (see there why it is a separate workflow).
 #
-# Two jobs: `actions` reads the workflow files and needs no build; `swift` is traced
-# through the `xcodebuild build` below.
-#
-# The `!github.event.repository.private` guard on both jobs matters only if the repository
+# The `!github.event.repository.private` guard on the job matters only if the repository
 # is ever private again: code scanning is not available to a private repository on the
 # free plan, so the upload would fail. `schedule` carries `repository` in its payload too,
 # so the weekly run is guarded the same way.
 on:
   push:
     branches: [main]
+    # What the `actions` language reads. A push that touches neither has nothing new to
+    # analyse.
     paths:
-      - "App/**"
-      - "project.yml"
       - ".github/workflows/**"
+      - ".github/actions/**"
   pull_request:
     branches: [main]
   schedule:
@@ -27,12 +25,11 @@ on:
     - cron: "17 6 * * 1"
   workflow_dispatch:
 
-# Nothing at the top level; each job below asks for exactly what it uses.
+# Nothing at the top level; the job below asks for exactly what it uses.
 permissions: {}
 
 # Per ref and per trigger, as in ci.yml. Only pull requests cancel in flight: a
-# superseded PR run is waste, a superseded main or weekly run is history. The jobs keep
-# their own groups below, so a Swift build is never cancelled mid-trace.
+# superseded PR run is waste, a superseded main or weekly run is history.
 concurrency:
   group: codeql-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -66,85 +63,3 @@ jobs:
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:actions"
-
-  swift:
-    name: Analyze (swift)
-    # Not on pull requests: the free plan runs at most five macOS jobs at once for the
-    # whole organisation, and the apps' CI and release lanes queue behind them.
-    if: ${{ !github.event.repository.private && github.event_name != 'pull_request' }}
-    runs-on: macos-26
-    timeout-minutes: 300
-    concurrency:
-      group: codeql-swift-${{ github.ref }}
-      cancel-in-progress: false
-    permissions:
-      security-events: write # upload the results
-      contents: read # check out the code
-      actions: read # read this run's workflow details
-    env:
-      NSUnbufferedIO: "YES"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      # The same Xcode as ci.yml's `app` job, asserted.
-      - name: Select Xcode
-        env:
-          XCODE_APP: /Applications/Xcode_26.3.app
-          XCODE_VERSION: "26.3"
-        run: |
-          sudo xcode-select -s "$XCODE_APP"
-          have_all="$(xcodebuild -version)"
-          have="${have_all%%$'\n'*}"
-          echo "$have"
-          if [ "$have" != "Xcode $XCODE_VERSION" ]; then
-            echo "::error::expected Xcode $XCODE_VERSION at $XCODE_APP, got '$have'"
-            exit 1
-          fi
-
-      - name: Install XcodeGen and generate the project
-        env:
-          XCODEGEN_VERSION: 2.46.0
-          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP"
-          curl -fsSL -o xcodegen.zip \
-            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
-          echo "${XCODEGEN_SHA256}  xcodegen.zip" | shasum -a 256 -c -
-          unzip -q xcodegen.zip
-          sudo ./xcodegen/install.sh
-          cd "$GITHUB_WORKSPACE"
-          xcodegen generate --spec project.yml
-
-      # Every step after this one is traced, so the setup above stays out of it.
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        with:
-          languages: swift
-          build-mode: manual
-          queries: security-extended
-
-      # `-jobs 1` for the reason district-ios's codeql.yml documents: the tracer runs the
-      # extractor beside every frontend, and in parallel the pairs outgrow the runner.
-      - name: Build the app
-        run: |
-          set -o pipefail
-          xcodebuild build \
-            -project DistrictMac.xcodeproj \
-            -scheme DistrictMacDirect \
-            -destination 'generic/platform=macOS' \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            -jobs 1 \
-            ARCHS="$(uname -m)" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            COMPILATION_CACHE_ENABLE_CACHING=NO \
-            SWIFT_ENABLE_COMPILE_CACHE=NO 2>&1 | tee xcodebuild.log | xcbeautify --renderer github-actions
-          grep -q '\*\* BUILD SUCCEEDED \*\*' xcodebuild.log
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        with:
-          category: "/language:swift"
