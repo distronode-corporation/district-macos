@@ -145,11 +145,15 @@ every pull request, and uses no secrets:
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
   store target for testing and runs `DistrictMacTests`.
+- **dependency graph** (Linux): submits the Swift packages **app** resolved to GitHub's dependency graph,
+  which cannot see them on its own; on pushes to `main` and pull requests from this
+  repository.
+- **dependency-review** (Linux, pull requests): fails a pull request that adds a
+  dependency with a known moderate-or-worse vulnerability or a licence this project cannot
+  ship, compared after the snapshot above has landed.
 
 [`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows and the
-Swift build, [`dependency-review.yml`](.github/workflows/dependency-review.yml) checks
-the dependencies a pull request adds, and [`scorecard.yml`](.github/workflows/scorecard.yml)
-publishes the OpenSSF Scorecard result behind the badge above.
+Swift build, and [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the OpenSSF Scorecard result behind the badge above.
 
 ## Releases
 
