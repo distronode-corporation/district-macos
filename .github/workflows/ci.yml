@@ -519,7 +519,7 @@ jobs:
       # exceeded" has NOT reviewed the Swift packages: re-run that job.
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
-          fail-on-severity: moderate
+          fail-on-severity: low
           retry-on-snapshot-warnings: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
           retry-on-snapshot-warnings-timeout: 300
           deny-licenses: GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later, AGPL-3.0-only, AGPL-3.0-or-later, LGPL-2.1-only, LGPL-2.1-or-later, LGPL-3.0-only, LGPL-3.0-or-later, SSPL-1.0, BUSL-1.1
