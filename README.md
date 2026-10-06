@@ -152,8 +152,11 @@ every pull request, and uses no secrets:
   dependency with a known moderate-or-worse vulnerability or a licence this project cannot
   ship, compared after the snapshot above has landed.
 
-[`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows and the
-Swift build, and [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the OpenSSF Scorecard result behind the badge above.
+[`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows on every
+pull request, and [`codeql-swift.yml`](.github/workflows/codeql-swift.yml) over the app's
+own Swift build nightly and on demand (LiveKit, Sentry, Sparkle and DistrictCore are built
+before the trace starts, so they are not analysed here; DistrictCore is analysed in its own
+repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the OpenSSF Scorecard result behind the badge above.
 
 ## Releases
 

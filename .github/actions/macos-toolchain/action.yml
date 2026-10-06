@@ -6,7 +6,7 @@ description: >-
 
 # ⚠️ Xcode 26.3, not the image default. It is the Xcode the release is archived with, and
 # it ships Swift 6.2, which ci.yml's Linux job (swift:6.2.4) is paired with. ci.yml's
-# `app` job and codeql.yml carry the same Xcode and XcodeGen pins inline: move all of
+# `app` job and codeql-swift.yml carry the same Xcode and XcodeGen pins inline: move all of
 # them together, or none.
 inputs:
   generate:
