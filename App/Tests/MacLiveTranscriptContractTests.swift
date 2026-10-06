@@ -51,7 +51,7 @@ final class MacLiveTranscriptContractTests: XCTestCase {
 
     private var snapshot: TelemetryEnvelope? {
         envelope("transcript_snapshot", data: """
-        {"v":1,"callId":"call_1","live":true,"complete":true,"epoch":1,"lastSeq":1,"segments":[\
+        {"v":1,"callId":"call_1","live":true,"endedReason":null,"complete":true,"epoch":1,"lastSeq":1,"segments":[\
         {"segmentId":"item_a1","index":0,"epoch":1,"seq":1,"rev":0,"speaker":"agent","speakerName":"Ava",\
         "text":"Good afternoon","final":true,"interrupted":false,"language":"en","startedAt":"t","endedAt":"t"}],\
         "part":0,"more":false}
@@ -104,19 +104,17 @@ final class MacLiveTranscriptContractTests: XCTestCase {
         XCTAssertTrue(running.isEmpty)
     }
 
-    /// ⛔ THE MODEL: `not_live` falls back and drops the subscription but keeps the watch; no
-    /// timer subscribes again, the same status does not, and a changed status does.
-    func test_MAC_TRANSCRIPT_10_afterNotLiveOnlyAChangedStatusSubscribesAgain() async throws {
+    /// ⛔ THE MODEL (§4.12 Q4, Q10): `not_live` falls back and drops the subscription but keeps
+    /// the watch. No timer subscribes again, nor a status other than in progress; one that
+    /// shows the call in progress does, at most once per 30 s.
+    func test_MAC_TRANSCRIPT_10_afterNotLiveOnlyAnInProgressSignalSubscribesAgain() async throws {
         let channel = FakeChannel()
         let clock = ManualLiveClock()
         let model = LiveTranscriptModel(callId: "call_1", channel: channel, clock: clock) { .success("") }
-        model.callStatusChanged(to: "in-progress")
         model.activate()
         model.handle(.connected)
 
-        try model.handle(.event(event(
-            "transcript_error", notLive
-        )))
+        try model.handle(.event(event("transcript_error", notLive)))
         XCTAssertTrue(model.fallsBack)
         XCTAssertEqual(channel.watching, ["call_1"], "the screen still hears the call")
         XCTAssertEqual(channel.subscribed, [])
@@ -124,17 +122,48 @@ final class MacLiveTranscriptContractTests: XCTestCase {
             clock.advance(by: 10000)
             try? await Task.sleep(for: .milliseconds(5))
         }
-        model.handle(.callStatus("in-progress"))
-        XCTAssertEqual(channel.subscribed, [], "neither time nor the same status subscribes again")
-
+        XCTAssertEqual(channel.subscribed, [], "time alone subscribes nothing")
         model.handle(.callStatus("on-hold"))
+        XCTAssertEqual(channel.subscribed, [], "a status that is not in progress")
+
+        model.handle(.callStatus("in-progress"))
         XCTAssertEqual(channel.subscribed, ["call_1"])
         XCTAssertFalse(model.fallsBack)
         XCTAssertEqual(model.phase, .subscribing)
 
+        try model.handle(.event(event("transcript_error", notLive)))
+        clock.advance(by: 29000)
+        model.callShownInProgress()
+        XCTAssertEqual(channel.subscribed, [], "not twice within 30 s")
+        clock.advance(by: 1000)
+        model.callShownInProgress()
+        XCTAssertEqual(channel.subscribed, ["call_1"])
+
         model.deactivate()
         model.activate()
         XCTAssertEqual(channel.subscribed, ["call_1"], "a screen shown again subscribes while it may")
+    }
+
+    /// ⛔ §4.12 Q9: A SNAPSHOT TAKEN AFTER `agent_error` SAYS SO, and the screen says
+    /// "Reconnecting…" with nothing fetched; Q11: a `not_live` after the server let the call
+    /// go is the path after the call.
+    func test_MAC_TRANSCRIPT_13_aSnapshotAfterAnAgentErrorIsReconnectingUntilNotLive() throws {
+        let channel = FakeChannel()
+        let model = LiveTranscriptModel(callId: "call_1", channel: channel, clock: ManualLiveClock()) { .success("x") }
+        model.activate()
+        model.handle(.connected)
+
+        try model.handle(.event(event("transcript_snapshot", """
+        {"v":1,"callId":"call_1","live":false,"endedReason":"agent_error","complete":true,"epoch":1,"lastSeq":2,\
+        "segments":[],"part":0,"more":false}
+        """)))
+        XCTAssertEqual(model.phase, .reconnecting)
+        XCTAssertEqual(LiveTranscriptCopy.status(phase: model.phase, connection: model.connection), "Reconnecting…")
+        XCTAssertEqual(model.finalTranscript, .notRequested)
+
+        model.handle(.connected)
+        try model.handle(.event(event("transcript_error", notLive)))
+        XCTAssertTrue(model.fallsBack)
     }
 
     /// A screen shown again after `not_live` watches without subscribing; the call row ending
@@ -183,7 +212,7 @@ final class MacLiveTranscriptContractTests: XCTestCase {
 
         model.callEnded()
         XCTAssertEqual(model.phase, .ended(.callEnded))
-        model.callStatusChanged(to: "in-progress")
+        model.callShownInProgress()
         XCTAssertEqual(model.phase, .ended(.callEnded), "a status after the end changes nothing")
     }
 }

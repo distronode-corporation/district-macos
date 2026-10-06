@@ -55,7 +55,7 @@ final class MacLiveTranscriptTests: XCTestCase {
     /// line exists, and answers with a snapshot that has it (contract §4.12 Q4).
     private func snapshot(_ callId: String) -> TelemetryEnvelope? {
         envelope("transcript_snapshot", callId: callId, data: """
-        {"v":1,"callId":"\(callId)","live":true,"complete":true,"epoch":1,"lastSeq":1,"segments":[\
+        {"v":1,"callId":"\(callId)","live":true,"endedReason":null,"complete":true,"epoch":1,"lastSeq":1,"segments":[\
         {"segmentId":"item_a1","index":0,"epoch":1,"seq":1,"rev":0,"speaker":"agent","speakerName":"Ava",\
         "text":"Good afternoon","final":true,"interrupted":false,"language":"en","startedAt":"t","endedAt":"t"}],\
         "part":0,"more":false}

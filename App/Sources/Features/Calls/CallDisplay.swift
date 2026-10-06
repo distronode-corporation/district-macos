@@ -117,6 +117,12 @@ extension CallDisplay {
     /// and the server holds a subscribe until the assistant's first line, answering
     /// `not_live` after 30 s without one. Ported from district-ios.
     var transcribesLive: Bool {
+        Self.isInProgress(status)
+    }
+
+    /// Whether a wire status is `in-progress`: a `call_updated` that says so is a call-status
+    /// signal for the live transcript (contract §4.12 Q4).
+    static func isInProgress(_ status: String) -> Bool {
         status == CallWire.statusInProgress
     }
 }

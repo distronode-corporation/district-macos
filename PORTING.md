@@ -89,7 +89,7 @@ socket per call screen and tells it `broadcast: false`; the Mac never opens a se
 and never says `broadcast: false`, because ringing needs the workspace's events. A watched
 call is a subscription on the socket `DesktopLive` already runs (`TranscriptChannel`), and
 with Ring on this computer off that socket runs without ringing while a call is watched.
-The alignment with the contract's §4.12 follows district-ios `86e5dc1`; on the Mac the
+The alignment with the contract's §4.12 follows district-ios `ef9c62c`; on the Mac the
 call-status signal after `not_live` also comes from the socket's `call_updated`, heard by a
 watch that keeps no subscription. Mac-only tests: `MacLiveTranscriptTests`,
 `MacLiveTranscriptContractTests`.

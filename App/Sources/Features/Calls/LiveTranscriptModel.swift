@@ -88,10 +88,10 @@ final class LiveTranscriptModel {
         }
     }
 
-    /// The call row was loaded with this status, still live: a call-status signal like
-    /// `call_updated` (see ``handle(_:)``).
-    func callStatusChanged(to status: String) {
-        perform(reducer.callStatusChanged(to: status))
+    /// The call row was loaded showing the call in progress: a call-status signal, like a
+    /// `call_updated` that says so (see ``handle(_:)``).
+    func callShownInProgress() {
+        perform(reducer.callShownInProgress(atMilliseconds: clock.nowMilliseconds()))
         publish()
     }
 
@@ -129,9 +129,12 @@ final class LiveTranscriptModel {
         case .callEnded:
             perform(reducer.callEnded())
         case let .callStatus(status):
-            // ⛔ THE ONLY WAY BACK FROM `not_live`, which is final for its subscribe: a changed
-            // status subscribes again (`TranscriptReducer`). Never a timer.
-            perform(reducer.callStatusChanged(to: status))
+            // ⛔ THE ONLY WAY BACK FROM `not_live`, which is final for its subscribe: a signal
+            // showing the call in progress subscribes again, at most once per 30 s
+            // (`TranscriptReducer`, contract §4.12 Q4 and Q10). Never a timer.
+            if CallDisplay.isInProgress(status) {
+                perform(reducer.callShownInProgress(atMilliseconds: clock.nowMilliseconds()))
+            }
         case .disconnected:
             connection = .connecting
         case .failed:

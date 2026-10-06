@@ -72,9 +72,9 @@ final class CallDetailModel {
             // ⚠️ A LOAD IS A CALL-STATUS SIGNAL TOO, beside the socket's `call_updated`: it
             // sets the status the next signal is compared with, and a call no longer live has
             // ended.
-            if display.live {
-                live?.callStatusChanged(to: display.status)
-            } else {
+            if display.transcribesLive {
+                live?.callShownInProgress()
+            } else if !display.live {
                 live?.callEnded()
             }
             state = .content(call)
