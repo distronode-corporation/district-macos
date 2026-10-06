@@ -23,7 +23,7 @@ import XCTest
 final class MacListSectionLoadTests: XCTestCase {
     func test_MAC_LOAD_1_theDeskReadsOnceWhenOpenedBeforeTheWorkspaceResolves() async throws {
         let transport = try await render(.desk)
-        await waitUntil(state: "\(transport.paths)") { transport.count("/desk/tickets") >= 1 }
+        await arrival(of: "/desk/tickets", on: transport)
         try await settle()
         XCTAssertEqual(transport.count("/desk/settings"), 1, "\(transport.paths)")
         XCTAssertEqual(transport.count("/desk/tickets"), 1, "\(transport.paths)")
@@ -31,7 +31,7 @@ final class MacListSectionLoadTests: XCTestCase {
 
     func test_MAC_LOAD_2_supportReadsOnceWhenOpenedBeforeTheWorkspaceResolves() async throws {
         let transport = try await render(.support)
-        await waitUntil(state: "\(transport.paths)") { transport.count("/support/requests") >= 1 }
+        await arrival(of: "/support/requests", on: transport)
         try await settle()
         XCTAssertEqual(transport.count("/support/requests"), 1, "\(transport.paths)")
     }
@@ -46,8 +46,29 @@ final class MacListSectionLoadTests: XCTestCase {
         try await super.tearDown()
     }
 
+    /// Wait for the request itself, however long a loaded machine takes to make it.
+    ///
+    /// ⛔ THE EVENT, NOT A POLL AGAINST A DEADLINE: the first read follows the workspace list's
+    /// 200 ms answer, the shell's first layout and the section's `.task`, which on a 4-core
+    /// Mac under a parallel build took more than the old 5 s poll. The transport fulfils the
+    /// expectation when the request is sent; the timeout only turns a request that never
+    /// comes into a failure instead of a hung run, and a passing run never waits on it.
+    private func arrival(
+        of suffix: String,
+        on transport: CannedTransport,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        let sent = transport.arrival(of: suffix)
+        let result = await XCTWaiter().fulfillment(of: [sent], timeout: 120)
+        if result != .completed {
+            XCTFail("no request for \(suffix): \(transport.paths)", file: file, line: line)
+        }
+    }
+
     /// ⚠️ LONG ENOUGH FOR A SECOND SCREEN'S `.task` TO HAVE SENT ITS FIRST REQUEST: the double
-    /// read arrived within milliseconds of the first in the harness.
+    /// read arrived within milliseconds of the first in the harness. ⚠️ A WINDOW FOR A READ THAT
+    /// MUST NOT COME, so no load can turn it red: a slow machine can only see less of it.
     private func settle() async throws {
         try await Task.sleep(for: .milliseconds(500))
     }
@@ -100,6 +121,7 @@ final class MacListSectionLoadTests: XCTestCase {
 private final class CannedTransport: HTTPTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var recorded: [String] = []
+    private var awaited: [(suffix: String, sent: XCTestExpectation)] = []
 
     var paths: [String] {
         lock.withLock { recorded }
@@ -109,9 +131,32 @@ private final class CannedTransport: HTTPTransport, @unchecked Sendable {
         paths.filter { $0.hasSuffix(suffix) }.count
     }
 
+    /// Fulfilled once a request whose path ends in `suffix` has been sent: at once if one
+    /// has been already.
+    func arrival(of suffix: String) -> XCTestExpectation {
+        let sent = XCTestExpectation(description: "a request for \(suffix)")
+        let already: Bool = lock.withLock {
+            guard recorded.contains(where: { $0.hasSuffix(suffix) }) else {
+                awaited.append((suffix, sent))
+                return false
+            }
+            return true
+        }
+        if already {
+            sent.fulfill()
+        }
+        return sent
+    }
+
     func send(_ request: HTTPRequest, followRedirects _: Bool) async throws -> HTTPResponse {
         let path = request.url.path
-        lock.withLock { recorded.append(path) }
+        let arrived: [XCTestExpectation] = lock.withLock {
+            recorded.append(path)
+            let due = awaited.filter { path.hasSuffix($0.suffix) }.map(\.sent)
+            awaited.removeAll { path.hasSuffix($0.suffix) }
+            return due
+        }
+        arrived.forEach { $0.fulfill() }
         // ⚠️ THE WORKSPACE LIST ANSWERS LATE, so the section is on screen while it loads,
         // which is the window the second screen was built in.
         if path.hasSuffix("/workspace/list") {
