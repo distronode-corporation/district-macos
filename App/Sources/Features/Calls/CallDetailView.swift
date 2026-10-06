@@ -21,12 +21,17 @@ struct CallDetailView: View {
     /// `ToolbarContent` cannot carry a `.sheet`.
     @State private var reporting = false
 
-    init(container: AppContainer, workspaceId: String, callId: String) {
+    init(container: AppContainer, workspaceId: String, callId: String, channel: (any TranscriptChannel)? = nil) {
         self.workspaceId = workspaceId
         self.callId = callId
         self.container = container
         _model = State(
-            initialValue: CallDetailModel(container: container, workspaceId: workspaceId, callId: callId)
+            initialValue: CallDetailModel(
+                container: container,
+                workspaceId: workspaceId,
+                callId: callId,
+                channel: channel
+            )
         )
     }
 
@@ -130,6 +135,10 @@ private struct CallDetailContentView: View {
             .padding(DistrictSpacing.gutter)
             .districtReadableWidth()
         }
+        // ⚠️ WATCHED WHILE THIS SCREEN IS SHOWN. The socket is the one the Mac holds for
+        // ringing; sleep and wake are ``DesktopLive``'s, which re-subscribes on wake.
+        .onAppear { model.live?.activate() }
+        .onDisappear { model.live?.deactivate() }
     }
 
     // MARK: - Header
@@ -217,8 +226,20 @@ private struct CallDetailContentView: View {
 
     // MARK: - Transcript
 
+    /// ⚠️ THE LIVE PANE WHILE IT CAN BE HAD, AND THE ON-DEMAND TRANSCRIPT OTHERWISE: a call
+    /// that was not in progress when the screen loaded, one the server has no live
+    /// transcript for, or a socket that cannot be had.
     @ViewBuilder
     private var transcriptSection: some View {
+        if let live = model.live, !live.fallsBack {
+            LiveTranscriptSection(model: live)
+        } else {
+            onDemandTranscript
+        }
+    }
+
+    @ViewBuilder
+    private var onDemandTranscript: some View {
         switch model.transcript {
         case .idle:
             Button("Show transcript") {

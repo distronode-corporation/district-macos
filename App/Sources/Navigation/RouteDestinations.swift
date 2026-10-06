@@ -25,11 +25,14 @@ enum RouteDestinations {
         for route: Route,
         container: AppContainer,
         session _: WorkspaceSessionModel,
-        accountSession: SessionModel
+        accountSession: SessionModel,
+        live: DesktopLive
     ) -> some View {
         switch route {
+        // ⚠️ `live` IS THE SOCKET THE MAC ALREADY HOLDS, which a call in progress watches its
+        // live transcript on.
         case let .callDetail(workspaceId, callId):
-            CallDetailView(container: container, workspaceId: workspaceId, callId: callId)
+            CallDetailView(container: container, workspaceId: workspaceId, callId: callId, channel: live)
 
         // ⛔ THE SET IS CARRIED WHOLE AND NOT NARROWED HERE. `Route.thread` holds every
         // channel the thread can be answered on, best first, and the composer is what

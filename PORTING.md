@@ -55,6 +55,8 @@ not copied: they are shared.
 | 9 | `A11yID+SchedulingWrites.swift`, `A11yID+SchedulingWritesB.swift`, `A11yID+SchedulingWriteEntry.swift` | `4777c40` | `App/Sources/Accessibility/` |
 | 9 | Tests: every `SchedulingWrites*Tests` file and its support, and `SchedulingRescheduleDayZoneTests` (rewritten to find the `NSDatePicker` in an offscreen window) | `4777c40` | `App/Tests/` |
 | 9 | Tests: `SchedulingFailureCopyTests`, `SchedulingHandOffTests`, `SchedulingModelTestCase`, `SchedulingModelTests`, `SchedulingReadConcurrencyTests`, `SchedulingSectionModelTests`, `SchedulingSectionTests`, `SchedulingTestTransport`, and `SchedulingRoutingTests` from its gate cases on (`_10` to `_15`, the settings hub's row among them) | `4777c40` | `App/Tests/` |
+| 10 | Live transcript: the model (`LiveTranscriptModel`, rewritten to watch through `TranscriptChannel` rather than own a socket), its copy and its pane | `6ac8f70` | `App/Sources/Features/Calls/LiveTranscript*.swift` |
+| 10 | `CallDisplay.transcribesLive`, the call screen's live pane and the two accessibility identifiers | `6ac8f70` | `App/Sources/Features/Calls/`, `App/Sources/Accessibility/A11yID.swift` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -80,6 +82,14 @@ Wave 8 adds Mac-only tests with no iOS original: `MacListSectionLoadTests` (see 
 section reads once" below), `MacMarketplaceTests` (the role's wording and provisioning gate,
 and that opening Phone numbers reads only the owned list), and two Phone numbers cases in
 `MacBillingReadOnlyTests` (see "Billing and Phone numbers" below).
+
+Wave 10 (the live transcript) is ported from district-ios `6ac8f70` (branch
+`feat/live-transcript`, not yet on `main`). ⛔ The one deliberate difference: the phone opens a
+socket per call screen and tells it `broadcast: false`; the Mac never opens a second socket
+and never says `broadcast: false`, because ringing needs the workspace's events. A watched
+call is a subscription on the socket `DesktopLive` already runs (`TranscriptChannel`), and
+with Ring on this computer off that socket runs without ringing while a call is watched.
+Mac-only tests: `MacLiveTranscriptTests`.
 
 Wave 9 adds Mac-only tests with no iOS original: `MacSchedulingTests` (the two scheduling
 tables' order and cells, the navigator a table row opens through, the settings hub's

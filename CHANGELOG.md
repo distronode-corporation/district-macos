@@ -16,7 +16,20 @@ not sent.
 
 ## [Unreleased]
 
+### Added
+
+- A live transcript on a call in progress, as on iPhone and iPad: a call's screen shows the
+  conversation as it happens, then the full transcript in the same place once the call
+  ends. It rides the telemetry socket the Mac already holds for ringing, as one
+  subscription per watched call, sent again on every reconnect and renewal; the socket
+  keeps the workspace's events, which ringing needs. With Ring on this computer off,
+  watching a call runs that socket without ringing, and it stops when no call is watched.
+
 ### Changed
+
+- DistrictCore 5.0.0 (the live transcript's models, ops and reducer, and `send` on the
+  socket adapter). ⚠️ Not tagged yet: this pin resolves only once district-core-swift 5.0.0
+  is released.
 
 - DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
   new District Studio link section is not used here.

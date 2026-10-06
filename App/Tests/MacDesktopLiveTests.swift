@@ -1,4 +1,5 @@
 import AppKit
+import DistrictLive
 @testable import DistrictMac
 import XCTest
 
@@ -10,14 +11,35 @@ import XCTest
 /// nothing else: no socket, no presence, no server.
 @MainActor
 final class MacDesktopLiveTests: XCTestCase {
-    private final class FakeSession: LiveSessionRunning {
+    /// ⚠️ NOT PRIVATE: `MacLiveTranscriptTests` drives the same fake.
+    final class FakeSession: LiveSessionRunning {
         let workspaceId: String
+        let rings: Bool
+        let startedWith: Set<String>
+        let onTranscript: @MainActor (TelemetryUpdate) -> Void
         private(set) var stops = 0
         private(set) var signOuts = 0
         private(set) var clears = 0
+        /// Every transcript op, in order: `+id`, `-id`, `~id`.
+        private(set) var ops: [String] = []
 
-        init(workspaceId: String) {
-            self.workspaceId = workspaceId
+        init(request: LiveSessionRequest) {
+            workspaceId = request.workspaceId
+            rings = request.rings
+            startedWith = request.transcriptCallIds
+            onTranscript = request.onTranscript
+        }
+
+        func subscribeTranscript(callId: String) {
+            ops.append("+\(callId)")
+        }
+
+        func unsubscribeTranscript(callId: String) {
+            ops.append("-\(callId)")
+        }
+
+        func resubscribeTranscript(callId: String) {
+            ops.append("~\(callId)")
         }
 
         func stop() async {
@@ -87,7 +109,7 @@ final class MacDesktopLiveTests: XCTestCase {
             endActivity: { _ in activities.end() },
             factory: { [weak self] request in
                 guard let self, !factoryRefuses else { return nil }
-                let session = FakeSession(workspaceId: request.workspaceId)
+                let session = FakeSession(request: request)
                 sessions.append(session)
                 request.onStatus(.live)
                 return session
