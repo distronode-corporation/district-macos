@@ -253,6 +253,9 @@ enum LoginOutcome: Sendable, Equatable {
     case rateLimited
     /// ⛔ The Apple door's 403: no District AI account uses this Apple ID.
     case noAccount
+    /// ⛔ The Apple door's 401 `mfa_required`: the account has an authenticator on, so
+    /// nothing is signed in until a code is entered. ``SessionModel`` opens the code step.
+    case mfaRequired(NativeMfaChallenge)
     /// The exchange never got a usable answer.
     case unreachable
 }

@@ -62,6 +62,19 @@ struct RootView: View {
                 action: { Task { await session.signIn() } },
                 apple: appleDoor
             )
+            // ⛔ THE AUTHENTICATOR STEP IS A SHEET OVER THIS SCREEN, NOT A PHASE. The phase
+            // stays `signedOut` until the code is accepted, so Cancel leaves exactly the
+            // sign-in screen, and an accepted code removes this branch and the sheet with
+            // it. Reached only from the Apple door, so never in the Developer ID build.
+            .sheet(item: pendingMfa) { _ in
+                MfaCodeSheet(
+                    message: session.mfaMessage,
+                    isBusy: session.isVerifyingCode,
+                    submit: { code in Task { await session.submitMfaCode(code) } },
+                    cancel: { session.cancelMfa() }
+                )
+                .interactiveDismissDisabled(session.isVerifyingCode)
+            }
 
         case let .unavailable(reason):
             SignInView(
@@ -72,6 +85,19 @@ struct RootView: View {
                 apple: nil
             )
         }
+    }
+
+    /// The authenticator step as a sheet item. ⚠️ Writing nil is a dismissal, which drops
+    /// the ticket; nothing else writes through it.
+    private var pendingMfa: Binding<PendingMfa?> {
+        Binding(
+            get: { session.pendingMfa },
+            set: { item in
+                if item == nil {
+                    session.cancelMfa()
+                }
+            }
+        )
     }
 
     /// The native Sign in with Apple door, in the App Store build only.
