@@ -65,7 +65,7 @@ not sent.
 
 ## [2.0]
 
-District Studio and Voice come to the Mac.
+District Studio, Voice and live call transcripts come to the Mac.
 
 - Your receptionist's settings are grouped under District Studio in workspace settings, in
   the same order and with the same names as on the web: Persona, Voice, call handling,
@@ -80,6 +80,11 @@ District Studio and Voice come to the Mac.
   adjusted to one that does, and you are told what changed.
 - Persona keeps your receptionist's name, greeting, personality, language and answer
   length, with a link to Voice.
+- See a call's transcript live while the call is in progress, then the full transcript in
+  the same place once it ends.
+- If your account has an authenticator app turned on, Sign in with Apple now asks for its
+  code, as the website does. Enter the 6-digit code, or one of your recovery codes. A wrong
+  code can be typed again, and if the step times out, start again with Sign in with Apple.
 
 ## [1.0]
 
