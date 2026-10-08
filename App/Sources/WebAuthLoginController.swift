@@ -212,7 +212,9 @@ final class WebAuthLoginController: NSObject {
             return .rateLimited
         case .noAccount:
             return .noAccount
-        case .transportFailure:
+        case .transportFailure, .mfaRequired:
+            // ⚠️ `mfaRequired` IS UNREACHABLE HERE: `exchangeCode` never produces it (the web
+            // page asks for the code itself), and this door holds no ticket to spend.
             return .unreachable
         }
     }
