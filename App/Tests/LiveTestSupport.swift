@@ -2,6 +2,7 @@ import DistrictLive
 @testable import DistrictMac
 import DistrictModel
 import Foundation
+import XCTest
 
 /// A `LiveClock` that never waits for real: a sleep returns when the test advances the clock
 /// past its deadline, or throws when its task is cancelled.
@@ -63,6 +64,21 @@ final class ManualLiveClock: LiveClock, @unchecked Sendable {
             return due
         }
         woken.forEach { $0.continuation.resume() }
+    }
+}
+
+extension XCTestCase {
+    /// Wait until at least `count` sleeps are waiting on `clock`, before moving it.
+    @MainActor
+    func waitUntilAsleep(
+        _ clock: ManualLiveClock,
+        count: Int,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        await waitUntil(state: "sleepers=\(clock.sleeperCount)", file: file, line: line) {
+            clock.sleeperCount >= count
+        }
     }
 }
 

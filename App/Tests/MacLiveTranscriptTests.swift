@@ -208,7 +208,13 @@ final class MacLiveTranscriptTests: XCTestCase {
     }
 
     /// ⛔ A SUBSCRIPTION IS PER SOCKET: the socket that replaces the old one before its
-    /// credential expires is subscribed again.
+    /// credential expires is subscribed again, on a fresh credential.
+    ///
+    /// ⛔ THE RENEWAL, THE SILENCE WATCHDOG AND THE PING LOOP ARE ASLEEP BEFORE EACH STEP. The
+    /// ping loop sleeps again only when its task next runs, and a step taken before that times
+    /// the next ping from later; on a busy runner the pings fell behind until the 90 s
+    /// watchdog closed a healthy socket, which reopened on the credential it still held
+    /// (district-ios run 37721222018). The mint count is what tells that from a renewal.
     func test_MAC_TRANSCRIPT_07_theRenewalsSocketIsSubscribedAgain() async {
         let rig = SessionRig()
         let session = rig.start(rings: false, watched: ["call_1"]) { _ in }
@@ -216,6 +222,7 @@ final class MacLiveTranscriptTests: XCTestCase {
 
         var moved: Int64 = 0
         while rig.tasks.count < 2 || rig.tasks[1].sent.isEmpty, moved < 15 * 60 * 1000 {
+            await waitUntilAsleep(rig.clock, count: 3)
             rig.clock.advance(by: 10000)
             moved += 10000
             try? await Task.sleep(for: .milliseconds(5))
@@ -223,6 +230,7 @@ final class MacLiveTranscriptTests: XCTestCase {
 
         await waitUntil { rig.tasks.count == 2 && rig.tasks[1].sent.count == 1 }
         XCTAssertEqual(rig.tasks[1].sent, [#"{"op":"transcript.subscribe","v":1,"callId":"call_1"}"#])
+        XCTAssertEqual(rig.minter.count, 2, "on a fresh credential")
         XCTAssertEqual(rig.presence.registers, [], "a session that does not ring registers no presence")
         await session.stop()
     }
@@ -319,13 +327,20 @@ final class FakeChannel: TranscriptChannel {
 private final class SessionRig {
     final class Minter: TelemetryTokenMinter, @unchecked Sendable {
         let clock: ManualLiveClock
+        private let lock = NSLock()
+        private var calls = 0
 
         init(clock: ManualLiveClock) {
             self.clock = clock
         }
 
+        var count: Int {
+            lock.withLock { calls }
+        }
+
         func mintTelemetryToken(workspaceId _: String) async -> Result<TelemetryTokenResponse, ApiError> {
-            .success(TelemetryTokenResponse(
+            lock.withLock { calls += 1 }
+            return .success(TelemetryTokenResponse(
                 success: true,
                 token: "a.b.c",
                 expiresAt: clock.nowMilliseconds() + 15 * 60 * 1000,
@@ -380,6 +395,7 @@ private final class SessionRig {
     }
 
     let clock = ManualLiveClock()
+    private(set) lazy var minter = Minter(clock: clock)
     let presence = Presence()
     let ring = Ring()
     private let opened = Tasks()
@@ -406,7 +422,7 @@ private final class SessionRig {
             workspaceId: LiveFixtures.workspaceId,
             workspaceName: nil,
             userId: LiveFixtures.userId,
-            minter: Minter(clock: clock),
+            minter: minter,
             presenceAPI: presence,
             installToken: "install-nonce-1",
             transport: transport,
