@@ -32,13 +32,16 @@ not sent.
   per 30 s, never on a timer. A
   second screen on a call already watched sends the subscribe again, for the fresh snapshot
   it needs.
+- Sign in with Apple (Mac App Store build) asks for the authenticator code when the account
+  has one turned on: a sheet takes the 6-digit code or a recovery code, keeps the sheet open
+  for a wrong code, and sends a timed-out step back to the Apple button. The Developer ID
+  build has no native Apple door, so it never shows the sheet.
 
 ### Changed
 
-- DistrictCore 5.0.0 (the live transcript's models, ops and reducer, and `send` on the
-  socket adapter). ⚠️ Not tagged yet: this pin resolves only once district-core-swift 5.0.0
-  is released.
-
+- DistrictCore 6.0.0: 5.0.0 (the live transcript's models, ops and reducer, and `send` on
+  the socket adapter) plus `CodeExchangeResult.mfaRequired`, the Apple door's authenticator
+  code step.
 - DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
   new District Studio link section is not used here.
 - The settings hub groups the receptionist's settings under District Studio, in the web's

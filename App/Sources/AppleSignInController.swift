@@ -81,11 +81,59 @@ final class AppleSignInController {
             return .rateLimited
         case .noAccount:
             return .noAccount
-        case .transportFailure, .mfaRequired:
-            // ⚠️ `mfaRequired` (DistrictCore 6.0.0) reads as unreachable, as before 6.0.0,
-            // until the authenticator code step lands (district-macos#33).
+        case let .mfaRequired(challenge):
+            // ⛔ NOTHING IS SIGNED IN YET: the account has an authenticator on, and the
+            // session gate opens the code step to spend this ticket.
+            return .mfaRequired(challenge)
+        case .transportFailure:
             return .unreachable
         }
+    }
+
+    /// Spend the MFA ticket with a code already shape-checked by `NativeMfaCode`.
+    ///
+    /// ⛔ THE SAME `deviceId` AND PLATFORM AS THE APPLE LEG, which the ticket is bound to.
+    /// ⚠️ A ticket that has certainly expired is not sent; the server would answer the
+    /// same 400 and count the code.
+    func submitCode(_ code: String, for challenge: NativeMfaChallenge, now: Date = Date()) async -> MfaCodeOutcome {
+        if challenge.isExpired(at: now) {
+            return .expired
+        }
+        let request = Self.mfaRequest(challenge: challenge, code: code, deviceId: deviceId, deviceName: deviceName)
+        switch await authExchange.submitMfaCode(request) {
+        case let .success(tokens):
+            await coordinator.adopt(tokens, deviceId: deviceId)
+            return .success
+        case .invalidCode:
+            return .wrongCode
+        case .ticketRejected:
+            return .expired
+        case .rateLimited:
+            return .rateLimited
+        case .transportFailure:
+            return .unreachable
+        }
+    }
+
+    /// The code step's request, as this app sends it.
+    ///
+    /// ⛔ `platform: .macos`, for the reason ``signInRequest(identityToken:nonce:deviceId:deviceName:)``
+    /// gives, and here a wrong platform is worse than a mislabelled row: the ticket was
+    /// minted for `macos`, so any other value is refused and sends the person back to the
+    /// Apple sheet. `MacClientPlatformTests` pins it.
+    nonisolated static func mfaRequest(
+        challenge: NativeMfaChallenge,
+        code: String,
+        deviceId: String,
+        deviceName: String?
+    ) -> NativeMfaRequest {
+        NativeMfaRequest(
+            challenge: challenge,
+            code: code,
+            deviceId: deviceId,
+            deviceName: deviceName,
+            platform: .macos
+        )
     }
 
     /// The Apple exchange's request, as this app sends it.
