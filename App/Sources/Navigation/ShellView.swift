@@ -358,7 +358,8 @@ struct ShellView: View {
                     for: root,
                     container: container,
                     session: workspaceSession,
-                    accountSession: session
+                    accountSession: session,
+                    live: live
                 )
                 .id(root)
             } else {
@@ -376,7 +377,8 @@ struct ShellView: View {
             for: route,
             container: container,
             session: workspaceSession,
-            accountSession: session
+            accountSession: session,
+            live: live
         )
         .districtBackground()
     }

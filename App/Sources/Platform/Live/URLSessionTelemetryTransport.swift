@@ -25,6 +25,9 @@ import Foundation
 /// - ⛔ THE SERVER'S CLOSE CODE IS REPORTED as `.closed(code:reason:)`, from the delegate's
 ///   `didCloseWith` or from `closeCode` once `receive()` throws, because 4401 ("mint a
 ///   new credential") and 4403 ("stop") are the protocol. A close with no status is 1005.
+/// - A text op (the live transcript's subscribe and unsubscribe) is sent with
+///   `URLSessionWebSocketTask.send(_:)`, which delivers in call order; the core's runner
+///   waits for each send before the next, so nothing is reordered here.
 ///
 /// ⚠️ ONE `URLSession` PER SOCKET, invalidated when the socket closes. A session retains
 /// its delegate until it is invalidated, so a shared session with per-socket delegates
@@ -101,6 +104,7 @@ struct OpenedWebSocket: Sendable {
 /// What the socket needs of a `URLSessionWebSocketTask`, and the seam a test replaces.
 protocol WebSocketTasking: AnyObject, Sendable {
     func receive() async throws -> URLSessionWebSocketTask.Message
+    func send(_ message: URLSessionWebSocketTask.Message) async throws
     func sendPing(pongReceiveHandler: @escaping @Sendable ((any Error)?) -> Void)
     func cancel(with closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?)
     var closeCode: URLSessionWebSocketTask.CloseCode { get }
@@ -164,6 +168,13 @@ final class URLSessionTelemetrySocket: TelemetrySocket, @unchecked Sendable {
         lock.withLock { iterator = current }
         guard let frame else { throw TelemetrySocketEnded() }
         return frame
+    }
+
+    /// Send one text message. ⚠️ A send on a socket this app closed throws without reaching
+    /// the task; any other failure is the task's, and the read loop reports the break.
+    func send(_ text: String) async throws {
+        guard !lock.withLock({ closed }) else { throw TelemetrySocketEnded() }
+        try await task.send(.string(text))
     }
 
     /// Close with a normal closure and stop both loops. ⚠️ Idempotent.

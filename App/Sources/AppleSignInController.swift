@@ -81,7 +81,9 @@ final class AppleSignInController {
             return .rateLimited
         case .noAccount:
             return .noAccount
-        case .transportFailure:
+        case .transportFailure, .mfaRequired:
+            // ⚠️ `mfaRequired` (DistrictCore 6.0.0) reads as unreachable, as before 6.0.0,
+            // until the authenticator code step lands (district-macos#33).
             return .unreachable
         }
     }

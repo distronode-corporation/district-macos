@@ -35,14 +35,24 @@ final class CallDetailModel {
     private(set) var state: CallDetailState = .loading
     private(set) var transcript: CallTranscriptState = .idle
 
+    /// The live transcript, for a call that was in progress when it loaded; nil otherwise.
+    ///
+    /// ⚠️ MADE ONCE AND KEPT ACROSS A RELOAD of the same call, so a retry does not drop the
+    /// lines already on screen or watch the call twice.
+    private(set) var live: LiveTranscriptModel?
+
     private let calls: CallsRepository
     private let workspaceId: String
     private let callId: String
+    /// ⚠️ THE SOCKET THE MAC ALREADY HOLDS FOR RINGING (``DesktopLive``); nil in a test that
+    /// is not about the live transcript.
+    private weak var channel: (any TranscriptChannel)?
 
-    init(container: AppContainer, workspaceId: String, callId: String) {
+    init(container: AppContainer, workspaceId: String, callId: String, channel: (any TranscriptChannel)? = nil) {
         calls = container.calls
         self.workspaceId = workspaceId
         self.callId = callId
+        self.channel = channel
     }
 
     func load() async {
@@ -50,6 +60,23 @@ final class CallDetailModel {
         transcript = .idle
         switch await calls.detail(workspaceId: workspaceId, callId: callId) {
         case let .success(call):
+            let display = CallDisplay(call)
+            if live == nil, let channel, display.transcribesLive {
+                let calls = calls
+                let workspaceId = workspaceId
+                let callId = callId
+                live = LiveTranscriptModel(callId: callId, channel: channel) {
+                    await calls.transcript(workspaceId: workspaceId, callId: callId)
+                }
+            }
+            // ⚠️ A LOAD IS A CALL-STATUS SIGNAL TOO, beside the socket's `call_updated`: it
+            // sets the status the next signal is compared with, and a call no longer live has
+            // ended.
+            if display.transcribesLive {
+                live?.callShownInProgress()
+            } else if !display.live {
+                live?.callEnded()
+            }
             state = .content(call)
         case let .failure(error):
             state = .failed(Self.detailFailure(error))

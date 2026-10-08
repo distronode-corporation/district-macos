@@ -16,7 +16,28 @@ not sent.
 
 ## [Unreleased]
 
+### Added
+
+- A live transcript on a call in progress, as on iPhone and iPad: a call's screen shows the
+  conversation as it happens, then the full transcript in the same place once the call
+  ends. It rides the telemetry socket the Mac already holds for ringing, as one
+  subscription per watched call, sent again on every reconnect and renewal; the socket
+  keeps the workspace's events, which ringing needs. With Ring on this computer off,
+  watching a call runs that socket without ringing, and it stops when no call is watched.
+  ⚠️ When the assistant fails mid-call (`agent_error`) the pane says "Reconnecting…" rather
+  than "Call ended", also when a snapshot says so (`endedReason`), and goes live again if a
+  fresh assistant takes the call. After `not_live` the screen keeps hearing the call (its
+  `call_started` and `call_updated` status, its end) with no subscription, and subscribes
+  again only when a signal or a load of the call row shows it in progress, at most once
+  per 30 s, never on a timer. A
+  second screen on a call already watched sends the subscribe again, for the fresh snapshot
+  it needs.
+
 ### Changed
+
+- DistrictCore 5.0.0 (the live transcript's models, ops and reducer, and `send` on the
+  socket adapter). ⚠️ Not tagged yet: this pin resolves only once district-core-swift 5.0.0
+  is released.
 
 - DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
   new District Studio link section is not used here.

@@ -74,6 +74,7 @@ final class FakeWebSocketTask: WebSocketTasking, @unchecked Sendable {
     private var waiting: CheckedContinuation<URLSessionWebSocketTask.Message, any Error>?
     private var pings = 0
     private var cancels: [URLSessionWebSocketTask.CloseCode] = []
+    private var texts: [String] = []
     private var code: URLSessionWebSocketTask.CloseCode = .invalid
     private var reason: Data?
 
@@ -82,6 +83,11 @@ final class FakeWebSocketTask: WebSocketTasking, @unchecked Sendable {
 
     var pingCount: Int {
         lock.withLock { pings }
+    }
+
+    /// Every text this app sent, in order.
+    var sent: [String] {
+        lock.withLock { texts }
     }
 
     var cancelCodes: [URLSessionWebSocketTask.CloseCode] {
@@ -130,6 +136,11 @@ final class FakeWebSocketTask: WebSocketTasking, @unchecked Sendable {
                 continuation.resume(with: next)
             }
         }
+    }
+
+    func send(_ message: URLSessionWebSocketTask.Message) async throws {
+        guard case let .string(text) = message else { return }
+        lock.withLock { texts.append(text) }
     }
 
     func sendPing(pongReceiveHandler: @escaping @Sendable ((any Error)?) -> Void) {

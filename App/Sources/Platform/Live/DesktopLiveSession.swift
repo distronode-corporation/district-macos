@@ -31,6 +31,14 @@ protocol DesktopRingSink: AnyObject {
 /// ⚠️ ONE WORKSPACE AT A TIME, the selected one, as on district-linux. The presence is per
 /// installation, so a call to another of the member's workspaces counts this Mac as
 /// ringable while its socket hears nothing; that caller waits out the server's window.
+///
+/// ⛔ THE LIVE TRANSCRIPT SHARES THIS SOCKET. Every update is also handed to `onTranscript`
+/// (``DesktopLive`` routes it to the call screens), and a watched call is a subscription on
+/// the runner, which the core sends again on every open, renewals included. The socket keeps
+/// the workspace relay (no `broadcast: false`): the ring depends on it.
+///
+/// ⚠️ A SESSION THAT DOES NOT RING (`rings: false`, "Ring on this computer" off while a call
+/// is watched) starts no presence and feeds no gate, and reports no status.
 @MainActor
 final class DesktopLiveSession: LiveSessionRunning {
     /// How often the presence's status is read for the line under the setting.
@@ -42,6 +50,9 @@ final class DesktopLiveSession: LiveSessionRunning {
     private let clock: any LiveClock
     private weak var ring: (any DesktopRingSink)?
     private let onStatus: @MainActor (DesktopLiveStatus) -> Void
+    private let rings: Bool
+    private let transcriptCallIds: Set<String>
+    private let onTranscript: @MainActor (TelemetryUpdate) -> Void
 
     private var gate: DesktopRingGate
     private var pump: Task<Void, Never>?
@@ -67,12 +78,18 @@ final class DesktopLiveSession: LiveSessionRunning {
         transport: any TelemetrySocketTransport = URLSessionTelemetryTransport(),
         clock: any LiveClock = SystemLiveClock(),
         ring: any DesktopRingSink,
+        rings: Bool = true,
+        transcriptCallIds: Set<String> = [],
+        onTranscript: @escaping @MainActor (TelemetryUpdate) -> Void = { _ in },
         onStatus: @escaping @MainActor (DesktopLiveStatus) -> Void
     ) {
         self.workspaceName = workspaceName
         self.clock = clock
         self.ring = ring
         self.onStatus = onStatus
+        self.rings = rings
+        self.transcriptCallIds = transcriptCallIds
+        self.onTranscript = onTranscript
         gate = DesktopRingGate(userId: userId)
         runner = TelemetryConnectionRunner(
             workspaceId: workspaceId,
@@ -88,8 +105,16 @@ final class DesktopLiveSession: LiveSessionRunning {
     func start() {
         let runner = runner
         let presence = presence
+        let rings = rings
+        let watched = transcriptCallIds.sorted()
         Task {
-            await presence.start()
+            if rings {
+                await presence.start()
+            }
+            // ⚠️ BEFORE `start`, so the first open already carries them.
+            for callId in watched {
+                await runner.subscribeTranscript(callId: callId)
+            }
             await runner.start()
         }
         pump = Task { [weak self] in
@@ -98,6 +123,7 @@ final class DesktopLiveSession: LiveSessionRunning {
                 handle(update)
             }
         }
+        guard rings else { return }
         let clock = clock
         poll = Task { [weak self] in
             repeat {
@@ -130,6 +156,21 @@ final class DesktopLiveSession: LiveSessionRunning {
         perform(gate.clear())
     }
 
+    func subscribeTranscript(callId: String) {
+        let runner = runner
+        Task { await runner.subscribeTranscript(callId: callId) }
+    }
+
+    func unsubscribeTranscript(callId: String) {
+        let runner = runner
+        Task { await runner.unsubscribeTranscript(callId: callId) }
+    }
+
+    func resubscribeTranscript(callId: String) {
+        let runner = runner
+        Task { await runner.resubscribeTranscript(callId: callId) }
+    }
+
     // MARK: - The socket's updates
 
     private func handle(_ update: TelemetryUpdate) {
@@ -137,7 +178,9 @@ final class DesktopLiveSession: LiveSessionRunning {
         case .connected:
             socket = .open
         case let .event(envelope):
-            perform(gate.handle(envelope, atMilliseconds: clock.nowMilliseconds()))
+            if rings {
+                perform(gate.handle(envelope, atMilliseconds: clock.nowMilliseconds()))
+            }
         case .discarded:
             break
         case let .reconnecting(_, cause):
@@ -149,6 +192,7 @@ final class DesktopLiveSession: LiveSessionRunning {
         case let .ended(error):
             socket = .ended(error.map(DesktopLiveCopy.reason(for:)))
         }
+        onTranscript(update)
         publish()
     }
 
@@ -192,7 +236,7 @@ final class DesktopLiveSession: LiveSessionRunning {
     }
 
     private func publish() {
-        guard !stopped else { return }
+        guard !stopped, rings else { return }
         onStatus(DesktopLiveCopy.status(
             socketOpen: socket == .open,
             socketEnded: endedReason,
@@ -224,7 +268,11 @@ extension DesktopLiveSession {
             guard case let .available(token) = await coordinator.accessToken(),
                   let claims = AccessClaims(jwt: token)
             else {
-                request.onStatus(.unavailable(DesktopLiveCopy.noSession))
+                // ⚠️ A session that would not ring reports nothing: the line under the setting
+                // is about ringing.
+                if request.rings {
+                    request.onStatus(.unavailable(DesktopLiveCopy.noSession))
+                }
                 return nil
             }
             let session = DesktopLiveSession(
@@ -235,6 +283,9 @@ extension DesktopLiveSession {
                 presenceAPI: container.api,
                 installToken: installToken,
                 ring: ring,
+                rings: request.rings,
+                transcriptCallIds: request.transcriptCallIds,
+                onTranscript: request.onTranscript,
                 onStatus: request.onStatus
             )
             session.start()
