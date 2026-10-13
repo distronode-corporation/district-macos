@@ -68,4 +68,24 @@ final class MacAnalyticsBillingFormatTests: XCTestCase {
         XCTAssertEqual(BillingFormat.normalisedStatus(" Past_Due \n"), BillingFormat.subscriptionStatusPastDue)
         XCTAssertEqual(BillingFormat.normalisedStatus(nil), "")
     }
+
+    /// ⛔ THE PLAN CARD NAMES THE PLAN, NOT ITS KEY. The four tiers read as the server's
+    /// `PLAN_TIER_LABELS` (plan-urls.ts) spell them; build 20040 showed "VoicePro".
+    func test_MAC_FORMAT_10_theFourTiersReadAsTheirPlanNames() {
+        XCTAssertEqual(BillingCopy.planName("VoiceSolo"), "Voice Solo")
+        XCTAssertEqual(BillingCopy.planName("VoiceStarter"), "Voice Starter")
+        XCTAssertEqual(BillingCopy.planName("VoicePro"), "Voice Pro")
+        XCTAssertEqual(BillingCopy.planName("VoiceStudio"), "Voice Studio")
+        // Nothing normalises the column on write, so the lookup does.
+        XCTAssertEqual(BillingCopy.planName(" voicepro\n"), "Voice Pro")
+        XCTAssertEqual(BillingCopy.planTierLabels.count, 4)
+    }
+
+    /// ⚠️ AN UNKNOWN TIER IS SHOWN AS SENT, AND NO TIER IS NOT "Free".
+    func test_MAC_FORMAT_11_anUnknownTierShowsAsSentAndNoneIsNoPlan() {
+        XCTAssertEqual(BillingCopy.planName("Enterprise2027"), "Enterprise2027")
+        XCTAssertEqual(BillingCopy.planName(nil), BillingCopy.planNone)
+        XCTAssertEqual(BillingCopy.planName("  "), BillingCopy.planNone)
+        XCTAssertEqual(BillingCopy.planNone, "No plan on this workspace")
+    }
 }

@@ -43,6 +43,33 @@ enum BillingCopy {
     /// plan name on screen that no database row contains.
     static let planNone = "No plan on this workspace"
 
+    /// The plan names a customer reads, keyed by the stored tier
+    /// (``WorkspaceBilling/subscriptionTier``) lowercased.
+    ///
+    /// ⛔ THE SERVER'S `PLAN_TIER_LABELS` (distronode-website
+    /// `src/lib/payments/plan-urls.ts`), WORD FOR WORD: the names the pricing page and
+    /// checkout show. The column holds the internal key ("VoicePro"), and printing it
+    /// raw put a name on screen that no page of ours uses. Product marks, so never
+    /// translated.
+    static let planTierLabels: [String: String] = [
+        "voicesolo": "Voice Solo",
+        "voicestarter": "Voice Starter",
+        "voicepro": "Voice Pro",
+        "voicestudio": "Voice Studio",
+    ]
+
+    /// The plan card's headline: the plan's name for a known tier, any other tier
+    /// exactly as the server sent it, and ``planNone`` when there is none.
+    ///
+    /// ⚠️ LOOKED UP TRIMMED AND LOWERCASED, because nothing normalises the column on
+    /// write (see ``BillingFormat/normalisedStatus(_:)``). ⚠️ AN UNKNOWN TIER IS SHOWN AS
+    /// SENT, not hidden and not guessed at: a plan added on the server after this build
+    /// still names itself, just in its stored spelling. A blank one names no plan.
+    static func planName(_ tier: String?) -> String {
+        guard let tier, !tier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return planNone }
+        return planTierLabels[BillingFormat.normalisedStatus(tier)] ?? tier
+    }
+
     static let statusActive = "Active"
 
     static let statusPastDue = "Past due"

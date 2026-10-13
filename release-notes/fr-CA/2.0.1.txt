@@ -1,0 +1,1 @@
+- La page Billing indique le nom de votre forfait (« Voice Pro ») plutôt que sa clé interne (« VoicePro »).
