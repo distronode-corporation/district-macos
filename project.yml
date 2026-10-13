@@ -183,6 +183,11 @@ targetTemplates:
         # distribution) is `production`; a `Debug` build signed with a development
         # profile needs `development`. The values live under `settings.configs`.
         com.apple.developer.aps-environment: $(APS_ENVIRONMENT)
+        # SPIKE (spike/v3-mac-voip): lets the APNs incoming-call alert (and the app's own
+        # ring notification) be Time Sensitive (`aps.interruption-level`), so it breaks
+        # through Focus and Notification Summary. ⚠️ A capability of the App ID: the
+        # Developer ID profile must be regenerated after it is enabled in the portal.
+        com.apple.developer.usernotifications.time-sensitive: true
         # ⚠️ NO SIGN IN WITH APPLE HERE: the store target adds it (below) and the Developer
         # ID target cannot have it.
         # ⛔ `www.` ONLY, matching district-ios exactly. `distronode.ca` stays unclaimed.

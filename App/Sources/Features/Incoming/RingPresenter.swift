@@ -88,6 +88,9 @@ final class RingPresenter: RingPresenting {
         content.categoryIdentifier = RingNotifications.category
         content.userInfo = RingNotifications.userInfo(workspaceId: workspaceId, callId: callId)
         content.threadIdentifier = workspaceId
+        // SPIKE: Time Sensitive, so a ring breaks through Focus (needs the entitlement in
+        // project.yml; what the system does without it is not verified on a device).
+        content.interruptionLevel = .timeSensitive
         let request = UNNotificationRequest(
             identifier: RingNotifications.identifier(callId: callId),
             content: content,
