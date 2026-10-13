@@ -127,11 +127,11 @@ struct ShellView: View {
             // ⚠️ THE MAC'S STAND-IN FOR PULL-TO-REFRESH: the same registered action as ⌘R
             // (``ShellCommandCenter``), disabled while no screen on display has one.
             ToolbarItem(placement: .primaryAction) {
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                Button(NavigationCopy.refresh, systemImage: "arrow.clockwise") {
                     Task { await commands.refresh() }
                 }
                 .disabled(!commands.canRefresh)
-                .help("Refresh (⌘R)")
+                .help(NavigationCopy.refreshHelp)
             }
         }
         .navigationSubtitle(workspaceSession.selectedEntry?.name ?? "")
@@ -423,7 +423,7 @@ private struct SidebarRow: View {
 
     private var caption: String? {
         switch entry.gate {
-        case .partial: "Read-only"
+        case .partial: NavigationCopy.readOnly
         case .hidden, .none: nil
         }
     }
@@ -439,7 +439,7 @@ struct WorkspaceGate<Content: View>: View {
     var body: some View {
         switch workspaceSession.state {
         case .loading:
-            LoadingView(message: "Loading your workspaces…")
+            LoadingView(message: NavigationCopy.loadingYourWorkspaces)
                 .frame(maxHeight: .infinity)
         case let .content(_, selected), let .partial(_, selected, _):
             content(selected.id)
@@ -449,16 +449,15 @@ struct WorkspaceGate<Content: View>: View {
         case .empty:
             EmptyStateView(
                 systemImage: "building.2",
-                title: "No workspaces yet",
-                message: "This account does not belong to a workspace. Ask whoever invited you to add you to one."
+                title: NavigationCopy.noWorkspacesYet,
+                message: NavigationCopy.accountDoesNotBelong
             )
             .frame(maxHeight: .infinity)
         case let .lapsed(inactiveCount):
-            let noun = inactiveCount == 1 ? "workspace is" : "workspaces are"
             EmptyStateView(
                 systemImage: "creditcard",
-                title: "Subscription not active",
-                message: "Your \(noun) paused because the subscription is not active."
+                title: NavigationCopy.subscriptionNotActive,
+                message: inactiveCount == 1 ? NavigationCopy.lapsedOne : NavigationCopy.lapsedMany
             )
             .frame(maxHeight: .infinity)
         case let .failed(failure):

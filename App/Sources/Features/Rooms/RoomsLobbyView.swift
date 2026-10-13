@@ -179,9 +179,8 @@ struct RoomsLobbyView: View {
             // them is a rename with no behaviour in it.
             EmptyStateView(
                 systemImage: "calendar.badge.exclamationmark",
-                title: "No meetings on this page",
-                message: "The most recent records for this workspace are not meetings this app shows. "
-                    + "There may be meetings further back that this app does not show."
+                title: RoomsCopy.noMeetingsPage,
+                message: RoomsCopy.mostRecentRecordsWorkspace
             )
         } else if page.meetings.isEmpty {
             // ⚠️ EMPTY IS AN ANSWER AND IS EVERY WORKSPACE ON DAY ONE, so it explains
@@ -200,8 +199,7 @@ struct RoomsLobbyView: View {
                     // meetings drawn below is usually smaller; quoting either figure
                     // would state something the operator cannot check.
                     RoomNotice(
-                        text: "Showing the most recent meetings. "
-                            + "The full history is not available in this app."
+                        text: RoomsCopy.showingMostRecentMeetings
                     )
                 }
                 ForEach(page.meetings, id: \.id) { meeting in

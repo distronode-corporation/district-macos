@@ -109,26 +109,26 @@ struct SchedulingBookingsTable: View {
             selection: $selection,
             sortOrder: $sortOrder
         ) {
-            TableColumn("When", value: \.instant) { item in
+            TableColumn(SchedulingCopy.columnWhen, value: \.instant) { item in
                 Text(item.row.when)
                     .monospacedDigit()
                     .lineLimit(1)
                     .accessibilityIdentifier(A11yID.Scheduling.bookingRow(item.id))
             }
             .width(min: 140, ideal: 170)
-            TableColumn("Who", value: \.who) { item in
+            TableColumn(SchedulingCopy.columnWho, value: \.who) { item in
                 Text(item.who).lineLimit(1)
             }
             .width(min: 140, ideal: 200)
-            TableColumn("Event type", value: \.eventType) { item in
+            TableColumn(SchedulingCopy.columnEventType, value: \.eventType) { item in
                 Text(item.eventType).lineLimit(1)
             }
             .width(min: 100, ideal: 150)
-            TableColumn("Host", value: \.host) { item in
+            TableColumn(SchedulingCopy.columnHost, value: \.host) { item in
                 Text(item.host).lineLimit(1)
             }
             .width(min: 80, ideal: 120)
-            TableColumn("Status", value: \.status) { item in
+            TableColumn(SchedulingCopy.columnStatus, value: \.status) { item in
                 DistrictBadge(text: item.row.status.label, tone: item.row.status.kind.tone)
             }
             .width(min: 90, ideal: 110)
@@ -159,25 +159,25 @@ struct SchedulingEventTypesTable: View {
     var body: some View {
         let items = SchedulingEventTypesTableRow.rows(rows, eventTypes: eventTypes, sortedBy: sortOrder)
         Table(items, selection: $selection, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.name) { item in
+            TableColumn(SchedulingCopy.columnName, value: \.name) { item in
                 Text(item.name)
                     .lineLimit(1)
                     .accessibilityIdentifier(A11yID.Scheduling.eventTypeRow(item.row.slug))
             }
             .width(min: 140, ideal: 200)
-            TableColumn("Duration", value: \.minutes) { item in
+            TableColumn(SchedulingCopy.factDuration, value: \.minutes) { item in
                 Text(item.row.duration).monospacedDigit().lineLimit(1)
             }
             .width(min: 70, ideal: 90)
-            TableColumn("Starts every") { item in
+            TableColumn(SchedulingCopy.factInterval) { item in
                 Text(item.row.interval).monospacedDigit().lineLimit(1)
             }
             .width(min: 80, ideal: 100)
-            TableColumn("Location", value: \.location) { item in
+            TableColumn(SchedulingCopy.factLocation, value: \.location) { item in
                 Text(item.location).lineLimit(1)
             }
             .width(min: 100, ideal: 150)
-            TableColumn("State", value: \.state) { item in
+            TableColumn(SchedulingCopy.factState, value: \.state) { item in
                 DistrictBadge(text: item.row.state.label, tone: item.row.state.kind.tone)
             }
             .width(min: 80, ideal: 100)

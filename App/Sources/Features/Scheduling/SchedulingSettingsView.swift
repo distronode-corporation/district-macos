@@ -11,7 +11,10 @@ import SwiftUI
 /// `settings.llm.get`.
 enum SchedulingSettingsTabs {
     static let ids = ["booking-page", "assistant", "profile", "notifications"]
-    static let labels = ["Booking page", "Booking assistant", "Your profile", "Your notifications"]
+    /// The core's own four labels (`settingsTabLabels`), in this order, which are these ids'.
+    static var labels: [String] {
+        SchedulingSettingsFormat.settingsTabLabels
+    }
 }
 
 /// The booking page, the booking assistant, the profile and the notifications.

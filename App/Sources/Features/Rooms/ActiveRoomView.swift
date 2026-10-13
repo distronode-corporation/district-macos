@@ -258,10 +258,15 @@ struct ActiveRoomView: View {
         }
     }
 
-    // ⚠️ HERE RATHER THAN IN ``RoomsCopy``, as on iOS (where that file belonged to another
-    // change set). They name no cause, because the SDK's reason is not known here.
-    static let microphoneFailed = "Could not change your microphone. It is as the button shows."
-    static let cameraFailed = "Could not change your camera. It is as the button shows."
+    /// ⚠️ HERE RATHER THAN IN ``RoomsCopy``, as on iOS (where that file belonged to another
+    /// change set). They name no cause, because the SDK's reason is not known here.
+    static var microphoneFailed: String {
+        RoomsCopy.couldNotChangeMicrophone
+    }
+
+    static var cameraFailed: String {
+        RoomsCopy.couldNotChangeCamera
+    }
 }
 
 extension ActiveRoomModel {

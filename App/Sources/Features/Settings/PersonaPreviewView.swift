@@ -53,7 +53,7 @@ struct PersonaPreviewView: View {
             .navigationTitle(SettingsCopy.previewTitle)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button(SettingsCopy.close) { dismiss() }
                 }
             }
         }
@@ -105,7 +105,7 @@ struct PersonaPreviewView: View {
         case .stopped:
             SettingsCopy.previewEnded
         case let .droppedRemotely(reason):
-            reason.map { "\(SettingsCopy.previewDropped) \($0)" } ?? SettingsCopy.previewDropped
+            reason.map { SettingsCopy.previewDroppedBecause($0) } ?? SettingsCopy.previewDropped
         case let .yielded(reason):
             switch reason {
             case .telephoneCall: SettingsCopy.previewYieldedToCall

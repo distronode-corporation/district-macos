@@ -58,7 +58,7 @@ struct CheckForUpdatesCommand: View {
     @StateObject private var state = UpdaterState()
 
     var body: some View {
-        Button("Check for Updates...") {
+        Button(AppSettingsCopy.checkForUpdates) {
             DistrictUpdater.controller.checkForUpdates(nil)
         }
         .disabled(!state.canCheckForUpdates)
@@ -71,7 +71,7 @@ struct AutomaticUpdatesToggle: View {
 
     var body: some View {
         // ⚠️ A SWITCH, as "Ring on this computer" above it is: one window, one control.
-        Toggle("Check for updates automatically", isOn: $enabled)
+        Toggle(AppSettingsCopy.automaticUpdates, isOn: $enabled)
             .toggleStyle(.switch)
             .onChange(of: enabled) { _, value in
                 DistrictUpdater.controller.updater.automaticallyChecksForUpdates = value

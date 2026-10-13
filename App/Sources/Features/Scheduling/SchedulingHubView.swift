@@ -81,7 +81,7 @@ struct SchedulingHubView: View {
             .districtReadableWidth()
         }
         .accessibilityIdentifier(A11yID.Scheduling.root)
-        .navigationTitle("Scheduling")
+        .navigationTitle(SchedulingCopy.scheduling)
         .districtRefreshable { await model.load(.manual) }
         .task { await model.load() }
         .task(id: pollsNow) {
@@ -185,7 +185,7 @@ struct SchedulingHubView: View {
     private var content: some View {
         switch model.state {
         case .loading:
-            LoadingView(message: "Loading scheduling…")
+            LoadingView(message: SchedulingCopy.loadingScheduling)
         case let .failed(failure):
             // ⛔ A FAILURE, NEVER AN EMPTY CARD. `tenant == nil` is a legitimate
             // answer on this surface, so the two would otherwise look identical.
@@ -218,7 +218,7 @@ struct SchedulingHubView: View {
 
     private func header(_ presentation: SchedulingPresentation) -> some View {
         HStack(spacing: DistrictSpacing.tight) {
-            DistrictEyebrow(text: "Booking page")
+            DistrictEyebrow(text: SchedulingCopy.bookingPage)
             Spacer(minLength: DistrictSpacing.tight)
             if let badge = presentation.badge {
                 DistrictBadge(text: badge.label, tone: badge.tone)
@@ -288,7 +288,7 @@ struct SchedulingHubView: View {
             if let url = URL(string: link) {
                 // ⚠️ MAC: STYLED AS ITS SIBLING. Left to the platform, a `ShareLink` is a small
                 // grey capsule beside the bordered Copy link (Sean's first build, 20019).
-                ShareLink("Share", item: url)
+                ShareLink(SchedulingCopy.share, item: url)
                     .buttonStyle(.districtSecondary)
             }
         }
@@ -408,7 +408,7 @@ private struct SchedulingNotice: View {
             Text(message)
                 .font(DistrictType.bodySmall)
                 .foregroundStyle(colors.destructive)
-            Button("Dismiss", action: onDismiss)
+            Button(SchedulingCopy.dismiss, action: onDismiss)
                 .buttonStyle(.districtGhost)
         }
         .padding(DistrictSpacing.card)

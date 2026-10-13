@@ -47,7 +47,7 @@ struct RootView: View {
     private var content: some View {
         switch session.phase {
         case .checking:
-            ProgressView("Checking your session...")
+            ProgressView(CommonCopy.checkingYourSession)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .signedIn:
@@ -57,7 +57,7 @@ struct RootView: View {
         case let .signedOut(reason):
             SignInView(
                 reason: reason,
-                actionTitle: "Sign in",
+                actionTitle: CommonCopy.signIn,
                 isBusy: session.isBusy,
                 action: { Task { await session.signIn() } },
                 apple: appleDoor
@@ -79,7 +79,7 @@ struct RootView: View {
         case let .unavailable(reason):
             SignInView(
                 reason: reason,
-                actionTitle: "Try again",
+                actionTitle: CommonCopy.tryAgain,
                 isBusy: session.isBusy,
                 action: { Task { await session.refreshPhase() } },
                 apple: nil

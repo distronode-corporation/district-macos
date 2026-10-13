@@ -91,7 +91,7 @@ struct InCallView: View {
     @ViewBuilder
     private var reconnecting: some View {
         if display.media.reconnecting, !ended {
-            Text("Reconnecting…")
+            Text(DialerCopy.reconnecting)
                 .font(DistrictType.bodySmall)
                 .foregroundStyle(colors.mutedForeground)
         }
@@ -121,7 +121,7 @@ struct InCallView: View {
     @ViewBuilder
     private var controlsSection: some View {
         if ended {
-            Button("Done") { controls.dismissEndedCall() }
+            Button(DialerCopy.done) { controls.dismissEndedCall() }
                 .buttonStyle(.districtPrimary)
         } else {
             liveControls
@@ -140,9 +140,9 @@ struct InCallView: View {
             // ⛔ THE LABEL IS THE ACTION, NOT THE STATE. `microphoneEnabled` mirrors what
             // the SDK reported, so a mute it refused leaves this saying "Mute", which is
             // the truth.
-            Button(display.media.microphoneEnabled ? "Mute" : "Unmute") { controls.toggleMute() }
+            Button(display.media.microphoneEnabled ? DialerCopy.mute : DialerCopy.unmute) { controls.toggleMute() }
                 .buttonStyle(.districtSecondary)
-            Button("Hang up") { Task { await controls.hangUp() } }
+            Button(DialerCopy.hangUp) { Task { await controls.hangUp() } }
                 .buttonStyle(.districtDestructive)
         }
     }

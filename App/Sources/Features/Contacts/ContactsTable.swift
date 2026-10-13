@@ -56,8 +56,13 @@ struct ContactsTableRow: Identifiable {
         phone.isEmpty && email.isEmpty
     }
 
-    static let unnamed = "Unnamed contact"
-    static let noIdentifiers = "No phone or email"
+    static var unnamed: String {
+        ContactsCopy.unnamedContact
+    }
+
+    static var noIdentifiers: String {
+        ContactsCopy.noPhoneEmail
+    }
 
     private static func usable(_ value: String?) -> String {
         value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -82,12 +87,12 @@ struct ContactsTable: View {
     var body: some View {
         let rows = ContactsTableRow.rows(contacts, sortedBy: sortOrder)
         Table(rows, selection: selectedId, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.name) { row in
+            TableColumn(ContactsCopy.name, value: \.name) { row in
                 nameCell(row)
                     .onAppear { reached(row, in: rows) }
             }
             .width(min: 150, ideal: 150)
-            TableColumn("Phone", value: \.phone) { row in
+            TableColumn(ContactsCopy.phone, value: \.phone) { row in
                 if row.hasNoIdentifier {
                     Text(ContactsTableRow.noIdentifiers)
                         .foregroundStyle(.secondary)
@@ -99,7 +104,7 @@ struct ContactsTable: View {
                 }
             }
             .width(min: 110, ideal: 110)
-            TableColumn("Email", value: \.email) { row in
+            TableColumn(ContactsCopy.email, value: \.email) { row in
                 Text(row.email)
                     .lineLimit(1)
             }
@@ -108,7 +113,7 @@ struct ContactsTable: View {
             // have beside the other three in a list column at the 1000pt window minimum
             // (Sean's first build, 20019, cut it to "Aug 15, 2026 at"). The contact's own
             // screen keeps the full stamp.
-            TableColumn("Added", value: \.instant) { row in
+            TableColumn(ContactsCopy.added, value: \.instant) { row in
                 Text(WireDate.displayDay(row.contact.createdAt))
                     .monospacedDigit()
                     .lineLimit(1)
@@ -138,7 +143,7 @@ struct ContactsTable: View {
                         BlockedBadge(identifier: A11yID.Contacts.blockedRow(row.id))
                     }
                     if building {
-                        DistrictBadge(text: "Building dossier…", tone: .district)
+                        DistrictBadge(text: ContactsCopy.buildingDossier, tone: .district)
                     }
                 }
             }

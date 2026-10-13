@@ -118,19 +118,19 @@ struct DistrictCommands: Commands {
             if let title = availability.screenCreateTitle {
                 Button(title) { shell?.screenCreate() }
                     .keyboardShortcut("n")
-                Button("New Message") { shell?.newMessage() }
+                Button(NavigationCopy.newMessage) { shell?.newMessage() }
                     .disabled(!availability.canCompose)
             } else {
-                Button("New Message") { shell?.newMessage() }
+                Button(NavigationCopy.newMessage) { shell?.newMessage() }
                     .keyboardShortcut("n")
                     .disabled(!availability.canCompose)
             }
-            Button("New Contact") { shell?.newContact() }
+            Button(NavigationCopy.newContact) { shell?.newContact() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(!availability.canCreateContact)
         }
         CommandGroup(after: .textEditing) {
-            Button("Search Messages") { shell?.search() }
+            Button(NavigationCopy.searchMessages) { shell?.search() }
                 .keyboardShortcut("f")
                 .disabled(!availability.canSearch)
         }
@@ -145,19 +145,19 @@ struct DistrictCommands: Commands {
             .disabled(shell == nil)
         }
         CommandGroup(after: .toolbar) {
-            Button("Refresh") { shell?.refresh() }
+            Button(NavigationCopy.refresh) { shell?.refresh() }
                 .keyboardShortcut("r")
                 .disabled(!availability.canRefresh)
         }
 
-        CommandMenu("Go") {
+        CommandMenu(NavigationCopy.go) {
             ForEach(SidebarItem.allCases) { item in
                 goButton(item)
             }
         }
 
         CommandGroup(after: .appSettings) {
-            Button("Sign Out") {
+            Button(NavigationCopy.signOut) {
                 Task { await session.signOut() }
             }
             .disabled(session.phase != .signedIn || session.isBusy)
