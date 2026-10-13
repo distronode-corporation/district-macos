@@ -137,6 +137,11 @@ extension AnalyticsCopy {
         AppL10n.copyLocale == .frCA ? "\(minutes)m \(seconds)s" : "\(minutes)m \(seconds)s"
     }
 
+    /// `analytics.duration_seconds`
+    internal static func durationSeconds(_ seconds: Int) -> String {
+        AppL10n.copyLocale == .frCA ? "\(seconds)s" : "\(seconds)s"
+    }
+
     /// `analytics.in_this_window`
     internal static var inThisWindow: String { AppL10n.copyLocale == .frCA ? "In this window" : "In this window" }
 
@@ -4935,6 +4940,9 @@ extension SettingsCopy {
     /// `settings.members_viewer_note`
     internal static var membersViewerNote: String { AppL10n.copyLocale == .frCA ? "You are in this workspace as a viewer, so you can see who has access and not change it." : "You are in this workspace as a viewer, so you can see who has access and not change it." }
 
+    /// `settings.messaging_account_fallback`
+    internal static var messagingAccountFallback: String { AppL10n.copyLocale == .frCA ? "Account" : "Account" }
+
     /// `settings.messaging_account_subtitle`
     internal static func messagingAccountSubtitle(_ carrier: String, _ source: String, _ numbers: String) -> String {
         AppL10n.copyLocale == .frCA ? "\(carrier) · \(source) · \(numbers)" : "\(carrier) · \(source) · \(numbers)"
@@ -5321,6 +5329,9 @@ extension SettingsCopy {
 }
 
 extension SignInCopy {
+    /// `sign_in.district_ai`
+    internal static var districtAi: String { AppL10n.copyLocale == .frCA ? "District AI" : "District AI" }
+
     /// `sign_in.no_account`
     internal static var noAccount: String { AppL10n.copyLocale == .frCA ? "No District AI account uses this Apple ID. Ask your organization's administrator to invite you, then sign in with the invited email." : "No District AI account uses this Apple ID. Ask your organization's administrator to invite you, then sign in with the invited email." }
 }
