@@ -104,10 +104,6 @@ Scheduling row, and ⌘N's create) and three Scheduling cases in `MacBillingRead
 - **`SchedulingRoutingTests`' first nine cases** (`test_IOS_SCHLINK_01` to `_09`) resolve a
   `www.distronode.com/dashboard/district/scheduling/...` link, so they come over with app
   links (below). The gate cases and the settings hub's row are ported.
-- **A "New ticket" entry point on the Desk**: iOS at `4777c40` declares the compose sheet
-  and its `composing` flag but nothing sets the flag, so the sheet is unreachable there.
-  The Mac keeps the same code and the same absence; adding a button or a menu command is a
-  product change for both apps, not a port.
 - **App links and push taps** (`AppLinkRouting`, `PushRouting`, `ShellView+Routing`):
   a tapped notification or a `www.distronode.com` link does not open a section yet. The
   incoming-call notification's Answer and Decline buttons do work (Wave 6).
@@ -429,7 +425,7 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | 8 | Billing | 7 | Read-only, as on iOS (3.1.3(b)); nothing opens a URL, in both Mac builds. |
 | 9 | Rooms | 6 | No Flip camera and no speaker toggle (one camera, no earpiece); device pickers instead. "Read the minutes" only for a meeting with minutes. |
 | 10 | Workflows | 7 | None. |
-| 11 | Desk | 7 | No "New ticket" entry point, as on iOS (unreachable there too). |
+| 11 | Desk | 7 | None. "New ticket" (district-ios #37, `DeskModel.canStartTicket`) is also File > New Ticket, which waits for the desk's first read (`DeskModel.hasSettled`). |
 | 12 | Dial | 6 | No CallKit; the emergency hand-off says "Use a phone to call for help." |
 | 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet; scheduling links (`SchedulingRoutingTests` `_01` to `_09`) wait for app links. |
 | 14 | Support | 7 | None (reporting a message or a call came in Wave 5). |

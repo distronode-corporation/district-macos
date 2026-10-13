@@ -84,6 +84,29 @@ final class ShellCommandsTests: XCTestCase {
             .canCreateContact)
     }
 
+    /// ⛔ FILE > NEW TICKET FOLLOWS DESK'S ROLE GATE: a role that may write, in a workspace
+    /// whose sidebar offers Desk. Whether the desk is on is the screen's half of the rule
+    /// (``DeskModel/canStartTicket``, pinned in ``DeskModelStartTests``).
+    func test_MAC_COMMANDS_03_newTicketFollowsTheDesksGate() {
+        let roles: [WorkspaceRole?] = WorkspaceRole.allCases.map(\.self) + [nil]
+        for role in roles {
+            let availability = ShellCommandAvailability(workspaceId: "ws_1", role: role, refreshAvailable: false)
+            let deskOffered = SidebarItem.visible(workspaceId: "ws_1", role: role).contains(.desk)
+            XCTAssertEqual(
+                availability.canCreateTicket,
+                WorkspaceRole.allowsMutation(role) && deskOffered,
+                String(describing: role)
+            )
+        }
+        XCTAssertFalse(ShellCommandAvailability(workspaceId: "ws_1", role: .viewer, refreshAvailable: false)
+            .canCreateTicket)
+        XCTAssertTrue(ShellCommandAvailability(workspaceId: "ws_1", role: .agency, refreshAvailable: false)
+            .canCreateTicket)
+        XCTAssertFalse(ShellCommandAvailability.unavailable.canCreateTicket)
+        XCTAssertFalse(ShellCommandAvailability(workspaceId: nil, role: .agency, refreshAvailable: false)
+            .canCreateTicket)
+    }
+
     // MARK: - Which screen ⌘R refreshes
 
     /// ⛔ THE SCREEN THAT APPEARED LAST, and the one under it once that one has gone.

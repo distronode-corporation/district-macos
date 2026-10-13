@@ -96,6 +96,14 @@ final class DeskModel {
     /// human's queue. The sheet disables its controls on this same flag.
     private(set) var creating = false
 
+    /// Why the last submit from the new-ticket form did not go through, or nil.
+    ///
+    /// ⚠️ SEPARATE FROM ``notice`` BECAUSE THE FORM COVERS THE QUEUE. A failure written
+    /// to the screen's notice would be drawn under the sheet the operator is looking
+    /// at, so they would see the button come back and nothing else. The form shows
+    /// this one; the queue keeps ``notice`` for the outcome once the form has closed.
+    private(set) var composeFailure: String?
+
     /// ⛔ False for `viewer` and for a role that did not parse. See the ⛔ on the type.
     let canWrite: Bool
 
@@ -141,6 +149,54 @@ final class DeskModel {
         // standard-library surface, and the older spelling compiles on every toolchain
         // this target might meet.
         return allTickets.filter { $0.status == status.rawValue }.count
+    }
+
+    /// Whether "New ticket" is offered.
+    ///
+    /// ⛔ THE SAME RULE AS THE OTHER CLIENTS: a role that may write, a desk that is
+    /// demonstrably ON and a queue that answered (Windows' `can_start`, Android's compose
+    /// button on its loaded state). Not while the desk is off, where the screen's one
+    /// action is turning it on; not while the settings read failed, where whether
+    /// tickets are being taken at all is the open question; and not while a create is
+    /// still in flight.
+    ///
+    /// ⚠️ PORTED FROM district-ios `DeskModel` WITH ITS RULE, so the toolbar button, File >
+    /// New Ticket and the iPhone all offer the form on the same states.
+    var canStartTicket: Bool {
+        guard canWrite, !creating else { return false }
+        guard case .on = availability, case .ready = queue else { return false }
+        return true
+    }
+
+    /// Whether the settings read and, unless the desk is off, the queue read have both
+    /// answered, so ``canStartTicket`` is a verdict rather than "not yet".
+    ///
+    /// ⚠️ MAC ONLY. File > New Ticket can select the Desk and ask for the form in one
+    /// update, before this model has read anything; the request waits for this rather
+    /// than being refused by a screen that has not loaded (``View/deskTicketCommandTarget(model:composing:)``).
+    var hasSettled: Bool {
+        switch availability {
+        case .checking:
+            return false
+        case .off:
+            return true
+        case .on, .unknown:
+            if case .loading = queue {
+                return false
+            }
+            return true
+        }
+    }
+
+    /// Open the new-ticket form: true when it may open, and the view presents it then.
+    ///
+    /// ⚠️ IT CLEARS THE LAST FORM'S FAILURE, so a reopened form starts clean the way its
+    /// draft does, and re-checks ``canStartTicket`` because a control that was drawn a
+    /// moment ago is not proof the rule still holds.
+    func startTicket() -> Bool {
+        guard canStartTicket else { return false }
+        composeFailure = nil
+        return true
     }
 
     func select(_ status: DeskTicketStatus?) {
@@ -202,12 +258,12 @@ final class DeskModel {
     func createTicket(_ draft: DeskComposerState) async -> Bool {
         guard canWrite, !creating else { return false }
         guard draft.isComplete else {
-            notice = DeskCopy.createIncomplete
+            composeFailure = DeskCopy.createIncomplete
             return false
         }
         creating = true
         defer { creating = false }
-        notice = nil
+        composeFailure = nil
         let result = await desk.createTicket(
             workspaceId: workspaceId,
             // ⚠️ THE THREE REQUESTER BOXES GO OVER AS TYPED. The repository trims each
@@ -236,7 +292,7 @@ final class DeskModel {
             await reloadQueue()
             return true
         case let .failure(error):
-            notice = FailureText.from(error).message
+            composeFailure = FailureText.from(error).message
             return false
         }
     }

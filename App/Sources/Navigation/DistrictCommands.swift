@@ -51,6 +51,14 @@ struct ShellCommandAvailability: Equatable {
         workspaceResolved && canSend && offered.contains(.contacts)
     }
 
+    /// ⛔ THE ROLE HALF OF DESK'S OWN "New ticket" (``DeskModel/canStartTicket``). The
+    /// other half (a desk that is on, a queue that answered) is a read only the screen
+    /// makes, so the menu offers the command wherever Desk is offered to a role that may
+    /// write, and the screen opens the form only if its rule holds once it has loaded.
+    var canCreateTicket: Bool {
+        workspaceResolved && canSend && offered.contains(.desk)
+    }
+
     var canSearch: Bool {
         workspaceResolved && offered.contains(.inbox)
     }
@@ -71,6 +79,7 @@ struct ShellCommandActions {
     let newMessage: () -> Void
     let screenCreate: () -> Void
     let newContact: () -> Void
+    let newTicket: () -> Void
     let search: () -> Void
     let refresh: () -> Void
     /// Whether the sidebar is on screen, for the menu item's words.
@@ -89,7 +98,7 @@ extension FocusedValues {
     }
 }
 
-/// The menu bar: File > New Message and New Contact, Edit > Search Messages, View >
+/// The menu bar: File > New Message, New Contact and New Ticket, Edit > Search Messages, View >
 /// Refresh, a Go menu for the sidebar, and Sign Out.
 ///
 /// ⚠️ THE COMMANDS READ THE FOCUSED WINDOW'S SHELL (`focusedSceneValue`), so with no
@@ -128,6 +137,8 @@ struct DistrictCommands: Commands {
             Button(NavigationCopy.newContact) { shell?.newContact() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(!availability.canCreateContact)
+            Button(NavigationCopy.newTicket) { shell?.newTicket() }
+                .disabled(!availability.canCreateTicket)
         }
         CommandGroup(after: .textEditing) {
             Button(NavigationCopy.searchMessages) { shell?.search() }
@@ -211,6 +222,11 @@ extension View {
                 guard availability.canCreateContact else { return }
                 select(.contacts)
                 center.createContactRequested = true
+            },
+            newTicket: {
+                guard availability.canCreateTicket else { return }
+                select(.desk)
+                center.newTicketRequested = true
             },
             search: {
                 guard availability.canSearch else { return }
