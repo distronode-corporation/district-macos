@@ -32,6 +32,12 @@ not sent.
   per 30 s, never on a timer. A
   second screen on a call already watched sends the subscribe again, for the fresh snapshot
   it needs.
+- Read a text file into a knowledge document, as on Windows (and district-ios #38).
+  Knowledge's add form has a Read a text file button that fills the title (when it is
+  empty) and the text from a plain text file (.txt or .md) of up to 1 MB. Nothing is added
+  until Add document. The same files are refused for the same reasons as on Windows: too
+  large, empty, no text, or not plain text by its bytes (UTF-8, or UTF-16 with its mark, is
+  read). `KnowledgeFileReader` is iOS's file unchanged.
 - Sign in with Apple (Mac App Store build) asks for the authenticator code when the account
   has one turned on: a sheet takes the 6-digit code or a recovery code, keeps the sheet open
   for a wrong code, and sends a timed-out step back to the Apple button. The Developer ID
