@@ -10,19 +10,4 @@ import Foundation
 /// It is shown as the sign-in screen's reason.
 ///
 /// ⚠️ WORD FOR WORD THE iOS APP'S `MfaCopy`, so the two Apple apps say the same thing.
-enum MfaCopy {
-    static let title = "Enter your code"
-    static let authenticatorPrompt = "Your account uses an authenticator app. "
-        + "Enter the 6-digit code it shows for District AI."
-    static let recoveryPrompt = "Enter one of the recovery codes you saved when you set up "
-        + "your authenticator app. Each code works once."
-    static let authenticatorPlaceholder = "6-digit code"
-    static let recoveryPlaceholder = "Recovery code"
-    static let useRecovery = "Use a recovery code instead"
-    static let useAuthenticator = "Use your authenticator app instead"
-    static let verify = "Verify"
-    static let cancel = "Cancel"
-
-    static let wrongCode = "That code did not work. Check the code and try again."
-    static let expired = "That sign-in timed out. Sign in with Apple again."
-}
+enum MfaCopy {}

@@ -32,11 +32,11 @@ enum IncomingCallCopy {
     ///   render a line that opens with the separator.
     static func callerLine(caller: String?, workspaceName: String?) -> String {
         let known = caller?.trimmingCharacters(in: .whitespaces) ?? ""
-        let lead = known.isEmpty ? "Incoming call" : known
+        let lead = known.isEmpty ? incomingCall : known
         guard let workspaceName, !workspaceName.trimmingCharacters(in: .whitespaces).isEmpty else {
             return lead
         }
-        return "\(lead) · \(workspaceName)"
+        return callerLineWithWorkspace(lead, workspaceName)
     }
 
     /// ⛔ THE MESSAGE WINS OVER THE PHASE ON AN ENDED CALL, which is the same call
@@ -60,14 +60,14 @@ enum IncomingCallCopy {
     ) -> String {
         switch state.phase {
         case .idle, .ringing:
-            "Ringing…"
+            ringing
         // ⛔ ITS OWN SENTENCE RATHER THAN A SPINNER OVER "Ringing…". The answer
         // round trip plus a room join is a real gap to fill, and the buttons have
         // gone by now; a screen still saying "Ringing…" reads as frozen.
         case .answering:
-            "Answering…"
+            answering
         case .inCall:
-            "Connected · \(InCallCopy.duration(state.media?.elapsedSeconds ?? 0))"
+            connected(InCallCopy.duration(state.media?.elapsedSeconds ?? 0))
         case let .ended(reason):
             InCallCopy.endedSentence(
                 reason: ringEndedByCall && reason == .ringTimedOut ? .callerCancelled : reason,
@@ -81,15 +81,4 @@ enum IncomingCallCopy {
             )
         }
     }
-
-    /// The ring panel's title. ⚠️ MAC ONLY (iOS rings in CallKit's screen), and
-    /// district-linux's ring heading, word for word.
-    static let panelTitle = "Incoming call"
-
-    /// The notice under the Answer button.
-    ///
-    /// ⚠️ SAID BEFORE THE SYSTEM ASKS, like the dialer's, so the microphone prompt has a visible
-    /// reason. The app asks at Answer (``IncomingCallModel/prepareMicrophoneForAnswer()``),
-    /// and a request with no explanation is the one people deny permanently.
-    static let answerNotice = "Answering turns on your microphone."
 }

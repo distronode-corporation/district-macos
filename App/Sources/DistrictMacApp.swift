@@ -25,6 +25,11 @@ struct DistrictMacApp: App {
     init() {
         // Before anything else can crash. A no-op unless the build carries a DSN.
         DistrictSentry.startIfConfigured()
+
+        // Before the container, so nothing it builds reads a string in the default
+        // language before the device's is known. English until the build ships French.
+        AppL10n.bootstrap()
+
         let container = AppContainer.live()
         let push = PushRegistrar(container: container)
         let presenter = RingPresenter()

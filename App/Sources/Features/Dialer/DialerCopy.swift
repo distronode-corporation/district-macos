@@ -22,20 +22,18 @@ extension DialerModel {
 
     /// ⛔ NOT RETRYABLE. A second tap places a second call
     /// or meets the identical refusal; see the ⛔ on ``FailureText/Action``.
-    static let busy = FailureText(
-        message: "There is already a call on this device. End it before placing another.",
-        action: .none
-    )
+    static var busy: FailureText {
+        FailureText(message: busyMessage, action: .none)
+    }
 
     /// ⛔ NOTHING WAS PLACED, AND THE SENTENCE SAYS THAT BEFORE IT SAYS WHY. A refused microphone is
     /// answered before the carrier hears of the call (see ``startAfterMicrophone(attempt:)``), so there
     /// is no call to end and nothing billed. It names the one remedy there is: macOS does not show the
     /// question a second time once somebody said no.
     /// ⚠️ "System Settings" WHERE iOS SAYS "Settings": the Mac's app is called System Settings.
-    static let microphoneOff = FailureText(
-        message: "Nothing was dialled because District AI cannot use the microphone. Turn it on in System Settings.",
-        action: .none
-    )
+    static var microphoneOff: FailureText {
+        FailureText(message: microphoneOffMessage, action: .none)
+    }
 
     /// ⛔ THE ROOM SIDE OF THE SAME REFUSAL ``RoomsCopy/busyWithCall`` MAKES, AND THE
     /// PAIR IS THE POINT: one process owns one `AVAudioSession`, so whichever surface
@@ -48,34 +46,9 @@ extension DialerModel {
     /// ⛔ AN INBOUND CALL IS NOT REFUSED THIS WAY AND MUST NEVER BE. It arrives from
     /// somebody who cannot be shown a sentence, so the room yields to it instead, see
     /// the ⛔ on ``RoomAudioYield/telephoneCall``.
-    static let inRoom = FailureText(
-        message: "You are in a room on this device. Leave it before placing a call.",
-        action: .none
-    )
-
-    static let doNotCallFallback = "That number has opted out of calls from this workspace."
-
-    /// ⛔ STATES THE FACT AND STOPS, AND NAMES NO WEBSITE. App Store Review Guideline
-    /// 3.1.3(b) keeps subscription purchase and management out of the app entirely, so a
-    /// "Fix billing" control that deep-linked to Stripe would be rejected, and 3.1.1
-    /// makes naming the place the same rejection with no button on it. A
-    /// reactivation is a billing action, so there is no remedy that can honestly be given
-    /// here; the sentence says why calls stopped and leaves it there.
-    static let subscriptionFallback = "This workspace's subscription is not active, so calls are paused."
-
-    /// ⛔ NOT A BILLING FAILURE AND NOT A PERMISSION FAILURE. "Pay and it resumes" is
-    /// the case next door; this one is "ask us and we turn it back on".
-    static let dormantFallback = "This workspace is paused for inactivity, so calls are on hold. "
-        + "Ask us to reactivate it."
-
-    /// ⛔ PRESENCE RATHER THAN WORDING, and the entry into this screen is hidden for the
-    /// same role, so a viewer arriving here came from a restored back stack or a deep
-    /// link. `POST /api/district/calls/dial` excludes `viewer` server-side.
-    static let viewerNotice = "You are in this workspace as a viewer, so you cannot place calls."
-
-    static let microphoneNotice = "Placing a call turns on your microphone."
-
-    static let entryHint = "Enter a number with its country code, for example +1 416 555 0100."
+    static var inRoom: FailureText {
+        FailureText(message: inRoomMessage, action: .none)
+    }
 
     /// Which country the leading digits will ring, said beside the field.
     ///
@@ -96,9 +69,9 @@ extension DialerModel {
         case .none:
             nil
         case .unrecognised:
-            "Unrecognised country code. Check the number before calling."
+            destinationUnrecognised
         case let .named(name):
-            "This number rings \(name)."
+            destinationNamed(name)
         }
     }
 
@@ -119,13 +92,13 @@ extension DialerModel {
         case .empty:
             return nil
         case .missingCountryCode:
-            return "Start with a country code, for example +1 for Canada and the United States."
+            return entryMissingCountryCode
         case .strayPlus:
-            return "A number may contain only digits after the +."
+            return entryStrayPlus
         case .tooShort:
-            return "That is too short. A number has at least \(DialEntry.minimumDigits) digits after the +."
+            return entryTooShort(DialEntry.minimumDigits)
         case .tooLong:
-            return "That is too long. A number has at most \(DialEntry.maximumDigits) digits after the +."
+            return entryTooLong(DialEntry.maximumDigits)
         // ⛔ THE ONLY REFUSAL HERE THAT IS NOT A CORRECTION. Every other case tells the
         // operator how to fix the number; this one tells them to leave the app, because
         // District cannot place an emergency call and must not pretend it might. Naming
@@ -134,35 +107,7 @@ extension DialerModel {
         // ⚠️ "a phone" WHERE iOS SAYS "the Phone app": a Mac has no Phone app to name, and
         // the hand-off has to point somewhere that can actually place the call.
         case .emergencyNumber:
-            return "District cannot place emergency calls. Use a phone to call for help."
+            return entryEmergencyNumber
         }
     }
-
-    /// ⛔ "Call back", NEVER "Redial", AND THE WORD IS THE WHOLE POINT OF THE
-    /// HEADING. The call log records the workspace's OWN number on an outbound row,
-    /// so only inbound calls carry a number worth dialling. See the ⛔ on
-    /// ``CallsRepository/recentCallbacks(workspaceId:limit:)``, which is where the
-    /// filter lives. A heading that said redial would promise to repeat outbound
-    /// calls this list cannot repeat.
-    static let callbacksTitle = "Call back"
-
-    static let callbacksLoading = "Looking for recent callers…"
-
-    /// ⚠️ AN EMPTY LIST IS AN ANSWER, so this sentence explains the absence rather
-    /// than apologising for it.
-    static let callbacksEmptyTitle = "No recent callers"
-
-    /// ⚠️ "one click" WHERE iOS SAYS "one tap": a Mac is clicked.
-    static let callbacksEmpty = "Numbers from incoming calls appear here so you can call someone back with one click."
-
-    /// ⛔ A DIFFERENT SENTENCE FROM THE EMPTY ONE, because "we could not look" and
-    /// "there is nothing" are different answers and confusing them is what
-    /// ``FailureText`` exists to stop.
-    static let callbacksFailed = "Could not load recent callers"
-
-    /// ⛔ THE HINT SAYS WHAT THE TAP DOES, AND IT IS NOT "call". Android puts a
-    /// button labelled Call in the row's trailing slot that also only fills the
-    /// field, which is the one place its wording undersells the rule; a row that
-    /// looks like it dials is a mis-scroll away from a call nobody asked for.
-    static let callbackHint = "Fills the number into the keypad. You still press Call to dial."
 }
