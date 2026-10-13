@@ -100,7 +100,7 @@ struct AccountView: View {
         // `.contain` makes this an accessibility container so the children keep their own.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(A11yID.Account.root)
-        .navigationTitle("Account")
+        .navigationTitle(AccountCopy.account)
         // ⚠️ Keyed on the sign-in counter rather than bare, so a session that
         // completes while this tab is mounted re-reads instead of showing the
         // previous account's answer. See `SessionModel.epoch`.
@@ -115,7 +115,7 @@ struct AccountView: View {
     /// are handed to this member at all, this one whether they ring on this computer.
     /// Shown with no workspace too (the setting belongs to the computer).
     private var ringHereCard: some View {
-        card(title: "This computer") {
+        card(title: AccountCopy.thisComputer) {
             RingHereToggle(live: live)
                 .padding(.horizontal, DistrictSpacing.gutter)
                 .padding(.vertical, DistrictSpacing.tight)
@@ -227,7 +227,7 @@ struct AccountView: View {
     // ── This device ──────────────────────────────────────────────────────────
 
     private var deviceCard: some View {
-        card(title: "This device") {
+        card(title: AccountCopy.thisDevice) {
             notificationsRow
             DistrictRowDivider()
             signOutRow
@@ -235,8 +235,8 @@ struct AccountView: View {
             linkRow(
                 route: .devices,
                 identifier: A11yID.Account.devices,
-                title: "Devices",
-                subtitle: "See where you are signed in, and sign out a device you no longer have."
+                title: AccountCopy.devices,
+                subtitle: AccountCopy.seeWhereAreSigned
             )
         }
     }
@@ -276,8 +276,8 @@ struct AccountView: View {
     private var signOutRow: some View {
         Button(action: signOut) {
             DistrictListRow(
-                title: "Sign out",
-                subtitle: "Sign out of District AI on this device."
+                title: AccountCopy.signOut,
+                subtitle: AccountCopy.signOutDistrictAi
             )
         }
         .buttonStyle(.plain)
@@ -294,7 +294,7 @@ struct AccountView: View {
     /// row here starts an irreversible process and nothing routine should sit
     /// beside it.
     private var accountCard: some View {
-        card(title: "Your account") {
+        card(title: AccountCopy.yourAccount) {
             deleteAccountRow
         }
     }
@@ -313,8 +313,8 @@ struct AccountView: View {
     private var deleteAccountRow: some View {
         Button(action: openDeletionPage) {
             DistrictListRow(
-                title: "Delete account",
-                subtitle: "Request deletion of your account and its data. Opens in your browser.",
+                title: AccountCopy.deleteAccount,
+                subtitle: AccountCopy.requestDeletionAccountIts,
                 trailing: { glyph("arrow.up.right") }
             )
         }
@@ -339,10 +339,10 @@ struct AccountView: View {
     /// happen.
     private var footer: some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-            Text("District AI \(Self.appVersion) (\(Self.appBuild))")
-            Text("Installation id \(container.deviceId)")
+            Text(AccountCopy.versionLine(Self.appVersion, Self.appBuild))
+            Text(AccountCopy.installationId(container.deviceId))
                 .textSelection(.enabled)
-            Text("An opaque id for this install. It is cleared when you delete the app, and it identifies no hardware.")
+            Text(AccountCopy.opaqueIdInstallCleared)
         }
         .font(DistrictType.caption)
         .foregroundStyle(colors.mutedForeground)
@@ -454,10 +454,10 @@ struct AccountView: View {
     /// on every TestFlight build. The fallbacks exist because a preview and a unit
     /// host have no such keys, not because a shipped app can be missing them.
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? AccountCopy.unknownVersion
     }
 
     private static var appBuild: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? AccountCopy.unknownVersion
     }
 }

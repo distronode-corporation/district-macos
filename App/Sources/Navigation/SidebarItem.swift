@@ -37,22 +37,22 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
     /// The sidebar label, the iPad's wording.
     var title: String {
         switch self {
-        case .overview: "Overview"
-        case .inbox: "Inbox"
-        case .calls: "Calls"
-        case .contacts: "Contacts"
-        case .hq: "District HQ"
-        case .analytics: "Analytics"
-        case .marketplace: "Phone numbers"
-        case .billing: "Billing"
-        case .rooms: "Rooms"
-        case .workflows: "Workflows"
-        case .desk: "Desk"
-        case .dialer: "Dial"
-        case .scheduling: "Scheduling"
-        case .support: "Support"
-        case .settings: "Workspace settings"
-        case .account: "Account"
+        case .overview: NavigationCopy.tabOverview
+        case .inbox: NavigationCopy.tabInbox
+        case .calls: NavigationCopy.tabCalls
+        case .contacts: NavigationCopy.tabContacts
+        case .hq: HQCopy.title
+        case .analytics: NavigationCopy.analytics
+        case .marketplace: MarketplaceCopy.title
+        case .billing: BillingCopy.title
+        case .rooms: RoomsCopy.title
+        case .workflows: WorkflowsCopy.title
+        case .desk: DeskCopy.title
+        case .dialer: NavigationCopy.dial
+        case .scheduling: NavigationCopy.scheduling
+        case .support: SupportCopy.title
+        case .settings: SettingsCopy.hubTitle
+        case .account: NavigationCopy.tabAccount
         }
     }
 
@@ -104,11 +104,11 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
     /// words (`SidebarItem+Display.swift`); nil for a section with no list.
     var detailPlaceholder: (title: String, symbol: String)? {
         switch self {
-        case .inbox: ("Select a conversation", "tray")
-        case .calls: ("Select a call", "phone")
-        case .contacts: ("Select a contact", "person.2")
-        case .desk: ("Select a ticket", "tray.full")
-        case .support: ("Select a request", "lifepreserver")
+        case .inbox: (NavigationCopy.selectAConversation, "tray")
+        case .calls: (NavigationCopy.selectACall, "phone")
+        case .contacts: (NavigationCopy.selectAContact, "person.2")
+        case .desk: (NavigationCopy.selectATicket, "tray.full")
+        case .support: (NavigationCopy.selectARequest, "lifepreserver")
         case .overview, .account, .hq, .analytics, .marketplace, .billing, .rooms, .workflows, .dialer,
              .scheduling, .settings:
             nil

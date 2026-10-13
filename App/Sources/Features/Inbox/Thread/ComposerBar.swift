@@ -119,8 +119,8 @@ struct ComposerBar: View {
     /// under Swift 6 (see the custom lint rule in `.swiftlint.yml`).
     private var channelPicker: some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-            DistrictEyebrow(text: "Send on")
-            Picker("Send on", selection: selectedChannel) {
+            DistrictEyebrow(text: InboxCopy.sendOn)
+            Picker(InboxCopy.sendOn, selection: selectedChannel) {
                 // ⚠️ ITERATED BY INDEX, NOT BY `enumerated()`. A `ForEach` over
                 // `Array(x.enumerated())` needs a closure taking one LABELLED TUPLE, and
                 // Swift dropped implicit tuple splat in Swift 3, the two-parameter form
@@ -197,8 +197,8 @@ struct ComposerBar: View {
     private var subjectField: some View {
         if model.requiresSubject {
             VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-                DistrictEyebrow(text: "Subject")
-                TextField("Subject", text: subject)
+                DistrictEyebrow(text: InboxCopy.subject)
+                TextField(InboxCopy.subject, text: subject)
                     .disabled(content.sending)
                     .districtField()
             }
@@ -226,7 +226,7 @@ struct ComposerBar: View {
                     .foregroundStyle(colors.destructive)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if case .retry = failure.action {
-                    Button("Try again") { Task { await model.restoreDraft() } }
+                    Button(InboxCopy.tryAgain) { Task { await model.restoreDraft() } }
                         .buttonStyle(.districtGhost)
                 }
             }
@@ -263,7 +263,7 @@ struct ComposerBar: View {
                     .font(DistrictType.caption)
                     .foregroundStyle(colors.destructive)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Button("Dismiss") { model.dismissFailure() }
+                Button(InboxCopy.dismiss) { model.dismissFailure() }
                     .buttonStyle(.districtGhost)
             }
         }
@@ -283,9 +283,9 @@ struct ComposerBar: View {
                     ForEach(content.attachments, id: \.self) { url in
                         VStack(spacing: DistrictSpacing.hairline) {
                             ThreadMediaThumbnail(url: url)
-                            Button("Remove") { model.removeAttachment(url) }
+                            Button(InboxCopy.remove) { model.removeAttachment(url) }
                                 .buttonStyle(.districtGhost)
-                                .accessibilityLabel("Remove attachment")
+                                .accessibilityLabel(InboxCopy.removeAttachment)
                         }
                     }
                 }
@@ -305,8 +305,8 @@ struct ComposerBar: View {
     /// Material field floats it.
     private var field: some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-            DistrictEyebrow(text: "Reply")
-            TextField("Reply", text: text, axis: .vertical)
+            DistrictEyebrow(text: InboxCopy.reply)
+            TextField(InboxCopy.reply, text: text, axis: .vertical)
                 .lineLimit(1 ... 5)
                 .disabled(content.sending)
                 .districtField()
@@ -319,7 +319,7 @@ struct ComposerBar: View {
             attachControl
             // ⛔ ONE EXPLICIT TAP, BILLED, NEVER AUTOMATIC AND NEVER ON OPEN. Each
             // press is one Vertex generation against the workspace's 20/min.
-            Button(content.draftGenerating ? "Drafting…" : "Draft reply") {
+            Button(content.draftGenerating ? InboxCopy.drafting : InboxCopy.draftReply) {
                 Task { await model.generateDraft() }
             }
             .buttonStyle(.districtGhost)
@@ -350,7 +350,7 @@ struct ComposerBar: View {
             // fine. ⚠️ Do not inline either one back into the closure, and do not
             // reach for `colorScheme` in there either.
             let ink = colors.mutedForeground
-            let label = content.attaching ? "Attaching…" : "Attach image"
+            let label = content.attaching ? InboxCopy.attaching : InboxCopy.attachImage
             PhotosPicker(selection: $picked, matching: .images, preferredItemEncoding: .compatible) {
                 // ⚠️ STYLED DIRECTLY RATHER THAN THROUGH `.buttonStyle`. A
                 // `PhotosPicker` is not documented to forward a custom button style
@@ -368,7 +368,7 @@ struct ComposerBar: View {
             // goes through the same model call, so the type and size rules are the
             // same; unlike the picker it is not transcoded, so a HEIC file is refused by
             // the model with the iPad's sentence rather than converted.
-            Button(content.attaching ? "Attaching…" : "Attach file") { choosingFile = true }
+            Button(content.attaching ? InboxCopy.attaching : InboxCopy.attachFile) { choosingFile = true }
                 .buttonStyle(.districtGhost)
                 .disabled(content.attaching || content.sending)
         }
@@ -386,7 +386,7 @@ struct ComposerBar: View {
     /// catch it; ``ThreadModel/canSendNow`` holds both rules so the button and the
     /// model can never disagree about them.
     private var sendControl: some View {
-        Button(content.sending ? "Sending…" : "Send") {
+        Button(content.sending ? InboxCopy.sending : InboxCopy.send) {
             Task { await model.send() }
         }
         .buttonStyle(.districtPrimary)

@@ -44,7 +44,7 @@ enum ShellColumns {
 
     /// The menu command's and the toolbar button's words, the system's own.
     static func commandTitle(sidebarShown: Bool) -> String {
-        sidebarShown ? "Hide Sidebar" : "Show Sidebar"
+        sidebarShown ? NavigationCopy.hideSidebar : NavigationCopy.showSidebar
     }
 }
 

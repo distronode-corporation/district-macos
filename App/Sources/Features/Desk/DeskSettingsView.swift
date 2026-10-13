@@ -58,7 +58,7 @@ struct DeskSettingsView: View {
             .navigationTitle(DeskCopy.settingsTitle)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(DeskCopy.done) {
                         onDismiss()
                         dismiss()
                     }

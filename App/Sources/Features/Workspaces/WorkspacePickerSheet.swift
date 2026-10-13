@@ -28,12 +28,12 @@ struct WorkspacePickerSheet: View {
                 colors.background.ignoresSafeArea()
                 rows
             }
-            .navigationTitle("Workspaces")
+            .navigationTitle(WorkspacesCopy.workspaces)
             // ⚠️ A MAC SHEET HAS NO SWIPE TO DISMISS, so it carries the Cancel that
             // takes Esc; and no size of its own, so it states one.
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(WorkspacesCopy.cancel) { dismiss() }
                 }
             }
         }
@@ -109,8 +109,8 @@ struct WorkspacePickerSheet: View {
     /// the LIST's membership role, which the overview's effective role may override
     /// upward, so it is a label here and never a gate.
     private static func subtitle(for entry: WorkspaceEntry) -> String {
-        let region = "Region: \(RegionCopy.label(entry.region))"
+        let region = WorkspacesCopy.regionLine(RegionCopy.label(entry.region))
         guard let role = WorkspaceRole.fromWire(entry.role) else { return region }
-        return "\(region) · \(role.displayLabel)"
+        return WorkspacesCopy.regionAndRole(region, role.displayLabel)
     }
 }

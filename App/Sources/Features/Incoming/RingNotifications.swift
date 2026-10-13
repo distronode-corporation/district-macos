@@ -26,8 +26,13 @@ enum RingNotifications {
     static let answerAction = "district.call.answer"
     static let declineAction = "district.call.decline"
 
-    static let answerTitle = "Answer"
-    static let declineTitle = "Decline"
+    static var answerTitle: String {
+        IncomingCallCopy.answer
+    }
+
+    static var declineTitle: String {
+        IncomingCallCopy.decline
+    }
 
     /// The category to register at launch.
     ///

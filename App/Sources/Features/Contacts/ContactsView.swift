@@ -58,7 +58,7 @@ private struct ContactsScreen: View {
 
     var body: some View {
         content
-            .navigationTitle("Contacts")
+            .navigationTitle(ContactsCopy.contacts)
             // ⛔ `.contain` FIRST, or this identifier is inherited by every row and
             // `A11yID.Contacts.row(id)` stops resolving. See SignInView's note.
             .accessibilityElement(children: .contain)
@@ -94,7 +94,7 @@ private struct ContactsScreen: View {
     private var addContactItem: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             if model.canMutate {
-                Button("Add contact") { creating = true }
+                Button(ContactsCopy.addContact) { creating = true }
             }
         }
     }
@@ -137,17 +137,17 @@ private struct ContactsScreen: View {
         if model.canMutate {
             EmptyStateView(
                 systemImage: "person.2",
-                title: "No contacts yet",
-                message: "Callers are added automatically as they come in."
+                title: ContactsCopy.noContactsYet,
+                message: ContactsCopy.callersAreAddedAutomatically
             ) {
-                Button("Add a contact") { creating = true }
+                Button(ContactsCopy.addAContact) { creating = true }
                     .buttonStyle(.districtPrimary)
             }
         } else {
             EmptyStateView(
                 systemImage: "person.2",
-                title: "No contacts yet",
-                message: "Callers are added automatically as they come in."
+                title: ContactsCopy.noContactsYet,
+                message: ContactsCopy.callersAreAddedAutomatically
             )
         }
     }
@@ -182,7 +182,7 @@ private struct ContactsScreen: View {
     }
 
     private var readOnlyCaption: some View {
-        Text("Read-only access, editing is disabled.")
+        Text(ContactsCopy.readOnlyAccessEditing)
             .font(DistrictType.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, DistrictSpacing.gutter)

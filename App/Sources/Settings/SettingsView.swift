@@ -22,7 +22,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Calls") {
+            Section(AppSettingsCopy.callsSection) {
                 RingHereToggle(live: live)
                 AudioDevicePickers(devices: container.callStack.devices)
             }
@@ -31,12 +31,12 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             #if DEVELOPER_ID
-                Section("Updates") {
+                Section(AppSettingsCopy.updatesSection) {
                     AutomaticUpdatesToggle()
                 }
             #endif
-            Section("About") {
-                LabeledContent("Version", value: Self.version)
+            Section(AppSettingsCopy.aboutSection) {
+                LabeledContent(AppSettingsCopy.version, value: Self.version)
             }
         }
         .formStyle(.grouped)

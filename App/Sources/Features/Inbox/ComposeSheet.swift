@@ -62,7 +62,7 @@ struct ComposeSheet: View {
                 .padding(DistrictSpacing.gutter)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle("New message")
+            .navigationTitle(InboxCopy.newMessage)
             .toolbar { toolbar }
             // ⛔ ``ComposeModel/prepare()``, NOT A BARE READ. The model is held at the
             // inbox screen's scope so a presentation cannot rebuild it mid-flight, which
@@ -87,7 +87,7 @@ struct ComposeSheet: View {
         } else {
             VStack(alignment: .leading, spacing: DistrictSpacing.row) {
                 SettingsField(
-                    label: "To",
+                    label: InboxCopy.to,
                     // ⛔ A CLOSURE LITERAL, NEVER A BARE METHOD REFERENCE, see the
                     // custom rule in `.swiftlint.yml`.
                     text: Binding(get: { model.query }, set: { model.query = $0 }),
@@ -111,7 +111,7 @@ struct ComposeSheet: View {
             : AnyLayout(HStackLayout(alignment: .top, spacing: DistrictSpacing.tight))
         return layout {
             VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-                DistrictEyebrow(text: "To")
+                DistrictEyebrow(text: InboxCopy.to)
                 Text(Self.label(for: recipient))
                     .font(DistrictType.bodySmall)
                     .foregroundStyle(colors.foreground)
@@ -121,7 +121,7 @@ struct ComposeSheet: View {
             if !dynamicTypeSize.isAccessibilitySize {
                 Spacer(minLength: 0)
             }
-            Button("Change") { model.clearRecipient() }
+            Button(InboxCopy.change) { model.clearRecipient() }
                 .buttonStyle(.districtGhost)
                 .disabled(sending)
         }
@@ -133,7 +133,7 @@ struct ComposeSheet: View {
     private var typedAddressRow: some View {
         let trimmed = model.query.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
-            Button("Message \(trimmed)") { model.useTypedAddress() }
+            Button(InboxCopy.messageAddress(trimmed)) { model.useTypedAddress() }
                 .buttonStyle(.districtGhost)
                 .disabled(sending)
         }
@@ -158,7 +158,7 @@ struct ComposeSheet: View {
         case let .failed(failure):
             // ⛔ A CAPTION, NOT A DEAD END. Typing an address needs no CRM read, so a
             // failed suggestion list must not stop somebody composing.
-            Text("\(failure.message) You can still enter a number or an email address above.")
+            Text(InboxCopy.suggestionsFailed(failure.message))
                 .font(DistrictType.caption)
                 .foregroundStyle(colors.mutedForeground)
         }
@@ -189,7 +189,7 @@ struct ComposeSheet: View {
     @ViewBuilder
     private var contactsCaption: some View {
         if case .ready = model.contactsState {
-            Text("Showing your most recent contacts. For anyone else, type their number or email.")
+            Text(InboxCopy.showingMostRecentContacts)
                 .font(DistrictType.caption)
                 .foregroundStyle(colors.mutedForeground)
         }
@@ -209,8 +209,8 @@ struct ComposeSheet: View {
         let choices = model.channelChoices
         if choices.count > 1 {
             VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-                DistrictEyebrow(text: "Send on")
-                Picker("Send on", selection: channel) {
+                DistrictEyebrow(text: InboxCopy.sendOn)
+                Picker(InboxCopy.sendOn, selection: channel) {
                     // ⚠️ BY INDEX RATHER THAN `enumerated()`, for the reason
                     // ``ComposerBar``'s own picker states: the two-parameter closure over
                     // a labelled tuple does not compile under Swift 6 mode.
@@ -237,7 +237,7 @@ struct ComposeSheet: View {
             // ⚠️ A CONTACT WITH NEITHER A NUMBER NOR AN ADDRESS IS LEGAL, the CRM is
             // email-first and admits phone-less rows, so this is a real state and it
             // gets a sentence rather than a disabled control with no explanation.
-            Text("This contact has no phone number or email address on file.")
+            Text(InboxCopy.contactHasNoPhone)
                 .font(DistrictType.caption)
                 .foregroundStyle(colors.destructive)
         }
@@ -280,13 +280,13 @@ struct ComposeSheet: View {
             // derive a `Re:` from, and this client invents no topic.
             if model.requiresSubject {
                 SettingsField(
-                    label: "Subject",
+                    label: InboxCopy.subject,
                     text: Binding(get: { subject }, set: { subject = $0 }),
                     enabled: !sending
                 )
             }
             SettingsField(
-                label: "Message",
+                label: InboxCopy.message2,
                 text: Binding(get: { messageText }, set: { messageText = $0 }),
                 enabled: !sending,
                 multiline: true
@@ -309,12 +309,12 @@ struct ComposeSheet: View {
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Cancel") { dismiss() }
+            Button(InboxCopy.cancel) { dismiss() }
                 .disabled(sending)
                 .keyboardShortcut(.cancelAction)
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button(sending ? "Sending…" : "Send") { Task { await submit() } }
+            Button(sending ? InboxCopy.sending : InboxCopy.send) { Task { await submit() } }
                 // ⛔ DISABLED FOR THE WHOLE ROUND TRIP, AND THAT GUARD IS ABOUT MONEY.
                 // A send is billable carrier segments or a Postmark send, capped at
                 // 30/min per workspace; a second tap must not become a second charge

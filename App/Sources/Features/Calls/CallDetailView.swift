@@ -37,7 +37,7 @@ struct CallDetailView: View {
 
     var body: some View {
         content
-            .navigationTitle("Call")
+            .navigationTitle(CallsCopy.call)
             // ⛔ `.contain` FIRST, or this identifier is inherited by the transcript
             // and every card and none of them can be addressed. Same trap
             // `SignInView`'s root documents, measured there rather than reasoned
@@ -75,7 +75,7 @@ struct CallDetailView: View {
                 // says nothing about what is behind it. ⛔ Naming that constructor
                 // in a comment is what the gate counts, see the ⛔ in
                 // `ThreadModerationMenu`.
-                Text("Manage")
+                Text(CallsCopy.manage)
             }
             .accessibilityIdentifier(A11yID.Calls.detailMenu)
         }
@@ -85,7 +85,7 @@ struct CallDetailView: View {
     private var content: some View {
         switch model.state {
         case .loading:
-            LoadingView(message: "Loading call…")
+            LoadingView(message: CallsCopy.loadingCall)
         case let .content(call):
             CallDetailContentView(call: call, model: model)
         case let .failed(failure):
@@ -123,10 +123,10 @@ private struct CallDetailContentView: View {
                 // is never empty and is often a marker: every outbound softphone
                 // call carries the literal "direct:softphone" there, permanently,
                 // and it would print under this heading. See ``CallNarrative``.
-                card("AI summary", display.aiSummaryText)
+                card(CallsCopy.aiSummary, display.aiSummaryText)
                 summaryNote
-                card("Sentiment", call.sentiment)
-                card("Outcome", call.disposition)
+                card(CallsCopy.sentiment, call.sentiment)
+                card(CallsCopy.outcome, call.disposition)
                 transferCard
                 followUpCard
                 analysisCards
@@ -191,7 +191,7 @@ private struct CallDetailContentView: View {
     @ViewBuilder
     private var transferCard: some View {
         if let status = call.transferStatus {
-            card("Transfer", [status, call.transferReason].compactMap(\.self).joined(separator: " · "))
+            card(CallsCopy.transfer, [status, call.transferReason].compactMap(\.self).joined(separator: " · "))
         }
     }
 
@@ -201,7 +201,7 @@ private struct CallDetailContentView: View {
     @ViewBuilder
     private var followUpCard: some View {
         if let followUp = call.followUp {
-            card("Follow-up sent", [followUp.email, followUp.sms].compactMap(\.self).joined(separator: "\n"))
+            card(CallsCopy.followUpSent, [followUp.email, followUp.sms].compactMap(\.self).joined(separator: "\n"))
         }
     }
 
@@ -210,10 +210,10 @@ private struct CallDetailContentView: View {
     @ViewBuilder
     private var analysisCards: some View {
         if let analysis = call.analysis {
-            listCard("Key points", analysis.keyPoints)
-            listCard("Objections", analysis.objections)
-            listCard("Topics", analysis.topics)
-            listCard("Action items", analysis.actionItems)
+            listCard(CallsCopy.keyPoints, analysis.keyPoints)
+            listCard(CallsCopy.objections, analysis.objections)
+            listCard(CallsCopy.topics, analysis.topics)
+            listCard(CallsCopy.actionItems, analysis.actionItems)
         }
     }
 
@@ -242,7 +242,7 @@ private struct CallDetailContentView: View {
     private var onDemandTranscript: some View {
         switch model.transcript {
         case .idle:
-            Button("Show transcript") {
+            Button(CallsCopy.showTranscript) {
                 Task { await model.loadTranscript() }
             }
             .buttonStyle(.districtSecondary)
@@ -252,10 +252,10 @@ private struct CallDetailContentView: View {
         case .loading:
             ProgressView()
         case let .loaded(text):
-            DetailFieldCard(label: "Transcript", value: text)
+            DetailFieldCard(label: CallsCopy.transcript, value: text)
                 .accessibilityIdentifier(A11yID.Calls.transcript)
         case .absent:
-            note("No transcript for this call.")
+            note(CallsCopy.noTranscriptCall)
         case let .failed(failure):
             failureNote(failure)
         }

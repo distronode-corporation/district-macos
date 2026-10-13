@@ -27,7 +27,7 @@ struct SignInView: View {
             Image(systemName: "phone.bubble")
                 .font(.system(size: 48))
                 .foregroundStyle(.tint)
-            Text("District AI")
+            Text(SignInCopy.districtAi)
                 .font(.largeTitle.weight(.semibold))
             if !reason.isEmpty {
                 Text(reason)

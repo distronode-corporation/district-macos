@@ -73,18 +73,18 @@ struct CallLogTable: View {
     var body: some View {
         let rows = CallLogRow.rows(calls, sortedBy: sortOrder)
         Table(rows, selection: selectedId, sortOrder: $sortOrder) {
-            TableColumn("Caller", value: \.caller) { row in
+            TableColumn(CallsCopy.columnCaller, value: \.caller) { row in
                 Text(row.caller)
                     .lineLimit(1)
                     .accessibilityIdentifier(A11yID.Calls.row(row.id))
                     .onAppear { reached(row, in: rows) }
             }
             .width(min: 120, ideal: 120)
-            TableColumn("Direction", value: \.direction) { row in
+            TableColumn(CallsCopy.columnDirection, value: \.direction) { row in
                 Text(row.direction)
             }
             .width(min: 66, ideal: 66)
-            TableColumn("When", value: \.instant) { row in
+            TableColumn(CallsCopy.columnWhen, value: \.instant) { row in
                 Text(row.display.time)
                     .monospacedDigit()
             }
@@ -93,14 +93,14 @@ struct CallLogTable: View {
             // give up the room, so the five fit the list column's minimum width
             // (``ShellView``), with no horizontal scroll.
             .width(min: 172, ideal: 172)
-            TableColumn("Duration", value: \.seconds) { row in
+            TableColumn(CallsCopy.columnDuration, value: \.seconds) { row in
                 Text(row.display.durationLabel ?? "")
                     .monospacedDigit()
             }
             .width(min: 56, ideal: 56)
             // ⚠️ MAC: A TRANSFER OUTCOME STACKS OVER THE STATUS rather than beside it, so the
             // column is one badge wide and a two-badge row grows a line instead of scrolling.
-            TableColumn("Status", value: \.status) { row in
+            TableColumn(CallsCopy.columnStatus, value: \.status) { row in
                 VStack(alignment: .leading, spacing: 2) {
                     if let transfer = row.display.transferLabel {
                         DistrictBadge(text: transfer, tone: row.display.transferTone)

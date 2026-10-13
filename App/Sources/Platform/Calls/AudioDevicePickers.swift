@@ -25,15 +25,26 @@ struct AudioDevicePickers: View {
         .onAppear { devices.refresh() }
     }
 
-    static let microphoneLabel = "Microphone"
-    static let speakerLabel = "Speaker"
+    static var microphoneLabel: String {
+        DialerCopy.audioMicrophoneLabel
+    }
+
+    static var speakerLabel: String {
+        DialerCopy.audioSpeakerLabel
+    }
+
     /// What the default entry is called. ⚠️ It follows the system's choice, which changes
     /// when a headset is plugged in, so it is named for that rather than for a device.
-    static let systemDefault = "System default"
+    static var systemDefault: String {
+        DialerCopy.audioSystemDefault
+    }
+
     /// ⚠️ A REMEMBERED DEVICE THAT IS NOT CONNECTED STAYS SELECTED, NAMED AS ABSENT, rather
     /// than the picker silently showing the default: the next call will use the default,
     /// and the person should be able to see why.
-    static let disconnected = "Not connected"
+    static var disconnected: String {
+        DialerCopy.audioDisconnected
+    }
 
     /// One picker entry: what is stored when it is chosen, and what it says.
     struct Entry: Equatable, Identifiable {
