@@ -383,9 +383,12 @@ above:
 
 ## Copy
 
-Every user-visible string is the iOS app's, word for word. The iOS app is English only:
-its one `Localizable.strings` holds the six notification strings, which this app already
-carries, and there are no other localisations to port. Where a sentence has to differ on
+Every user-visible string is the iOS app's, word for word. Both apps keep their strings in
+a catalog (`l10n/macos.toml` here, district-ios's `l10n/ios.toml` there, with the same keys
+wherever the English is the same), generated into the `*Copy` enums by
+`scripts/gen-l10n.py`; the six notification strings are generated from `l10n/push.toml`
+into `App/Resources/en.lproj/Localizable.strings`. French (fr-CA) is off until a build sets
+`DISTRICT_FRENCH` (see `project.fr.yml`). Where a sentence has to differ on
 a Mac, the line carries a `⚠️` comment saying why, and the matching test is changed with
 it. So far: the notifications line and the dialler's microphone refusal say "System
 Settings" where iOS says "iOS Settings" or "Settings"; the emergency-number hand-off says
