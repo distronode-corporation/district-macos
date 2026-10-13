@@ -48,6 +48,11 @@ not sent.
   on a stale generated file or a broken catalog rule, and `StoreCopyTests` scans the
   catalog as well as the sources. English is unchanged and nothing is French: `AppL10n`
   keeps the language English until a build ships French.
+- Two CalDAV sentences lose their em dash, the one deliberate change to English in 3.0's
+  catalog work: "The server address must start with https://, because an app password sent
+  over http:// travels in the clear." and "Finish in the browser, then come back: this page
+  re-reads itself." (the same change in district-ios). The public-hygiene dash rule no
+  longer exempts `l10n/` and the generated Swift, which now hold no dash.
 - The rest of the app's own words joined the catalog: the inline `Text`, `Button`, `Label`,
   alert and empty-state literals of the views (new `*Copy` namespaces in
   `App/Sources/L10n/CopyNamespaces.swift` for the screens that had none), the Mac's own
