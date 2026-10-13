@@ -32,7 +32,9 @@
 --importgrouping alpha
 
 # Generated and vendored trees. All are gitignored, but --lint would still walk them.
---exclude .build,**/.build,DerivedData,**/DerivedData,SourcePackages,*.xcodeproj
+# The Swift `l10n.py gen` writes from l10n/macos.toml is excluded too: it is checked against
+# the catalog by `l10n.py check` instead.
+--exclude .build,**/.build,DerivedData,**/DerivedData,SourcePackages,*.xcodeproj,App/Sources/L10n/Generated
 
 # ⚠️ `redundantInit` OFF, as in district-ios: it has historically got `map(Foo.init)`
 # wrong inside result-builder bodies.

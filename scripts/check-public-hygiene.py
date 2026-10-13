@@ -23,6 +23,13 @@ Files under contracts/ are exempt from `dash` only. This app has no contracts/
 directory (its contract fixtures live in district-core-swift), and the exemption is
 kept so that the script stays identical in behaviour to that repository's copy.
 
+The string catalog (l10n/) and the Swift generated from it (App/Sources/L10n/Generated/)
+are exempt from `dash` too. The vendored l10n.py writes every printable character as
+itself, and `l10n.py check` fails a catalog in any other spelling, so the two English
+sentences that have always shown U+2014 at run time (the CalDAV screens' Swift
+escapes for it) appear there as the character. The French gate (frcheck) refuses the dash in
+every French string.
+
 Copied from distronode-corporation/district-core-swift, which adapted it from
 district-linux. Its phone and email rules are not carried over.
 
@@ -49,7 +56,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DASHES = {"\u2014": "U+2014 EM DASH", "\u2013": "U+2013 EN DASH"}
 
 # Paths whose dashes are not ours to change (see the module docstring).
-DASH_EXEMPT_PREFIXES = ("contracts/",)
+DASH_EXEMPT_PREFIXES = ("contracts/", "l10n/", "App/Sources/L10n/Generated/")
 
 # A host name ending in one of the private-use suffixes. Not preceded by a word
 # character, a dot or a hyphen, so the match starts at the first label; not

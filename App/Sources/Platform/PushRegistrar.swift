@@ -101,7 +101,7 @@ final class PushRegistrar {
             }
         case let .failure(error):
             switch error {
-            case let .http(status, _): .refused(status: status)
+            case let .http(status, _, _): .refused(status: status)
             case .transport: .unreachable
             case .decoding: .refused(status: 200)
             }
