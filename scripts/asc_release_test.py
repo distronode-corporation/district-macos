@@ -235,6 +235,71 @@ class SubmitTests(unittest.TestCase):
         self.assertIn("sub1 is UNRESOLVED_ISSUES with 1.2.1, not 1.3", out)
         self.assertEqual(client.writes(), [])
 
+    def test_unresolved_submission_of_this_version_is_resolved_and_resubmitted(self) -> None:
+        items = _items(("v13", "1.3"))
+        items["data"][0].update({"id": "item1", "attributes": {"state": "REJECTED"}})
+        client = FakeClient(_submit_gets([{"id": "sub1", "attributes": {"state": "UNRESOLVED_ISSUES"}}], {"sub1": items}))
+        out = self.submit(client)
+        self.assertNotIn("EXIT", out)
+        self.assertIn("SUBMITTED - 1.3 (4110) for App Review again; submission sub1 is WAITING_FOR_REVIEW.", out)
+        # Resolved, then submitted again; never cancelled and never a second submission.
+        self.assertEqual(
+            client.writes(), [("PATCH", "/reviewSubmissionItems/item1"), ("PATCH", "/reviewSubmissions/sub1")]
+        )
+
+    def test_a_refused_resubmission_stops_with_apples_words_and_the_app_store_connect_step(self) -> None:
+        class Refusing(FakeClient):
+            def call(self, method, path, body=None, ok=(200, 201, 204)):
+                if method == "PATCH" and path == "/reviewSubmissions/sub1":
+                    self.calls.append((method, path))
+                    assert 409 in ok, "the resubmit PATCH must accept a refusal to explain it"
+                    return 409, {"errors": [{"code": "STATE_ERROR", "detail": "cannot be submitted"}]}
+                return super().call(method, path, body, ok)
+
+        client = Refusing(_submit_gets([{"id": "sub1", "attributes": {"state": "UNRESOLVED_ISSUES"}}], {"sub1": _items(("v13", "1.3"))}))
+        out = self.submit(client)
+        self.assertIn("EXIT 1", out)
+        self.assertIn("refused to resubmit sub1 (409: STATE_ERROR: cannot be submitted)", out)
+        self.assertIn("click Resubmit to App Review; version 1.3 (4110) is attached", out)
+
+    @staticmethod
+    def rename_gets(editable: list[tuple[str, str, str]]) -> dict[str, dict]:
+        """Answers for 1.3 with no record of its own; the platform holds `editable`."""
+        gets = {"/apps/app1/appStoreVersions?filter[versionString]=1.3": {"data": []}}
+        gets.update(_submit_gets([], {"new-sub": _items()}))
+        gets["/apps/app1/appStoreVersions?"] = {
+            "data": [{"id": vid, "attributes": {"versionString": vs, "appVersionState": st}} for vid, vs, st in editable]
+        }
+        gets["/appStoreVersions/v10/relationships/build"] = {"data": {"id": "build0"}}
+        return gets
+
+    def test_the_platforms_rejected_version_is_renamed_rather_than_a_second_created(self) -> None:
+        client = FakeClient(self.rename_gets([("v10", "1.0", "REJECTED")]))
+        out = self.submit(client)
+        self.assertNotIn("EXIT", out)
+        self.assertIn("version 1.3: renamed record v10 from 1.0 (REJECTED)", out)
+        self.assertEqual(
+            client.writes(),
+            [
+                ("PATCH", "/appStoreVersions/v10"),
+                ("PATCH", "/appStoreVersions/v10/relationships/build"),
+                ("POST", "/reviewSubmissions"),
+                ("POST", "/reviewSubmissionItems"),
+                ("PATCH", "/reviewSubmissions/new-sub"),
+            ],
+        )
+
+    def test_an_editable_version_is_never_renamed_down_and_two_are_refused(self) -> None:
+        for editable, words in (
+            ([("v14", "1.4", "PREPARE_FOR_SUBMISSION")], "the editable MAC_OS version is '1.4', not below 1.3"),
+            ([("v10", "1.0", "REJECTED"), ("v11", "1.1", "PREPARE_FOR_SUBMISSION")], "more than one editable version (1.0, 1.1)"),
+        ):
+            client = FakeClient(self.rename_gets(editable))
+            out = self.submit(client)
+            self.assertIn("EXIT 1", out)
+            self.assertIn(words, out)
+            self.assertEqual(client.writes(), [])
+
     def test_open_draft_gets_the_version_and_is_submitted(self) -> None:
         client = FakeClient(
             _submit_gets([{"id": "draft1", "attributes": {"state": "READY_FOR_REVIEW"}}], {"draft1": _items()})

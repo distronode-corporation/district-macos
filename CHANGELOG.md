@@ -57,11 +57,24 @@ not sent.
 
 ### Release process
 
+- Submitting a version with no App Store Connect record of its own renames the platform's one
+  editable version (a rejected version that was never approved, as Mac 1.0 is) rather than
+  creating a second one, which App Store Connect refuses, and only upwards. A review
+  submission in Unresolved Issues that carries the version is resubmitted (its rejected
+  items marked resolved, then submitted again) instead of being reported as already
+  submitted; when Apple refuses, the run stops with Apple's words and the App Store
+  Connect step to take.
 - The Developer ID build can be published: `publish.yml` (called by `release.yml` on an
   approved tag, or dispatched for a tag built earlier) makes it an immutable GitHub
   Release with its Sparkle signature, checksums and provenance attestation, and adds it
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
+
+## [2.0.1] - 2026-10-13
+
+### Fixed
+
+- The Billing page names your plan ("Voice Pro") instead of its internal key ("VoicePro").
 
 ## [2.0]
 

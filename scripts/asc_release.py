@@ -29,7 +29,10 @@ reaches curl on stdin (`-K -`), never on argv, which is world-readable through `
 
 `submit` is written to be re-run after a partial failure: every step reads the current
 state first and does only what is missing, and a version that is already waiting for or
-in review is reported and left alone rather than submitted twice.
+in review is reported and left alone rather than submitted twice. A version with no
+record of its own takes over the platform's one editable record (a rejected version
+that was never approved, for one), and a submission App Review left in
+UNRESOLVED_ISSUES with this version is resubmitted, not duplicated.
 """
 
 from __future__ import annotations
@@ -68,6 +71,16 @@ ALREADY_SUBMITTED = {
 }
 # reviewSubmission states that mean a submission is already with Apple.
 SUBMISSION_IN_FLIGHT = {"WAITING_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES"}
+# appStoreVersion states in which the record can still be edited and submitted: not with
+# Apple, never approved. App Store Connect keeps at most one such version per platform
+# and refuses to create a second, so a new version string reuses it (see `submit`).
+EDITABLE_STATES = {
+    "PREPARE_FOR_SUBMISSION",
+    "DEVELOPER_REJECTED",
+    "REJECTED",
+    "METADATA_REJECTED",
+    "INVALID_BINARY",
+}
 # Version states from approval onwards. App Store Connect closes a train once a version
 # is approved: it refuses any new build whose CFBundleShortVersionString is not above the
 # highest approved version (district-ios learned this from an upload refused after a
@@ -495,6 +508,103 @@ def set_whats_new(client: Client, app: str, version: str, version_id: str, notes
         print(f"whatsNew ({locale}): set")
 
 
+def editable_version(client: Client, app: str, version: str) -> dict | None:
+    """The platform's one editable version record (never approved, not with Apple), when
+    `version` has no record of its own; None when there is none to reuse.
+
+    ⛔ APP STORE CONNECT REFUSES A SECOND EDITABLE VERSION. While a version is still
+    editable (prepared, or rejected and never approved, as Mac 1.0 was from 2026-10-09)
+    a POST of another version string is refused, so the next release renames that
+    record, as the version field in App Store Connect does. Only upwards: a record above
+    `version` is refused rather than renamed down, and two editable records stop the run.
+    """
+    records = client.get(
+        f"/apps/{app}/appStoreVersions?filter[platform]={PLATFORM}&limit=200"
+        "&fields[appStoreVersions]=versionString,appStoreState,appVersionState"
+    )["data"]
+    editable = [
+        r for r in records if (r["attributes"].get("appVersionState") or r["attributes"].get("appStoreState")) in EDITABLE_STATES
+    ]
+    if not editable:
+        return None
+    if len(editable) > 1:
+        names = ", ".join(sorted(r["attributes"].get("versionString") or "?" for r in editable))
+        die(f"{PLATFORM} has more than one editable version ({names}); expected at most one. Nothing was submitted.")
+    record = editable[0]
+    other = record["attributes"].get("versionString") or ""
+    if not re.fullmatch(r"\d+(\.\d+){1,2}", other) or version_key(other) >= version_key(version):
+        die(
+            f"the editable {PLATFORM} version is '{other}', not below {version}, so it is not renamed. "
+            "Nothing was submitted."
+        )
+    return record
+
+
+def rename_version(client: Client, record: dict, version: str) -> dict:
+    """Sets an editable record's version string to `version` and returns the record."""
+    attrs = record["attributes"]
+    state = attrs.get("appVersionState") or attrs.get("appStoreState")
+    client.call(
+        "PATCH",
+        f"/appStoreVersions/{record['id']}",
+        {"data": {"type": "appStoreVersions", "id": record["id"], "attributes": {"versionString": version}}},
+    )
+    print(f"version {version}: renamed record {record['id']} from {attrs.get('versionString')} ({state}), the platform's editable version")
+    return {"id": record["id"], "attributes": {**attrs, "versionString": version}}
+
+
+def resubmit(client: Client, submission: str, version: str, build: str, version_id: str) -> None:
+    """Sends a submission App Review left in UNRESOLVED_ISSUES back to review, once the
+    version it carries has its new build: each of its rejected items for this version is
+    marked resolved, then the submission is submitted again.
+
+    ⛔ WHAT "Resubmit to App Review" DOES IN APP STORE CONNECT, AND NOTHING ELSE. The
+    submission is not cancelled, so App Review's thread on it is kept. When Apple refuses
+    either step, the run stops with Apple's words and the step to take in App Store
+    Connect; the version record, its build and its notes are already in place by then.
+    """
+    # ⚠️ `include` IS WHAT MAKES APPLE SEND THE ITEM'S appStoreVersion; without it the
+    # relationship carries no data (read live 2026-10-13).
+    page = client.get(
+        f"/reviewSubmissions/{submission}/items?include=appStoreVersion"
+        "&fields[reviewSubmissionItems]=state,appStoreVersion&fields[appStoreVersions]=versionString"
+    )
+    ui_step = (
+        f"In App Store Connect, open the app's App Review page, select submission {submission} "
+        f"(macOS, Unresolved Issues) and click Resubmit to App Review; version {version} ({build}) is attached. "
+        "Or cancel that submission there and dispatch submit.yml again."
+    )
+    for item in page["data"]:
+        carried = (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id")
+        state = item.get("attributes", {}).get("state")
+        if carried != version_id or state != "REJECTED":
+            continue
+        code, answer = client.call(
+            "PATCH",
+            f"/reviewSubmissionItems/{item['id']}",
+            {"data": {"type": "reviewSubmissionItems", "id": item["id"], "attributes": {"resolved": True}}},
+            ok=(200, 400, 403, 409, 422),
+        )
+        if code != 200:
+            die(f"App Store Connect refused to mark item {item['id']} of {submission} resolved ({code}: {_reason(answer)}). {ui_step}")
+        print(f"review submission {submission}: item {item['id']} marked resolved")
+    code, answer = client.call(
+        "PATCH",
+        f"/reviewSubmissions/{submission}",
+        {"data": {"type": "reviewSubmissions", "id": submission, "attributes": {"submitted": True}}},
+        ok=(200, 400, 403, 409, 422),
+    )
+    if code != 200:
+        die(f"App Store Connect refused to resubmit {submission} ({code}: {_reason(answer)}). {ui_step}")
+    state = (answer.get("data") or {}).get("attributes", {}).get("state")
+    print(f"SUBMITTED - {version} ({build}) for App Review again; submission {submission} is {state}.")
+
+
+def _reason(answer: object) -> str:
+    errors = answer.get("errors", []) if isinstance(answer, dict) else []
+    return "; ".join(f"{e.get('code')}: {e.get('detail') or e.get('title')}" for e in errors) or "no detail"
+
+
 def submit(client: Client, version: str, build: str, notes: "str | ReleaseNotes", timeout: int) -> None:
     app = app_id(client)
     built = wait_valid(client, app, version, build, timeout)
@@ -511,6 +621,8 @@ def submit(client: Client, version: str, build: str, notes: "str | ReleaseNotes"
         if state in ALREADY_SUBMITTED:
             print(f"version {version} is already {state}. Nothing was submitted.")
             return
+    elif (editable := editable_version(client, app, version)) is not None:
+        record = rename_version(client, editable, version)
     else:
         _, created = client.call(
             "POST",
@@ -558,6 +670,9 @@ def submit(client: Client, version: str, build: str, notes: "str | ReleaseNotes"
         # carries this version; one for another version blocks this one, and reporting
         # success would leave this version out of review with a green run.
         carried = submission_versions(client, sub["id"])
+        if version_id in carried and state == "UNRESOLVED_ISSUES":
+            resubmit(client, sub["id"], version, build, version_id)
+            return
         if version_id in carried:
             print(f"review submission {sub['id']} is already {state}. Nothing was submitted.")
             return
