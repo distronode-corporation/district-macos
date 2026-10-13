@@ -70,8 +70,36 @@ struct ShellPaths: Equatable {
             return
         }
         guard next != previous else { return }
+        reset(to: next)
+    }
+
+    /// Make `next` the tenant these stacks belong to, with nothing left on any of them.
+    ///
+    /// ⚠️ CALLED DIRECTLY BY ``ShellView``'s `apply` as well as by ``adopt(_:)``, as on iOS,
+    /// and that is what stops a link's own route being cleared a moment after it lands:
+    /// the switch is stamped here, synchronously, so the `onChange` that fires when the new
+    /// list resolves sees no change left to make. The selection is kept: a section the
+    /// new role may not see is drawn as the Overview by the shell.
+    mutating func reset(to next: String) {
         workspaceId = next
         stacks = [:]
+    }
+
+    /// Land where a tapped notification or an app link says (iOS `ShellPaths.apply`).
+    ///
+    /// ⛔ EVERY LANDING RESETS THE STACK IT LANDS ON (the ⛔ on ``PushRouteAction``). With
+    /// no route, the action's tab is selected at its root; with one, the route opens in
+    /// the section that owns it (``open(_:)``), so a hub's route lands in that hub and a
+    /// call or a thread in its list beside the list. ⚠️ The action's tab is the iPad's
+    /// compact answer; on the Mac a sidebar row is the whole answer, so a route decides.
+    mutating func apply(_ action: PushRouteAction) {
+        guard let route = action.route else {
+            let item = SidebarItem(tab: action.tab)
+            selection = item
+            stacks[item] = []
+            return
+        }
+        open(route)
     }
 
     /// The list section a row route opens in, and Account for the one account route.

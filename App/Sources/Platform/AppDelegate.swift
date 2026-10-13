@@ -35,6 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private var calls: Calls?
     private var earlyToken: String?
     private var earlyAction: RingAction?
+    /// A click on a notification body that arrived before the registrar (the app launched
+    /// by the click). ⚠️ One slot, newest wins: replaying a backlog of clicks would walk the
+    /// person through screens they did not ask for.
+    private var earlyTap: [String: String]?
 
     /// A press on the incoming-call notification.
     enum RingAction: Equatable {
@@ -90,6 +94,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             earlyToken = nil
             registrar.deviceTokenReceived(token)
         }
+        if let payload = earlyTap {
+            earlyTap = nil
+            registrar.pendingTapPayload = payload
+        }
     }
 
     func adopt(calls: Calls) {
@@ -140,14 +148,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
     }
 
-    /// A press on a notification. ⚠️ Only the incoming-call buttons do anything yet; a tap
-    /// on a message notification brings the app forward, as before (routing a tap into a
-    /// section is not ported; see PORTING.md).
+    /// A press on a notification: the incoming call's Answer or Decline, or a click on any
+    /// notification's body, which the shell routes into its section (a message opens its
+    /// thread, a call the call log; ``PushRouting``).
+    ///
+    /// ⛔ ONLY THE DEFAULT ACTION IS A TAP. An action identifier this build does not know (a
+    /// button added server-side later) does nothing rather than navigating.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
         let userInfo = response.notification.request.content.userInfo
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+            let payload = Self.flatten(userInfo)
+            await MainActor.run { self.tapped(payload) }
+            return
+        }
         guard let call = RingNotifications.call(in: userInfo) else { return }
         let action: RingAction? = switch response.actionIdentifier {
         case RingNotifications.answerAction:
@@ -159,6 +175,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         guard let action else { return }
         await MainActor.run { self.received(action) }
+    }
+
+    /// ⛔ TOP-LEVEL `String` TO `String` PAIRS AND NOTHING ELSE (iOS
+    /// `NotificationPresenter.flatten`): the `aps` dictionary is the system's, and the
+    /// server's own keys are ids by decision.
+    nonisolated static func flatten(_ userInfo: [AnyHashable: Any]) -> [String: String] {
+        var flattened: [String: String] = [:]
+        for (key, value) in userInfo {
+            guard let name = key as? String, let text = value as? String else { continue }
+            flattened[name] = text
+        }
+        return flattened
+    }
+
+    private func tapped(_ payload: [String: String]) {
+        guard let registrar else {
+            earlyTap = payload
+            return
+        }
+        registrar.pendingTapPayload = payload
     }
 
     private func received(_ action: RingAction) {

@@ -50,6 +50,15 @@ not sent.
   has one turned on: a sheet takes the 6-digit code or a recovery code, keeps the sheet open
   for a wrong code, and sends a timed-out step back to the Apple button. The Developer ID
   build has no native Apple door, so it never shows the sheet.
+- App links and notification clicks open the right section, as on iPhone and iPad. A
+  `www.distronode.com/dashboard/district/...` link (through `onOpenURL` or a continued
+  browsing-web `NSUserActivity`; `applinks:www.distronode.com` was already in both
+  entitlements files) opens its section, switching workspace when the link names another
+  one, and a page this app does not draw opens in the default browser. Clicking a message
+  notification opens its conversation beside the Inbox and refreshes the list; clicking a
+  call notification opens the call log. `AppLinkRouting` and `PushRouting` are iOS's,
+  driven by DistrictCore's `AppLinkResolver` and `PushDeepLinks`; the scheduling link cases
+  of `SchedulingRoutingTests` are ported with them.
 
 ### Changed
 

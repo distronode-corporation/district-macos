@@ -101,12 +101,6 @@ Scheduling row, and ⌘N's create) and three Scheduling cases in `MacBillingRead
 
 ## Left out on purpose, and where it goes
 
-- **`SchedulingRoutingTests`' first nine cases** (`test_IOS_SCHLINK_01` to `_09`) resolve a
-  `www.distronode.com/dashboard/district/scheduling/...` link, so they come over with app
-  links (below). The gate cases and the settings hub's row are ported.
-- **App links and push taps** (`AppLinkRouting`, `PushRouting`, `ShellView+Routing`):
-  a tapped notification or a `www.distronode.com` link does not open a section yet. The
-  incoming-call notification's Answer and Decline buttons do work (Wave 6).
 - **CallKit and VoIP push** (`CallKitBridge`, `VoIPPushHandler`, `AudioSessionCoordinator`,
   `SpeakerToggleRule`): not portable. PushKit's VoIP type and CallKit's `CXProvider` are
   `API_UNAVAILABLE(macos)` on the macOS 26.2 SDK (only Catalyst has them), so a quit Mac app
@@ -129,6 +123,14 @@ Copied as is, then:
 - UIKit bridges are rewritten in AppKit. `SafariView` has no Mac equivalent: a page the
   app itself claims (`applinks:`) opens in the default browser, named explicitly
   (`BrowserHandOff`), so it cannot be routed back into the app.
+- App links and notification clicks (3.0): `AppLinkRouting` and `PushRouting` are copied
+  unchanged, and `ShellView+Routing` keeps iOS's flow (one `apply`, a held link or push
+  waiting for a workspace, a pushed message resolved into its thread) without the
+  notification shade's Reply and Mark read, which the Mac does not register. A link
+  arrives through `onOpenURL` or a continued browsing-web `NSUserActivity`, both on
+  `ShellView`; a link the app does not draw opens in the browser through `BrowserHandOff`
+  where iOS uses a Safari sheet. `ShellPaths.apply` lands the iPad's tab answer on a
+  sidebar row (`ShellLandingTests`).
 - Mac idioms are added where they are natural: `Table` with sortable columns for the
   call log and contacts (the Inbox keeps the iPad's rows), menu commands with keyboard
   shortcuts (File > New Message and New Contact, Edit > Search Messages, View > Refresh,
@@ -421,7 +423,7 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | # | Section | Wave | Gaps (intentional) |
 |---|---|---|---|
 | 1 | Overview | 5 | The tab rows the Mac sidebar already offers are hidden (`hidingEntryPoints`), as on the iPad's sidebar. |
-| 2 | Inbox | 5 | A tapped message notification does not open its thread (push taps not ported). |
+| 2 | Inbox | 5 | None (a clicked message notification opens its thread, 3.0). |
 | 3 | Calls | 5 | None (a sortable table where the iPad has rows). |
 | 4 | Contacts | 5 | None (a sortable table); the Video call row is Wave 6. |
 | 5 | District HQ | 7 | None. |
@@ -432,11 +434,12 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | 10 | Workflows | 7 | None. |
 | 11 | Desk | 7 | None. "New ticket" (district-ios #37, `DeskModel.canStartTicket`) is also File > New Ticket, which waits for the desk's first read (`DeskModel.hasSettled`). |
 | 12 | Dial | 6 | No CallKit; the emergency hand-off says "Use a phone to call for help." |
-| 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet; scheduling links (`SchedulingRoutingTests` `_01` to `_09`) wait for app links. |
+| 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet. |
 | 14 | Support | 7 | None (reporting a message or a call came in Wave 5). |
 | 15 | Workspace settings | 8 | The persona audition has no loudspeaker request (no earpiece). |
 | 16 | Account | 5 | "Ring on this computer" added (Wave 6); devices are Wave 5, with platform names and dates where the iPad prints the wire values. |
 
 Across every section: no CallKit or VoIP push (the Mac rings over the telemetry socket
-while the app runs, window or no window), and app links and push taps do not open a section yet (see "Left out on purpose").
+while the app runs, window or no window). App links and notification clicks open their
+section, as on the iPad (3.0).
 

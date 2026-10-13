@@ -48,9 +48,27 @@ struct ShellView: View {
     let push: PushRegistrar
     let live: DesktopLive
 
-    @State private var workspaceSession: WorkspaceSessionModel
-    @State private var paths = ShellPaths()
+    // ⚠️ INTERNAL RATHER THAN `private`, LIKE THE THREE BELOW, because `ShellView+Routing.swift`
+    // reads and writes them (`private` is file-scoped).
+    @State var workspaceSession: WorkspaceSessionModel
+    @State var paths = ShellPaths()
     @State private var commands = ShellCommandCenter()
+
+    /// The outstanding push, if any: a tap that arrives before a workspace resolves is
+    /// recorded and resolved again once one has (``PushDeepLinks``, tested in the core).
+    @State var deepLinks = PushDeepLinks()
+
+    /// The outstanding app link, if any: a link that needs a workspace waits for one.
+    /// ⚠️ A SECOND HOLDER, AS ON iOS: a push names a workspace and is dropped when it is not
+    /// the selected one, while a link names a section of a tenant the user asked for.
+    @State var pendingLink: AppLinkDestination?
+
+    /// Bumped once per message push that reaches the Inbox, which re-reads its list.
+    /// ⛔ A COUNTER, NOT A `Bool`: two pushes for the same thread must both be a change.
+    @State var inboxPushSignal = 0
+
+    /// The links taken in the last moment. See ``RecentLinks``.
+    @State var recentLinks = RecentLinks()
     /// Whether the sidebar is on screen: the person's choice, kept across sections (and, as
     /// scene storage, across a relaunch that restores the window).
     ///
@@ -145,8 +163,37 @@ struct ShellView: View {
         // ⚠️ RE-READ ON EVERY SIGN-IN (`epoch`), so a second account never sees the first
         // one's workspace list.
         .task(id: session.epoch) { await workspaceSession.load() }
+        // ⚠️ `initial: true` BECAUSE THE PAYLOAD CAN ALREADY BE THERE: a tap that launched the
+        // app is handed to the registrar from the first window's `onAppear`, in no promised
+        // order with this view's first evaluation.
+        .onChange(of: push.pendingTapPayload, initial: true) { adoptTappedPush() }
         .onChange(of: workspaceSession.workspaceId, initial: true) {
+            // ⛔ FIRST, AND THE ORDER IS LOAD BEARING: this drops the previous tenant's
+            // stacks, and the two resolvers below may land a route for the new one.
             paths.adopt(workspaceSession.workspaceId)
+            // ⛔ THE SECOND TRIGGER A COLD START NEEDS: a tap or a link that needs a tenant
+            // waits for the one read that can supply it.
+            resolvePendingPush()
+            resolvePendingLink()
+        }
+        // ⛔ BOTH ENTRY POINTS, HERE AND NOT ON ``RootView``: this view is the signed-in gate,
+        // so a link arriving on a Mac that is signed out reaches nothing and the app opens
+        // on the sign-in screen. `applinks:www.distronode.com` is in both entitlements files.
+        // ⛔ `districtai://handoff` IS TAKEN FIRST AND NEVER REACHES THE RESOLVER (S33): the
+        // scheduling hand-off's flow drops it unless it carries the pending state.
+        // ⚠️ `districtai://auth` never arrives here: `ASWebAuthenticationSession` intercepts
+        // it in-session.
+        .onOpenURL { url in
+            if SchedulingHandoffCallback.isCallback(url) {
+                let flow = container.schedulingHandoffFlow
+                Task { await flow.receive(url) }
+                return
+            }
+            receiveLink(url)
+        }
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            guard let url = activity.webpageURL else { return }
+            receiveLink(url)
         }
         // ⛔ THIS MAC RINGS FOR THE SELECTED WORKSPACE, and moves with it. See ``DesktopLive``.
         // ⚠️ NIL IS NOT REPORTED: it is the middle of a read (a reopened window, a switch),
@@ -228,9 +275,9 @@ struct ShellView: View {
                     workspaceId: workspaceId,
                     role: role,
                     path: path(for: .inbox),
-                    // ⚠️ CONSTANT: a tapped message push does not reach the Inbox yet
-                    // (iOS `PushRouting` is not ported; see PORTING.md).
-                    pushSignal: 0,
+                    // ⚠️ BUMPED BY A TAPPED MESSAGE PUSH (``resolveMessagePush``), so the
+                    // list behind the opened thread is re-read.
+                    pushSignal: inboxPushSignal,
                     selection: selection
                 )
             case .calls:
@@ -427,48 +474,6 @@ private struct SidebarRow: View {
         case .partial: NavigationCopy.readOnly
         case .hidden, .none: nil
         }
-    }
-}
-
-/// Shows its content once a workspace is selected, and every other workspace state in
-/// the iPad shell's words (district-ios `ShellView.gate`).
-struct WorkspaceGate<Content: View>: View {
-    let workspaceSession: WorkspaceSessionModel
-    let onSignIn: () -> Void
-    @ViewBuilder let content: (String) -> Content
-
-    var body: some View {
-        switch workspaceSession.state {
-        case .loading:
-            LoadingView(message: NavigationCopy.loadingYourWorkspaces)
-                .frame(maxHeight: .infinity)
-        case let .content(_, selected), let .partial(_, selected, _):
-            content(selected.id)
-        case let .degraded(message):
-            FailureView(failure: FailureText(message: message, action: .retry), onRetry: reload)
-                .frame(maxHeight: .infinity)
-        case .empty:
-            EmptyStateView(
-                systemImage: "building.2",
-                title: NavigationCopy.noWorkspacesYet,
-                message: NavigationCopy.accountDoesNotBelong
-            )
-            .frame(maxHeight: .infinity)
-        case let .lapsed(inactiveCount):
-            EmptyStateView(
-                systemImage: "creditcard",
-                title: NavigationCopy.subscriptionNotActive,
-                message: inactiveCount == 1 ? NavigationCopy.lapsedOne : NavigationCopy.lapsedMany
-            )
-            .frame(maxHeight: .infinity)
-        case let .failed(failure):
-            FailureView(failure: failure, onRetry: reload, onSignIn: onSignIn)
-                .frame(maxHeight: .infinity)
-        }
-    }
-
-    private func reload() {
-        Task { await workspaceSession.load() }
     }
 }
 
