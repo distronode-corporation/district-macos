@@ -160,6 +160,13 @@ seam_hits="$(strings "$APP/Contents/MacOS/$PRODUCT" | grep -c 'DISTRICT_UITEST' 
 [ "$seam_hits" = "0" ] ||
   die "the archived binary contains 'DISTRICT_UITEST' ($seam_hits hits): the UI-test seam is in a Release build. Nothing was exported."
 echo "UI-test seam strings in the binary: 0"
+# ⛔ FRENCH STAYS OUT UNTIL IT IS SWITCHED ON, IN BOTH LANES, and the string tables are in
+# en.lproj rather than at the bundle root. The same verdict as the seam: the archive is
+# deleted, not warned about. See scripts/check-bundle-l10n.sh.
+if ! "$SCRIPT_DIR/check-bundle-l10n.sh" "$APP"; then
+  rm -rf "$ARCHIVE_PATH"
+  die "the archived app's string tables are wrong (above). The archive has been DELETED; nothing was exported."
+fi
 
 # ⛔ THE INGEST HOST AND THE API HOST ARE DIFFERENT THINGS: sentry-cli does not read
 # the DSN and defaults to the US silo, where an EU org does not exist, and a

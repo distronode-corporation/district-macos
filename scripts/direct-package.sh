@@ -44,6 +44,9 @@ OUT="$BUILD_DIR/out"
 WORK="$BUILD_DIR/package"
 DMG="$OUT/DistrictAI-$VERSION-$BUILD.dmg"
 [ -d "$APP" ] || die "no exported app at $APP; run scripts/archive.sh with LANE=direct first."
+# ⛔ THE EXPORTED COPY IS CHECKED AGAIN BEFORE APPLE IS ASKED TO NOTARISE IT: no French
+# unless DISTRICT_FRENCH is on, and the string tables in en.lproj (scripts/check-bundle-l10n.sh).
+"$ROOT/scripts/check-bundle-l10n.sh" "$APP" || die "the exported app's string tables are wrong (above). Nothing was notarised."
 rm -rf "$OUT" "$WORK"
 mkdir -p "$OUT" "$WORK"
 

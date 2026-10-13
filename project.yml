@@ -32,7 +32,18 @@
 # that grants them, so they are proved on a signed build in Wave 4.2.
 name: DistrictMac
 
+# ⛔ FRENCH STAYS OUT OF BOTH APPS UNLESS `DISTRICT_FRENCH=YES xcodegen generate`. Unset,
+# `${DISTRICT_FRENCH}` is left unexpanded and reads as false, so the include is skipped
+# and each bundle holds en.lproj only. See project.fr.yml; the archive and package scripts
+# refuse an app that holds fr-CA.lproj while French is off.
+include:
+  - path: project.fr.yml
+    enable: ${DISTRICT_FRENCH}
+
 options:
+  # Stated rather than defaulted, so knownRegions is `en` and Base, plus fr-CA when the
+  # include above is enabled.
+  developmentLanguage: en
   minimumXcodeGenVersion: "2.46"
   bundleIdPrefix: com.distronode
   createIntermediateGroups: true
@@ -121,6 +132,13 @@ targetTemplates:
         # literal is never substituted from the build setting the release lane passes.
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        # ⛔ IT IS WHAT MAKES `App/Resources/en.lproj/Localizable.strings` THE FALLBACK. The
+        # push loc-keys are looked up in the table for the user's language, falling back to
+        # the development region; an unresolved key shows as the literal key.
+        # ⛔ THE TABLE IS IN en.lproj, NEVER AT THE BUNDLE ROOT. A root `Localizable.strings`
+        # shadows every `.lproj`, so the French table that project.fr.yml adds would never be
+        # read (measured on the iOS spike: push titles stayed English on a French device
+        # until the table moved).
         CFBundleDevelopmentRegion: en
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         LSApplicationCategoryType: public.app-category.business
@@ -328,6 +346,9 @@ targets:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/District AI.app/Contents/MacOS/District AI"
         BUNDLE_LOADER: "$(TEST_HOST)"
         GENERATE_INFOPLIST_FILE: "YES"
+        # ⛔ PINS ENGLISH FOR EVERY TEST: XCTest creates this class when it loads the
+        # bundle, before the first test. See App/Tests/EnglishTestLocale.swift.
+        INFOPLIST_KEY_NSPrincipalClass: "DistrictMacTests.EnglishTestLocale"
         SWIFT_VERSION: "6.0"
 
   # ⛔ THE STORE SCREENSHOT UI TESTS, AND THE SCREENSHOT CASE IS NEVER RUN BY CI. It drives
