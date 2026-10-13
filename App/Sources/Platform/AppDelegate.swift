@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os
 import UserNotifications
 
 /// The AppKit half of the app's lifecycle: APNs callbacks, notification presentation and
@@ -17,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let presenter: RingPresenter
         let live: DesktopLive
     }
+
+    private static let log = Logger(subsystem: "com.distronode.district", category: "Push")
 
     private weak var registrar: PushRegistrar?
     private var calls: Calls?
@@ -41,12 +44,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         #endif
     }
 
-    /// ⛔ ONE WINDOW, ONE SHELL: closing the main window quits the app, which stops ringing
-    /// here (the APNs alert still reaches this Mac). ⚠️ The ring panel is a panel and does
-    /// not hold the app open; a call in progress is ended by the quit like any other
-    /// (see ``applicationShouldTerminate(_:)``).
+    /// SPIKE: closing the main window keeps the app (and its ringing socket) running behind
+    /// the menu bar item, unless ``BackgroundRinging`` is switched off, in which case it
+    /// quits as before and only the APNs alert reaches this Mac. ⚠️ The ring panel is a
+    /// panel and does not hold the app open; a call in progress is ended by a quit like any
+    /// other (see ``applicationShouldTerminate(_:)``).
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        !BackgroundRinging.keepsRunningAfterLastWindowClosed
     }
 
     /// ⛔ A QUIT WITH A CALL UP ENDS IT FIRST, AND WAITS (BRIEFLY) FOR THE CARRIER. A placed
@@ -84,6 +88,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         // Hex, lower case: the form the service stores and APNs addresses.
         let hex = deviceToken.map { String(format: "%02x", $0) }.joined()
+        // SPIKE: the token is logged PRIVATE (redacted unless a profile reveals it), and its
+        // length public, to see a Release build obtain one.
+        Self.log.info("APNs token (\(hex.count, privacy: .public) hex): \(hex, privacy: .private)")
         guard let registrar else {
             earlyToken = hex
             return
@@ -99,6 +106,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// ringing here, macOS may have shown it without asking (the app not frontmost), so it
     /// is taken out of Notification Center. See ``RingNotifications``.
     func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+        // SPIKE: ids only reach this Mac, and only `type` is logged.
+        let type = userInfo["type"] as? String ?? "none"
+        Self.log.info("push received while running, type \(type, privacy: .public)")
         calls?.presenter.removeDuplicates()
     }
 

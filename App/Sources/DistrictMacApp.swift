@@ -51,7 +51,8 @@ struct DistrictMacApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // SPIKE: an id, so the menu bar item can reopen the window after it was closed.
+        WindowGroup(id: BackgroundRingingMenu.mainWindowId) {
             RootView(container: container, session: session, push: push, live: live, incoming: incoming)
                 // ⚠️ WIDE ENOUGH FOR A LIST SECTION'S THREE COLUMNS: the sidebar, a sortable
                 // table (Calls, Contacts) and the open row beside it.
@@ -75,6 +76,11 @@ struct DistrictMacApp: App {
 
         Settings {
             SettingsView(container: container, session: session, push: push, live: live)
+        }
+
+        // SPIKE: what is left on screen once the window is closed and the app keeps ringing.
+        MenuBarExtra("District AI", systemImage: "phone") {
+            BackgroundRingingMenu()
         }
     }
 }

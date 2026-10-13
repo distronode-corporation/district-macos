@@ -228,6 +228,34 @@ jobs:
           sw_vers
           uname -m
 
+      # SPIKE (spike/v3-mac-voip, not for merge): the evidence that a native Mac app has
+      # no VoIP push and no CallKit provider, read from this Xcode's macOS SDK. Each probe
+      # is EXPECTED to fail to typecheck; the step fails only if one compiles.
+      - name: "spike: PushKit VoIP and CallKit on native macOS"
+        run: |
+          set -uo pipefail
+          sdk="$(xcrun --sdk macosx --show-sdk-path)"
+          echo "SDK: $sdk"
+          grep -n "PKPushTypeVoIP\|PKPushTypeFileProvider" \
+            "$sdk/System/Library/Frameworks/PushKit.framework/Headers/PKPushRegistry.h" || true
+          grep -rn "^@interface CXProvider \|API_AVAILABLE.*CXProvider\|CX_EXTERN.*CXProvider" \
+            "$sdk/System/Library/Frameworks/CallKit.framework/Headers/" | head -n 20 || true
+          grep -n -B2 "^@interface CXProvider " \
+            "$sdk/System/Library/Frameworks/CallKit.framework/Headers/CXProvider.h" || true
+          printf 'import PushKit\nlet type: PKPushType = .voIP\nprint(type)\n' >"$RUNNER_TEMP/voip.swift"
+          printf 'import CallKit\nlet provider = CXProvider.self\nprint(provider)\n' >"$RUNNER_TEMP/callkit.swift"
+          failed=0
+          for probe in voip callkit; do
+            echo "=== $probe (arm64-apple-macos14.0) ==="
+            if xcrun --sdk macosx swiftc -typecheck -target arm64-apple-macos14.0 \
+              "$RUNNER_TEMP/$probe.swift" >"$RUNNER_TEMP/$probe.log" 2>&1; then
+              echo "::error::$probe typechecks on native macOS"
+              failed=1
+            fi
+            cat "$RUNNER_TEMP/$probe.log"
+          done
+          exit "$failed"
+
       # The upstream release zip, checked against a pinned SHA-256 (district-ios's pin).
       - name: Install XcodeGen
         env:
