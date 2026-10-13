@@ -235,6 +235,14 @@ args = { minutes = "int", seconds = "int" }
 id = { swift = "AnalyticsCopy.durationMinutesSeconds(_:_:)" }
 note = "A call's length, abbreviated."
 
+[analytics.duration_seconds]
+en = "{seconds}s"
+ctx = "format"
+screen = "analytics"
+args = { seconds = "int" }
+id = { swift = "AnalyticsCopy.durationSeconds(_:)" }
+note = "A call's length under a minute, abbreviated."
+
 [analytics.in_this_window]
 en = "In this window"
 ctx = "body"
@@ -10007,6 +10015,13 @@ ctx = "body"
 screen = "settings.sections"
 id = { swift = "SettingsCopy.membersViewerNote" }
 
+[settings.messaging_account_fallback]
+en = "Account"
+ctx = "label"
+screen = "settings"
+id = { swift = "SettingsCopy.messagingAccountFallback" }
+note = "A carrier account with neither a label nor a carrier name."
+
 [settings.messaging_account_subtitle]
 en = "{carrier} · {source} · {numbers}"
 ctx = "format"
@@ -10805,6 +10820,13 @@ en = "This workspace's own"
 ctx = "label"
 screen = "settings"
 id = { swift = "SettingsCopy.workspaceSOwn" }
+
+[sign_in.district_ai]
+en = "District AI"
+ctx = "label"
+screen = "sign_in"
+fixed = true
+id = { swift = "SignInCopy.districtAi" }
 
 [sign_in.no_account]
 en = "No District AI account uses this Apple ID. Ask your organization's administrator to invite you, then sign in with the invited email."
