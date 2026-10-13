@@ -4,9 +4,10 @@ import Foundation
 /// The platform half of a call, assembled once so no feature has to wire it.
 ///
 /// Ported from district-ios `Platform/CallStack.swift` (see PORTING.md), WITHOUT CALLKIT.
-/// The Mac has no CallKit and no VoIP push by decision (plan decision 4): it rings over
-/// the telemetry socket while the app runs, and its call surfaces are this app's own
-/// windows. So the iOS stack's `CXProvider` and `AVAudioSession` coordinator are gone,
+/// The Mac has no CallKit and no VoIP push: neither is available to a native macOS app
+/// (``BackgroundRinging``). It rings over the telemetry socket while the app runs, which
+/// with its window closed it still does from the menu bar, and its call surfaces are this
+/// app's own windows. So the iOS stack's `CXProvider` and `AVAudioSession` coordinator are gone,
 /// and what is left is the part that was never about the OS:
 ///
 ///   * A LiveKit `Room` is **one per call**. ``CallEngine``'s own ⛔ says why: it holds a

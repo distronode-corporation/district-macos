@@ -108,8 +108,10 @@ Scheduling row, and ⌘N's create) and three Scheduling cases in `MacBillingRead
   a tapped notification or a `www.distronode.com` link does not open a section yet. The
   incoming-call notification's Answer and Decline buttons do work (Wave 6).
 - **CallKit and VoIP push** (`CallKitBridge`, `VoIPPushHandler`, `AudioSessionCoordinator`,
-  `SpeakerToggleRule`): never ported, by decision (the plan's decision 4). See "How the call
-  path is adapted" below.
+  `SpeakerToggleRule`): not portable. PushKit's VoIP type and CallKit's `CXProvider` are
+  `API_UNAVAILABLE(macos)` on the macOS 26.2 SDK (only Catalyst has them), so a quit Mac app
+  cannot be woken to ring. The Mac keeps running behind a menu bar item instead
+  (`BackgroundRinging`). See "How the call path is adapted" below.
 
 ## How a file is adapted
 
@@ -339,7 +341,10 @@ on Release builds, as Wave 4.2 did. `MacTestIsolationTests` pins the id and the 
 ## How the call path is adapted
 
 iOS rings with a VoIP push and draws the ring with CallKit; this Mac rings over the
-telemetry socket while the app is open and draws the ring itself. So, on top of the rules
+telemetry socket while the app runs and draws the ring itself. Closing the window does not
+quit it: it stays in the menu bar and keeps ringing, and `SessionModel` (not a view) starts
+the ringing, so a launch at login with no window rings too. After Quit, the server's APNs
+alert is the ring (Time Sensitive, with the bundled `ring.wav`). So, on top of the rules
 above:
 
 - **No CallKit.** `CallStack` keeps the engine (one LiveKit `Room` per call) and the mutual
@@ -432,6 +437,6 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | 15 | Workspace settings | 8 | The persona audition has no loudspeaker request (no earpiece). |
 | 16 | Account | 5 | "Ring on this computer" added (Wave 6); devices are Wave 5, with platform names and dates where the iPad prints the wire values. |
 
-Across every section: no CallKit or VoIP push (the Mac rings over the telemetry socket while
-open), and app links and push taps do not open a section yet (see "Left out on purpose").
+Across every section: no CallKit or VoIP push (the Mac rings over the telemetry socket
+while the app runs, window or no window), and app links and push taps do not open a section yet (see "Left out on purpose").
 

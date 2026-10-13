@@ -82,16 +82,89 @@ final class SessionModel {
     /// builds no live session.
     private let live: DesktopLive?
 
+    /// ⚠️ TOLD OF EVERY PHASE, so a ring waiting on an unresolved session is resolved and one
+    /// whose session ended stops. nil in a test that builds no incoming-call model.
+    private let incoming: IncomingCallModel?
+
+    /// Whether ``launch()`` has run in this process.
+    private var launched = false
+
+    /// The workspace read that starts this Mac ringing after a sign-in, while it runs.
+    /// ⚠️ Exposed for the tests, which wait on it.
+    private(set) var ringingLookup: Task<Void, Never>?
+
     init(
         container: AppContainer,
         push: PushRegistrar,
         live: DesktopLive? = nil,
+        incoming: IncomingCallModel? = nil,
         selection: WorkspaceSelectionStore = WorkspaceSelectionStore()
     ) {
         self.container = container
         self.push = push
         self.live = live
+        self.incoming = incoming
         self.selection = selection
+    }
+
+    /// The app's launch: retry a revoke a failed sign-out left behind, and check the session.
+    ///
+    /// ⛔ ONCE PER PROCESS, AND CALLED FROM THE APP DELEGATE AS WELL AS FROM THE WINDOW. The app
+    /// keeps running with no window (``BackgroundRinging``), and a launch at login may restore
+    /// none, so the session check (and the ringing it starts) cannot wait for a view; the
+    /// window's call is a no-op once the delegate's has run, and the other way round.
+    func launch() async {
+        guard !launched else { return }
+        launched = true
+        let container = container
+        // ⚠️ ON EVERY LAUNCH, SIGNED IN OR NOT: a sign-out whose revoke failed last time is
+        // retried. Its own task, as it was beside the window's session check.
+        Task { await container.drainPendingRevoke() }
+        await refreshPhase()
+    }
+
+    /// Move the gate, and tell everything that follows it.
+    ///
+    /// ⛔ HERE AND NOT IN A VIEW'S `onChange`, so a Mac with its window closed still follows
+    /// its session: the incoming-call model resolves a ring that waited on it, a session that
+    /// ended (or cannot be checked) stops this Mac ringing, and a signed-in one starts it.
+    private func setPhase(_ next: AuthPhase) {
+        phase = next
+        incoming?.sessionChanged(next)
+        switch next {
+        case .signedOut, .unavailable:
+            // ⚠️ NOTHING IS WITHDRAWN: there is no session left to do it with, and the
+            // presence lapses on the server within ten minutes.
+            ringingLookup?.cancel()
+            live?.sessionEnded()
+        case .signedIn:
+            startRinging()
+        case .checking:
+            break
+        }
+    }
+
+    /// Start ringing for the selected workspace, resolved as the shell resolves it.
+    ///
+    /// ⛔ A WORKSPACE THE SHELL ALREADY REPORTED WINS. The shell moves the ringing with the
+    /// selection (``ShellView``); this read exists for a Mac with no window, so it reports
+    /// only while nothing has, and never moves a ring the person chose in the shell.
+    ///
+    /// ⚠️ ITS OWN `workspace/list` READ, through ``WorkspaceSessionModel`` and the same
+    /// ``WorkspaceSelectionStore``, so the precedence (this Mac's choice, the account's
+    /// default, the server's first) is the shell's. With a window open the shell reads the
+    /// list too: one more request per sign-in and launch.
+    private func startRinging() {
+        guard let live else { return }
+        ringingLookup?.cancel()
+        let workspaces = WorkspaceSessionModel(container: container, selection: selection)
+        ringingLookup = Task { [weak self] in
+            await workspaces.load()
+            guard let self, !Task.isCancelled, phase == .signedIn, live.workspaceId == nil,
+                  let workspaceId = workspaces.workspaceId
+            else { return }
+            live.signedIn(workspaceId: workspaceId, workspaceName: workspaces.selectedEntry?.name)
+        }
     }
 
     /// Ask the coordinator where we stand.
@@ -115,15 +188,14 @@ final class SessionModel {
     func refreshPhase() async {
         switch await container.coordinator.accessToken() {
         case .available:
-            phase = .signedIn
+            setPhase(.signedIn)
         case let .reauthRequired(reason):
-            phase = .signedOut(Self.text(for: reason))
             push.forget()
-            // ⚠️ NOTHING IS WITHDRAWN: the server ended the session, so there is no bearer
-            // left to do it with, and the presence lapses there within ten minutes.
-            live?.sessionEnded()
+            // ⚠️ THE PHASE ENDS THE RINGING (``setPhase(_:)``) and withdraws nothing: the
+            // server ended the session, so there is no bearer left to do it with.
+            setPhase(.signedOut(Self.text(for: reason)))
         case let .retryLater(reason):
-            phase = .unavailable(Self.text(for: reason))
+            setPhase(.unavailable(Self.text(for: reason)))
         }
     }
 
@@ -179,7 +251,7 @@ final class SessionModel {
         case let .startOver(message):
             if stillOpen {
                 pendingMfa = nil
-                phase = .signedOut(message)
+                setPhase(.signedOut(message))
             }
         }
     }
@@ -205,18 +277,18 @@ final class SessionModel {
             // second commonest outcome of tapping sign in.
             break
         case .stateMismatch:
-            phase = .signedOut(SessionCopy.signInNotVerified)
+            setPhase(.signedOut(SessionCopy.signInNotVerified))
         case let .denied(reason):
-            phase = .signedOut(SessionCopy.signInNotCompleted(reason))
+            setPhase(.signedOut(SessionCopy.signInNotCompleted(reason)))
         case .rejected:
-            phase = .signedOut(SessionCopy.signInExpired)
+            setPhase(.signedOut(SessionCopy.signInExpired))
         case .rateLimited:
-            phase = .unavailable(SessionCopy.tooManyAttempts)
+            setPhase(.unavailable(SessionCopy.tooManyAttempts))
         case .noAccount:
             // ⛔ `signedOut`, SO THE SCREEN KEEPS BOTH DOORS: the invited email
             // signs in through the browser door. The sentence is informational,
             // not a retry prompt; see ``SignInCopy/noAccount``.
-            phase = .signedOut(SignInCopy.noAccount)
+            setPhase(.signedOut(SignInCopy.noAccount))
         case let .mfaRequired(challenge):
             // ⛔ THE PHASE DOES NOT MOVE. The Apple step is half of a sign-in; the code
             // sheet opens over the sign-in screen and the session settles only when
@@ -224,7 +296,7 @@ final class SessionModel {
             mfaMessage = nil
             pendingMfa = PendingMfa(challenge: challenge)
         case .unreachable:
-            phase = .unavailable(SessionCopy.unreachable)
+            setPhase(.unavailable(SessionCopy.unreachable))
         }
     }
 
@@ -261,7 +333,7 @@ final class SessionModel {
         })
         push.forget()
         selection.setSelectedWorkspaceId(nil)
-        phase = .signedOut(SessionCopy.signedOut)
+        setPhase(.signedOut(SessionCopy.signedOut))
     }
 
     // ── Wording ──────────────────────────────────────────────────────────────

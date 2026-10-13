@@ -9,8 +9,10 @@ import Observation
 ///
 /// Ported from district-ios `Features/Incoming/IncomingCallModel.swift` (see PORTING.md).
 /// iOS is rung by a VoIP push and draws the ring with CallKit; this Mac is rung by the
-/// telemetry socket (`DistrictLive.DesktopRingGate`, through ``DesktopLive``) and draws
-/// the ring itself (``RingPresenter`` and the ring panel). Everything between the ring and
+/// telemetry socket (`DistrictLive.DesktopRingGate`, through ``DesktopLive``), with its
+/// window open or closed (``BackgroundRinging``), and draws the ring itself
+/// (``RingPresenter`` and the ring panel). After Quit, the server's APNs alert is the ring
+/// and its Answer reaches this model through the app delegate. Everything between the ring and
 /// the hang-up is the iOS model's.
 ///
 /// ⛔ ONE PER PROCESS, BUILT IN `DistrictMacApp` BESIDE THE ONE ``AppContainer``, AND IT

@@ -2005,7 +2005,7 @@ screen = "platform"
 id = { swift = "DesktopLiveCopy.noSession" }
 
 [desktop_live.setting_body]
-en = "Calls handed to you ring here while District AI is running and you are signed in. Your availability for calls is set under Calls to you, in Account."
+en = "Calls handed to you ring here while you are signed in, also with the window closed: District AI stays in the menu bar until you quit it, and after that a call arrives as a notification. Your availability for calls is set under Calls to you, in Account."
 ctx = "body"
 screen = "platform"
 id = { swift = "DesktopLiveCopy.settingBody" }
@@ -4411,6 +4411,35 @@ en = "Loading your workspaces…"
 ctx = "body"
 screen = "navigation"
 id = { swift = "NavigationCopy.loadingYourWorkspaces" }
+
+[navigation.menu_bar_label]
+en = "District AI"
+ctx = "label"
+screen = "navigation"
+fixed = true
+id = { swift = "NavigationCopy.menuBarLabel" }
+note = "The app's name, as the menu bar item's accessible label (the item shows a phone symbol). A product name: never translated."
+
+[navigation.menu_bar_open]
+en = "Open District AI"
+ctx = "menu"
+screen = "navigation"
+id = { swift = "NavigationCopy.menuBarOpen" }
+note = "Menu bar item command: brings the main window back after it was closed (the app keeps running in the menu bar to ring for calls). Title case, as macOS menu items are."
+
+[navigation.menu_bar_open_at_login]
+en = "Open at Login"
+ctx = "menu"
+screen = "navigation"
+id = { swift = "NavigationCopy.menuBarOpenAtLogin" }
+note = "Menu bar item checkbox: start District AI when you log in to the Mac, so calls ring after a restart. Off until the user turns it on. Use the wording macOS itself uses for this setting."
+
+[navigation.menu_bar_quit]
+en = "Quit District AI"
+ctx = "menu"
+screen = "navigation"
+id = { swift = "NavigationCopy.menuBarQuit" }
+note = "Menu bar item command: quits the app, after which calls no longer ring on this Mac (a notification still arrives). Use the wording of the macOS app menu's own Quit command."
 
 [navigation.new_contact]
 en = "New Contact"

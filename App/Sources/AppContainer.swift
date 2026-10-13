@@ -273,8 +273,8 @@ final class AppContainer {
     /// which would route this Mac's pushes as an iOS device. `MacClientPlatformTests` pins
     /// the register body as `{"token", "platform":"macos"}`, with no `kind`: the alert
     /// token is the only push this Mac registers here (presence, `kind: "desktop"`, is
-    /// `DistrictLive`'s), and the server refuses `voip` from a Mac, so
-    /// ``PushTokenRepository/registerVoip(token:)`` is never called.
+    /// `DistrictLive`'s), and the server refuses `voip` from a Mac (PushKit's VoIP push is
+    /// unavailable on macOS), so ``PushTokenRepository/registerVoip(token:)`` is never called.
     nonisolated static func pushTokenRepository(client: ApiClient, memory: any PushTokenMemory) -> PushTokenRepository {
         PushTokenRepository(client: client, memory: memory, platform: .macos)
     }

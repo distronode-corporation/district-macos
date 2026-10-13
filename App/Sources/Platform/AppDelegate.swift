@@ -6,9 +6,10 @@ import UserNotifications
 /// actions, and quitting with a call up.
 ///
 /// ⚠️ ADOPTED BY `@NSApplicationDelegateAdaptor`, which constructs it before the SwiftUI
-/// scene exists. The registrar and the call objects are handed over from the first
-/// window's `.onAppear`; a token or a notification action that arrives before that (the
-/// app launched by pressing Answer) is held and delivered on adoption.
+/// scene exists. The registrar and the call objects are handed over through ``launch``,
+/// which the app sets in its initialiser and this reads when launching finishes, with or
+/// without a window (``BackgroundRinging``); a token or a notification action that
+/// arrives before that is held and delivered on adoption.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     /// The live-call objects the delegate reaches.
@@ -17,6 +18,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let presenter: RingPresenter
         let live: DesktopLive
     }
+
+    /// What the app hands the delegate at launch.
+    struct Launch {
+        let registrar: PushRegistrar
+        let calls: Calls
+        let session: SessionModel
+    }
+
+    /// ⚠️ SET BY `DistrictMacApp.init`, WHICH RUNS BEFORE LAUNCHING FINISHES, and read once in
+    /// ``applicationDidFinishLaunching(_:)``. A static because the adaptor's instance is not
+    /// reachable from the app's initialiser.
+    static var launch: Launch?
 
     private weak var registrar: PushRegistrar?
     private var calls: Calls?
@@ -39,14 +52,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         #if DEVELOPER_ID
             DistrictUpdater.startIfConfigured()
         #endif
+        if let launch = Self.launch {
+            adopt(registrar: launch.registrar)
+            adopt(calls: launch.calls)
+            // ⛔ THE SESSION CHECK, AND WITH IT THE RINGING, STARTS HERE AND NOT IN A VIEW, so
+            // a launch at login that restores no window still rings.
+            let session = launch.session
+            Task { await session.launch() }
+        }
     }
 
-    /// ⛔ ONE WINDOW, ONE SHELL: closing the main window quits the app, which stops ringing
-    /// here (the APNs alert still reaches this Mac). ⚠️ The ring panel is a panel and does
-    /// not hold the app open; a call in progress is ended by the quit like any other
-    /// (see ``applicationShouldTerminate(_:)``).
+    /// ⛔ CLOSING THE LAST WINDOW DOES NOT QUIT: the app keeps running behind its menu bar
+    /// item, and its telemetry socket keeps ringing (``BackgroundRinging``). Quit (⌘Q, or
+    /// Quit in the menu bar item) still quits, and then the server's Time Sensitive APNs
+    /// alert is the ring. A call in progress is ended by a quit like any other (see
+    /// ``applicationShouldTerminate(_:)``).
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        false
     }
 
     /// ⛔ A QUIT WITH A CALL UP ENDS IT FIRST, AND WAITS (BRIEFLY) FOR THE CARRIER. A placed

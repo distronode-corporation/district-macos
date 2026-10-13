@@ -1004,7 +1004,7 @@ extension DesktopLiveCopy {
     internal static var noSession: String { AppL10n.copyLocale == .frCA ? "Your session could not be checked. It is tried again in a minute." : "Your session could not be checked. It is tried again in a minute." }
 
     /// `desktop_live.setting_body`
-    internal static var settingBody: String { AppL10n.copyLocale == .frCA ? "Calls handed to you ring here while District AI is running and you are signed in. Your availability for calls is set under Calls to you, in Account." : "Calls handed to you ring here while District AI is running and you are signed in. Your availability for calls is set under Calls to you, in Account." }
+    internal static var settingBody: String { AppL10n.copyLocale == .frCA ? "Calls handed to you ring here while you are signed in, also with the window closed: District AI stays in the menu bar until you quit it, and after that a call arrives as a notification. Your availability for calls is set under Calls to you, in Account." : "Calls handed to you ring here while you are signed in, also with the window closed: District AI stays in the menu bar until you quit it, and after that a call arrives as a notification. Your availability for calls is set under Calls to you, in Account." }
 
     /// `desktop_live.setting_label`
     internal static var settingLabel: String { AppL10n.copyLocale == .frCA ? "Ring on this computer" : "Ring on this computer" }
@@ -2173,6 +2173,18 @@ extension NavigationCopy {
 
     /// `navigation.loading_your_workspaces`
     internal static var loadingYourWorkspaces: String { AppL10n.copyLocale == .frCA ? "Loading your workspaces…" : "Loading your workspaces…" }
+
+    /// `navigation.menu_bar_label`
+    internal static var menuBarLabel: String { AppL10n.copyLocale == .frCA ? "District AI" : "District AI" }
+
+    /// `navigation.menu_bar_open`
+    internal static var menuBarOpen: String { AppL10n.copyLocale == .frCA ? "Open District AI" : "Open District AI" }
+
+    /// `navigation.menu_bar_open_at_login`
+    internal static var menuBarOpenAtLogin: String { AppL10n.copyLocale == .frCA ? "Open at Login" : "Open at Login" }
+
+    /// `navigation.menu_bar_quit`
+    internal static var menuBarQuit: String { AppL10n.copyLocale == .frCA ? "Quit District AI" : "Quit District AI" }
 
     /// `navigation.new_contact`
     internal static var newContact: String { AppL10n.copyLocale == .frCA ? "New Contact" : "New Contact" }
