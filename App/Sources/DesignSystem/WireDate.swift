@@ -1,3 +1,4 @@
+import DistrictL10n
 import DistrictModel
 import Foundation
 
@@ -17,6 +18,12 @@ enum WireDate {
     ///   scheduling surface passes the operator's profile zone instead.
     static func display(_ raw: String, in zone: TimeZone? = nil) -> String {
         guard let date = WireInstant.parse(raw) else { return raw }
+        // ⛔ FRENCH IS THE CORE'S, NOT THE DEVICE'S: « 12 sept. 2026, 15 h 04 », as the
+        // website writes it, on an fr-FR or fr-BE device too, which the system's own
+        // French would write differently. English keeps the system style below.
+        if AppL10n.copyLocale == .frCA {
+            return L10nFormat.dateTime(date, timezone: (zone ?? .current).identifier)
+        }
         guard let zone else { return date.formatted(style) }
         var zoned = style
         zoned.timeZone = zone
@@ -27,6 +34,10 @@ enum WireDate {
     /// minute. ⚠️ Falls back to the raw string, as ``display(_:in:)`` does.
     static func displayDay(_ raw: String) -> String {
         guard let date = WireInstant.parse(raw) else { return raw }
+        // ⚠️ French through the core (« 15 août 2026 », « 1er août 2026 »), as ``display(_:in:)``.
+        if AppL10n.copyLocale == .frCA {
+            return L10nFormat.date(date, timezone: TimeZone.current.identifier)
+        }
         return date.formatted(dayStyle)
     }
 }

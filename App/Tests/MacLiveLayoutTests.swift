@@ -120,7 +120,10 @@ final class DevicePlatformNameTests: XCTestCase {
     }
 
     func test_MAC_DEVICES_PLATFORM_2_anUnknownPlatformIsShownAsSent() {
-        XCTAssertEqual(DevicePlatformName.display("windows"), "windows")
+        // ⚠️ Windows is a known platform since the W4 pass (as on district-ios); an
+        // unknown one is still shown as sent.
+        XCTAssertEqual(DevicePlatformName.display("windows"), "Windows")
+        XCTAssertEqual(DevicePlatformName.display("tizen"), "tizen")
         XCTAssertEqual(DevicePlatformName.display("  web "), "web")
         XCTAssertEqual(DevicePlatformName.display(""), "Unknown platform")
         XCTAssertEqual(DevicePlatformName.display("   "), "Unknown platform")

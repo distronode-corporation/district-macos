@@ -1,3 +1,4 @@
+import DistrictData
 @testable import DistrictMac
 import XCTest
 
@@ -48,12 +49,14 @@ final class MacAnalyticsBillingFormatTests: XCTestCase {
         XCTAssertNil(AnalyticsFormat.hexColor("zzzzzz"))
     }
 
+    /// ⚠️ THE CORE'S `BillingMoneyFormat` SINCE 7.0.0-beta.3, which carries the "$" the catalog
+    /// sentences used to place: the same English, glyph included.
     func test_MAC_FORMAT_7_moneyIsCentsWithoutFloatingPoint() {
-        XCTAssertEqual(BillingFormat.money(cents: 0), "0.00")
-        XCTAssertEqual(BillingFormat.money(cents: 2505), "25.05")
-        XCTAssertEqual(BillingFormat.money(cents: -199), "-1.99")
-        // ⚠️ `Int.min` must not trap (the remainder is taken before `abs`).
-        XCTAssertFalse(BillingFormat.money(cents: Int.min).isEmpty)
+        XCTAssertEqual(BillingMoneyFormat.price(cents: 0, currency: nil), "$0.00")
+        XCTAssertEqual(BillingMoneyFormat.price(cents: 2505, currency: "cad"), "$25.05")
+        XCTAssertEqual(BillingMoneyFormat.price(cents: -199, currency: nil), "$-1.99")
+        // ⚠️ `Int.min` must not trap (the remainder is taken before `magnitude`).
+        XCTAssertFalse(BillingMoneyFormat.price(cents: Int.min, currency: nil).isEmpty)
     }
 
     func test_MAC_FORMAT_8_theMeterIsClampedAndNeverInventsAnAllowance() {
