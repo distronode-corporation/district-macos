@@ -289,8 +289,8 @@ targets:
         # SSO, so Sign in with Apple is offered beside it. `Default` is the only value and
         # it is an array of one string.
         # ⛔ STORE TARGET ONLY. Apple leaves it out of the Developer ID provisioning profile
-        # (4F2465QW2Z grants push, associated domains and the keychain group), and an
-        # export that claims it fails with "doesn't include the
+        # (ACWY99462R grants push, associated domains, time-sensitive notifications and the
+        # keychain group), and an export that claims it fails with "doesn't include the
         # com.apple.developer.applesignin entitlement". The Direct build hides the native
         # button (`RootView.appleDoor`); the website's sign-in still offers Apple there.
         com.apple.developer.applesignin:

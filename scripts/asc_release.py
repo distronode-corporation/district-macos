@@ -7,7 +7,7 @@ profile, and submit a build for review.
       python3 scripts/asc_release.py highest-build --version 1.0
     ... python3 scripts/asc_release.py train-open --version 1.0
     ... python3 scripts/asc_release.py wait-valid --version 1.0 --build 20005
-    ... python3 scripts/asc_release.py profile --id 4F2465QW2Z --out /path/x.provisionprofile
+    ... python3 scripts/asc_release.py profile --id ACWY99462R --out /path/x.provisionprofile
     ... python3 scripts/asc_release.py submit --version 1.0 --build 20005
     python3 scripts/asc_release.py whats-new [--locale fr-CA] --version 1.0    # no credentials needed
 
@@ -738,7 +738,7 @@ def main() -> None:
         if name == "whats-new":
             p.add_argument("--locale", default="en-US", help="an App Store Connect locale, e.g. fr-CA")
     p = sub.add_parser("profile")
-    p.add_argument("--id", required=True, help="the App Store Connect profile id, e.g. 4F2465QW2Z")
+    p.add_argument("--id", required=True, help="the App Store Connect profile id, e.g. ACWY99462R")
     p.add_argument("--out", required=True, help="where to write the profile")
     args = parser.parse_args()
 

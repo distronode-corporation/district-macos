@@ -431,11 +431,11 @@ class ProfileTests(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         out = Path(tmp.name) / "sub" / "x.provisionprofile"
-        client = FakeClient({"/profiles/4F2465QW2Z?": {"data": {"attributes": attributes}}})
+        client = FakeClient({"/profiles/ACWY99462R?": {"data": {"attributes": attributes}}})
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             try:
-                self.result = asc_release.fetch_profile(client, "4F2465QW2Z", out)
+                self.result = asc_release.fetch_profile(client, "ACWY99462R", out)
             except SystemExit as exit_:
                 err.write(f"\nEXIT {exit_.code}")
         return err.getvalue(), out

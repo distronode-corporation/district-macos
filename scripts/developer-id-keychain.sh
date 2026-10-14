@@ -32,10 +32,15 @@
 # this run, and the .p12 file the password opens is deleted before anything else runs.
 set -euo pipefail
 
-# ⛔ THE PROFILE IS PINNED BY ID: "District macOS Developer ID", MAC_APP_DIRECT, for
-# com.distronode.district with certificate JMMST2L825. It grants push, associated domains
-# and the keychain group; Sign in with Apple is not in it (see project.yml).
-PROFILE_ID="4F2465QW2Z"
+# ⛔ THE PROFILE IS PINNED BY ID: "District macOS Developer ID 3.0", MAC_APP_DIRECT, for
+# com.distronode.district with certificate JMMST2L825. It grants push, associated domains,
+# time-sensitive notifications and the keychain group; Sign in with Apple is not in it
+# (see project.yml).
+# ⚠️ CHANGING THE APP ID'S CAPABILITIES INVALIDATES THIS PROFILE, and asc_release.py then
+# refuses it (it must be ACTIVE). Turning on Time Sensitive Notifications on 2026-10-13
+# invalidated the previous one, 4F2465QW2Z; create a replacement with the same type and
+# certificate and pin its id here.
+PROFILE_ID="ACWY99462R"
 IDENTITY="Developer ID Application: Distronode Corporation (R935BA6767)"
 
 die() {
