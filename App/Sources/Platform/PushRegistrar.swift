@@ -42,6 +42,13 @@ final class PushRegistrar {
     private(set) var registration: PushRegistrationStatus = .notAttempted
     private(set) var lastRegistrationFailure: String?
 
+    /// The payload of the notification the user last clicked, un-parsed.
+    ///
+    /// ⛔ FLAT `[String: String]`, AND NOTHING HERE ROUTES IT, as on iOS: `PushPayload` and
+    /// `PushDeepLinks` live in the core, where they are tested, and ``ShellView`` routes.
+    /// ``AppDelegate`` writes it; the shell empties it on pickup.
+    var pendingTapPayload: [String: String]?
+
     private let container: AppContainer
     private var hasAskedThisLaunch = false
 

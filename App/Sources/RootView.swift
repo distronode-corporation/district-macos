@@ -2,6 +2,9 @@ import DistrictModel
 import SwiftUI
 
 /// The session gate: checking, signed in, signed out, or unable to tell.
+///
+/// ⚠️ NO `onOpenURL` HERE: the scheduling hand-off's callback and app links are both taken
+/// by ``ShellView``, the signed-in gate, as on iOS.
 struct RootView: View {
     let container: AppContainer
     let session: SessionModel
@@ -21,16 +24,6 @@ struct RootView: View {
             // without a window. ⛔ The ring follows the session gate in ``SessionModel``, not
             // here: the app keeps ringing with this window closed (``BackgroundRinging``).
             .task { await session.launch() }
-            // ⛔ `districtai://handoff` IS TAKEN HERE AND HANDED TO THE ONE FLOW (S33); the
-            // flow drops it unless it carries the state of the hand-off in flight.
-            // ⚠️ `districtai://auth` never arrives here: `ASWebAuthenticationSession`
-            // intercepts it in-session. Any other URL is ignored: routing an app link
-            // (iOS `AppLinkRouting`) into a section is not ported yet.
-            .onOpenURL { url in
-                guard SchedulingHandoffCallback.isCallback(url) else { return }
-                let flow = container.schedulingHandoffFlow
-                Task { await flow.receive(url) }
-            }
     }
 
     @ViewBuilder
