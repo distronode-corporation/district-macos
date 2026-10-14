@@ -68,6 +68,9 @@ struct DistrictListRow<Leading: View, Trailing: View>: View {
     /// starts being the row saying nothing: at AX5 a 56pt row holds about three words.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// See ``EnvironmentValues/districtRowWrapsSubtitle``.
+    @Environment(\.districtRowWrapsSubtitle) private var wrapsSubtitle
+
     private var colors: DistrictColors {
         .resolve(colorScheme)
     }
@@ -125,8 +128,9 @@ struct DistrictListRow<Leading: View, Trailing: View>: View {
                 Text(subtitle)
                     .font(DistrictType.caption)
                     .foregroundStyle(colors.mutedForeground)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize || wrapsSubtitle ? nil : 1)
                     .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: wrapsSubtitle)
                     .layoutValue(key: DistrictRowSlotKey.self, value: .subtitle)
             }
             trailing
@@ -285,4 +289,15 @@ struct DistrictAvatar: View {
             .joined()
         return letters.isEmpty ? nil : letters
     }
+}
+
+extension EnvironmentValues {
+    /// Whether a ``DistrictListRow`` wraps its subtitle in full instead of cutting it to one
+    /// line.
+    ///
+    /// ⚠️ FOR A SCREEN WHOSE SUBTITLES ARE SENTENCES, not a list's second line. Account's
+    /// rows explain what each control does, and cutting that sentence hid its point in both
+    /// languages, French most. The lists (Calls, Contacts, Inbox) keep one line: there a
+    /// cut subtitle is a preview.
+    @Entry var districtRowWrapsSubtitle: Bool = false
 }

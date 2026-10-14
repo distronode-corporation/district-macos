@@ -110,7 +110,10 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
-- DistrictCore 7.0.0-beta.1: the core's sentences come from its catalogs, every request
+- DistrictCore 7.0.0-beta.2: the scheduling formatters write French dates and times as the
+  website does (« 12 sept. 2026, 15 h 04 », « 9 h 05 », « 1er août »), and a French range
+  inside one year drops its first year; English is unchanged. 7.0.0-beta.1: the core's
+  sentences come from its catalogs, every request
   sends `Accept-Language` (`en`), and errors are shown through `ApiError.localizedMessage`
   (the same sentence in English).
 - DistrictCore 6.0.0: 5.0.0 (the live transcript's models, ops and reducer, and `send` on

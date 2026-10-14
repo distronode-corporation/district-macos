@@ -1,3 +1,4 @@
+import DistrictL10n
 import DistrictModel
 import SwiftUI
 
@@ -125,8 +126,8 @@ private struct CallDetailContentView: View {
                 // and it would print under this heading. See ``CallNarrative``.
                 card(CallsCopy.aiSummary, display.aiSummaryText)
                 summaryNote
-                card(CallsCopy.sentiment, call.sentiment)
-                card(CallsCopy.outcome, call.disposition)
+                card(CallsCopy.sentiment, AppWire.label(.sentiment, ifAny: call.sentiment))
+                card(CallsCopy.outcome, AppWire.label(.disposition, ifAny: call.disposition))
                 transferCard
                 followUpCard
                 analysisCards
@@ -191,7 +192,11 @@ private struct CallDetailContentView: View {
     @ViewBuilder
     private var transferCard: some View {
         if let status = call.transferStatus {
-            card(CallsCopy.transfer, [status, call.transferReason].compactMap(\.self).joined(separator: " · "))
+            let reason = AppWire.label(.transferReason, ifAny: call.transferReason)
+            card(
+                CallsCopy.transfer,
+                [AppWire.label(.transferStatus, status), reason].compactMap(\.self).joined(separator: " · ")
+            )
         }
     }
 

@@ -358,7 +358,7 @@ private struct DeviceNotice: View {
 /// A device's platform as a person reads it.
 ///
 /// ⚠️ MAC ONLY: the iPad (district-ios `4777c40`) prints the wire value as it arrives
-/// ("macos", "ios", "linux"), which reads as a fault beside a device's real name. The four
+/// ("macos", "ios", "linux"), which reads as a fault beside a device's real name. The five
 /// values the clients send get their proper names; anything else is shown as sent, because
 /// a platform this app does not know is still the truth about the device.
 enum DevicePlatformName {
@@ -373,5 +373,6 @@ enum DevicePlatformName {
         "ios": "iOS",
         "android": "Android",
         "linux": "Linux",
+        "windows": "Windows",
     ]
 }

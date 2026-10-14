@@ -186,14 +186,15 @@ struct BillingUsageMeterCard: View {
             bar(BillingFormat.meterFraction(used: used, included: included))
         }
         if let month = usage?.month, !month.trimmingCharacters(in: .whitespaces).isEmpty {
-            BillingNote(text: BillingCopy.meterMonth(month))
+            BillingNote(text: BillingCopy.meterMonth(AnalyticsFormat.sentMonth(month)))
         }
     }
 
     private func usedText(_ used: Double) -> String {
         let amount = AnalyticsFormat.amount(used)
         guard let included else { return BillingCopy.meterUsed(amount) }
-        return BillingCopy.meterUsedOf(amount, included: included)
+        // ⚠️ GROUPED IN FRENCH (« 1 500 »), plain in English as it always was.
+        return BillingCopy.meterUsedOf(amount, included: AppWire.count(included))
     }
 
     /// ⚠️ A `GeometryReader` INSIDE A FIXED-HEIGHT FRAME, which is the one shape that
