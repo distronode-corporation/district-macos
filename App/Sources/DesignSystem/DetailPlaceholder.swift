@@ -14,8 +14,17 @@ struct DetailPlaceholder: View {
     let symbol: String
 
     var body: some View {
-        ContentUnavailableView(title, systemImage: symbol)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .accessibilityIdentifier(A11yID.Sidebar.detailPlaceholder)
+        // ⚠️ THE TITLE NEVER BREAKS INSIDE A WORD (``WholeWordTitle``), and the symbol is
+        // decoration: the title says the same thing, so VoiceOver reads it once.
+        ContentUnavailableView {
+            Label {
+                WholeWordTitle(text: title)
+            } icon: {
+                Image(systemName: symbol)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier(A11yID.Sidebar.detailPlaceholder)
     }
 }
