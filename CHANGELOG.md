@@ -164,7 +164,7 @@ not sent.
 
 - The Billing page names your plan ("Voice Pro") instead of its internal key ("VoicePro").
 
-## [2.0]
+## [2.0] - 2026-10-08
 
 District Studio, Voice and live call transcripts come to the Mac.
 
@@ -187,7 +187,7 @@ District Studio, Voice and live call transcripts come to the Mac.
   code, as the website does. Enter the 6-digit code, or one of your recovery codes. A wrong
   code can be typed again, and if the step times out, start again with Sign in with Apple.
 
-## [1.0]
+## [1.0] - 2026-10-04
 
 The first release of District AI for Mac.
 
