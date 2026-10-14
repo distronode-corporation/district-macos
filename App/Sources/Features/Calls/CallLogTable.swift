@@ -70,6 +70,12 @@ struct CallLogTable: View {
 
     @State private var sortOrder: [KeyPathComparator<CallLogRow>] = []
 
+    /// The Duration column: the list column's minimum (``ShellColumns``) still holds all
+    /// five columns with the French width.
+    private static var durationWidth: CGFloat {
+        AppL10n.copyLocale == .frCA ? 72 : 56
+    }
+
     var body: some View {
         let rows = CallLogRow.rows(calls, sortedBy: sortOrder)
         Table(rows, selection: selectedId, sortOrder: $sortOrder) {
@@ -97,7 +103,9 @@ struct CallLogTable: View {
                 Text(row.display.durationLabel ?? "")
                     .monospacedDigit()
             }
-            .width(min: 56, ideal: 56)
+            // ⚠️ WIDER IN FRENCH, whose length has units in words (« 12 min 34 s »); 56pt cut
+            // « 2 min 34 s » to « 2 min 3… ». English keeps its 56 (`2m 34s`).
+            .width(min: Self.durationWidth, ideal: Self.durationWidth)
             // ⚠️ MAC: A TRANSFER OUTCOME STACKS OVER THE STATUS rather than beside it, so the
             // column is one badge wide and a two-badge row grows a line instead of scrolling.
             TableColumn(CallsCopy.columnStatus, value: \.status) { row in
