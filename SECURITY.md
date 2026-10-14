@@ -20,9 +20,9 @@ you get is credit in the changelog entry for the fix, if you want it.
 
 ## Supported versions
 
-Version 1.0 is submitted to the Mac App Store and in review; the direct download arrives
-with this repository's first GitHub Release. Only the current release is supported, on
-both distributions (the Mac App Store and the direct download), and fixes ship in a new
+Only the current release, 2.0.1, receives security fixes: the direct download on
+[Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and the Homebrew cask. The app is not on
+the Mac App Store yet; once it is, the same rule covers that build. Fixes ship in a new
 release rather than being backported.
 
 ## What the app does to protect you
