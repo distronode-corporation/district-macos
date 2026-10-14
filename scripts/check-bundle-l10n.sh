@@ -17,7 +17,8 @@
 # tables; a table at the root of Contents/Resources shadows every .lproj, so a French
 # table would never be read.
 #
-# ⛔ NO fr-CA.lproj UNLESS DISTRICT_FRENCH IS A TRUE VALUE, AND NEVER A PLAIN fr.lproj.
+# ⛔ NO fr-CA.lproj UNLESS DISTRICT_FRENCH IS A TRUE VALUE, BOTH ITS TABLES WHEN IT IS, AND
+# NEVER ANY OTHER FRENCH .lproj (fr.lproj, fr_CA.lproj, fr-FR.lproj, any case).
 # French enters the app only through project.fr.yml, which `xcodegen generate` includes
 # when DISTRICT_FRENCH is set. A French table in an English release would turn the
 # notifications and the permission prompts French for every French Mac, and AppL10n would
@@ -46,12 +47,30 @@ for table in Localizable InfoPlist; do
   [ -f "$RES/en.lproj/$table.strings" ] || problem "no en.lproj/$table.strings in the app."
   [ ! -e "$RES/$table.strings" ] || problem "$table.strings at the root of Contents/Resources shadows every .lproj."
 done
-[ ! -e "$RES/fr.lproj" ] || problem "the app holds fr.lproj, which is never shipped (fr-CA.lproj is the only French)."
+# Every French .lproj in Contents/Resources: fr-CA.lproj by its exact name, and any other
+# whose name starts with "fr" in any case (fr.lproj, fr_CA.lproj, fr-FR.lproj, FR.lproj,
+# fr-ca.lproj). AppL10n turns the app French for ANY bundle localization starting with
+# "fr", so a French table under another name is French switched on all the same.
+# ⚠️ Contents/Resources ONLY, never Contents/Frameworks: Sparkle.framework carries its own
+# fr.lproj (its update dialog), which is not this app's French and is not what AppL10n
+# reads, so a recursive search would fail every Developer ID build.
+has_fr_ca=0
+shopt -s nocasematch
+for lproj in "$RES"/*.lproj; do
+  [ -d "$lproj" ] || continue
+  name="${lproj##*/}"
+  if [ "$name" = "fr-CA.lproj" ]; then
+    has_fr_ca=1
+  elif [[ "$name" == fr* ]]; then
+    problem "the app holds $name, which is never shipped (fr-CA.lproj is the only French)."
+  fi
+done
+shopt -u nocasematch
 if [ "$french_on" = "1" ]; then
   for table in Localizable InfoPlist; do
     [ -f "$RES/fr-CA.lproj/$table.strings" ] || problem "DISTRICT_FRENCH is on, but the app has no fr-CA.lproj/$table.strings."
   done
-elif [ -e "$RES/fr-CA.lproj" ]; then
+elif [ "$has_fr_ca" = "1" ]; then
   problem "the app holds fr-CA.lproj, but DISTRICT_FRENCH is not set, so French is off."
 fi
 

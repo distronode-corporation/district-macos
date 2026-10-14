@@ -67,6 +67,32 @@ expect "a plain fr.lproj, French on" 1 "fr.lproj, which is never shipped" "YES" 
 expect "a plain fr.lproj, French off" 1 "fr.lproj, which is never shipped" "" \
   "$(bundle "${EN[@]}" fr.lproj/Localizable.strings)"
 
+# Any other French .lproj, any spelling, any case, in either state.
+expect "fr_CA.lproj (underscore), French off" 1 "fr_CA.lproj, which is never shipped" "" \
+  "$(bundle "${EN[@]}" fr_CA.lproj/Localizable.strings)"
+expect "FR.lproj (upper case), French off" 1 "FR.lproj, which is never shipped" "" \
+  "$(bundle "${EN[@]}" FR.lproj/Localizable.strings)"
+expect "fr-FR.lproj beside a complete fr-CA, French on" 1 "fr-FR.lproj, which is never shipped" "YES" \
+  "$(bundle "${EN[@]}" "${FR[@]}" fr-FR.lproj/Localizable.strings)"
+expect "fr-ca.lproj (lower case) is not fr-CA, French on" 1 "fr-ca.lproj, which is never shipped" "YES" \
+  "$(bundle "${EN[@]}" fr-ca.lproj/Localizable.strings fr-ca.lproj/InfoPlist.strings)"
+expect "two strays, the first named" 1 "fr.lproj, which is never shipped" "" \
+  "$(bundle "${EN[@]}" fr.lproj/Localizable.strings fr_CA.lproj/Localizable.strings)"
+expect "two strays, the second named" 1 "fr_CA.lproj, which is never shipped" "" \
+  "$(bundle "${EN[@]}" fr.lproj/Localizable.strings fr_CA.lproj/Localizable.strings)"
+expect "fr-CA with only its push table, French on" 1 "no fr-CA.lproj/InfoPlist.strings" "YES" \
+  "$(bundle "${EN[@]}" fr-CA.lproj/Localizable.strings)"
+expect "af.lproj and Base.lproj are not French" 0 "" "" \
+  "$(bundle "${EN[@]}" af.lproj/Localizable.strings Base.lproj/Main.strings)"
+
+# ⚠️ SPARKLE'S OWN FRENCH IS NOT THE APP'S. Sparkle.framework (Developer ID build) carries
+# fr.lproj for its update dialog, under Contents/Frameworks; the check stays inside
+# Contents/Resources, so it passes with French off.
+sparkle="$(bundle "${EN[@]}")"
+mkdir -p "$sparkle/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fr.lproj"
+echo '"k" = "v";' >"$sparkle/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fr.lproj/Sparkle.strings"
+expect "Sparkle's fr.lproj under Contents/Frameworks, French off" 0 "" "" "$sparkle"
+
 missing="$SCRATCH/missing.app"
 expect "no Contents/Resources" 1 "no Contents/Resources" "" "$missing"
 
