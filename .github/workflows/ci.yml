@@ -359,7 +359,9 @@ jobs:
             2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
 
       # ⛔ A BUNDLE THAT DISCOVERS NOTHING REPORTS SUCCESS. The floor is a ratchet, set at
-      # the count (625 on 2026-10-04 with the Voice Studio, which retired the 22
+      # the count (726 on 2026-10-13 with the 3.0 parity work: New ticket, the knowledge
+      # text file, app links and notification clicks, ringing with the window closed; 661
+      # after the catalog; 625 on 2026-10-04 with the Voice Studio, which retired the 22
       # PersonaEngineDraftTests with the persona engine panel; 611 with
       # UITestSessionTests; 599 after the recording, storage, notetaker and booking notes
       # surfaces and their tests were removed on purpose, 612 before that): raise it when
@@ -367,7 +369,7 @@ jobs:
       # saying so.
       - name: DistrictMacTests were discovered
         run: |
-          minimum=625
+          minimum=726
           executed=$(sed -n 's/.*Executed \([0-9]*\) tests\{0,1\}, with.*/\1/p' xcodebuild-test.log | sort -n | tail -1)
           echo "app-target tests executed - ${executed:-0} (at least $minimum expected)"
           if [ -z "$executed" ] || [ "$executed" -lt "$minimum" ]; then
