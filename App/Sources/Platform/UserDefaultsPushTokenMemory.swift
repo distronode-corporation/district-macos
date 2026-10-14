@@ -4,8 +4,9 @@ import Foundation
 /// ``PushTokenMemory`` over `UserDefaults`, ported from district-ios. Everything decided
 /// FROM the value lives in the core's `PushTokenRepository`.
 ///
-/// ⚠️ The VoIP pair exists because the protocol requires it. The Mac has no PushKit and
-/// never registers a VoIP token, so those two keys stay empty.
+/// ⚠️ The VoIP pair exists because the protocol requires it. PushKit's VoIP push is
+/// unavailable on macOS, so the Mac never registers a VoIP token and those two keys stay
+/// empty.
 final class UserDefaultsPushTokenMemory: PushTokenMemory, @unchecked Sendable {
     static let defaultsKey = "com.distronode.district.pushToken"
     static let voipDefaultsKey = "com.distronode.district.voipPushToken"

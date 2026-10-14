@@ -53,6 +53,18 @@ not sent.
 
 ### Changed
 
+- Calls ring with the window closed. Closing the window no longer quits District AI: it
+  stays in the menu bar (Open District AI, Open at Login, Quit) and its telemetry socket
+  keeps ringing. `SessionModel` checks the session and starts the ringing when the app
+  finishes launching, not from a view, so a launch at login with no window rings too, and
+  the app delegate takes the registrar and the call objects at launch rather than from the
+  window. Open at Login (`SMAppService.mainApp`) is off until you turn it on. The app's own
+  ring notification is Time Sensitive (the new
+  `com.apple.developer.usernotifications.time-sensitive` entitlement, in both
+  distributions), and `ring.wav` (25 s) is bundled for the server's APNs incoming-call alert,
+  which since the server's 3.0 batch is Time Sensitive and names that sound, so a Mac where
+  the app has quit still rings loudly. A native Mac app has no VoIP push or CallKit
+  provider, which is why the app stays running. Ring on this computer says so.
 - Every sentence the `*Copy` enums say comes from one catalog, `l10n/macos.toml` (1,286
   entries), with English and room for Canadian French side by side, keyed as district-ios's
   `l10n/ios.toml` wherever the two apps share a sentence. `scripts/gen-l10n.py` writes

@@ -16,12 +16,14 @@ protocol RingPresenting: AnyObject {
 /// ``RingPanelController``'s, which follows the model rather than this.
 ///
 /// ⚠️ ALL OF THIS IS iOS's CALLKIT SCREEN, DONE BY HAND. A phone's system call UI rings,
-/// vibrates and lights the lock screen; a Mac has no such surface for a third-party app
-/// without CallKit, which this app does not use by decision (plan decision 4).
+/// vibrates and lights the lock screen; a Mac has no such surface for a third-party app,
+/// because CallKit's provider is unavailable on native macOS (``BackgroundRinging``).
 @MainActor
 final class RingPresenter: RingPresenting {
     /// The system sound the ring repeats. ⚠️ A sound that ships with every Mac
-    /// (`/System/Library/Sounds`), so nothing is bundled and nothing is licensed.
+    /// (`/System/Library/Sounds`), so nothing is licensed. The bundled `ring.wav` is the
+    /// server's APNs alert's sound (`aps.sound`), for a Mac where the app has quit; the
+    /// alert plays it once, where this repeats until the ring ends.
     static let soundName = "Submarine"
 
     /// The gap between rings, so it reads as a telephone ringing rather than one tone.
@@ -88,6 +90,10 @@ final class RingPresenter: RingPresenting {
         content.categoryIdentifier = RingNotifications.category
         content.userInfo = RingNotifications.userInfo(workspaceId: workspaceId, callId: callId)
         content.threadIdentifier = workspaceId
+        // ⛔ TIME SENSITIVE, AS THE SERVER'S APNs ALERT IS, so a ring breaks through Focus and
+        // the notification summary. ⚠️ Needs `com.apple.developer.usernotifications.time-sensitive`
+        // (project.yml, both distributions); without it the system delivers it as active.
+        content.interruptionLevel = .timeSensitive
         let request = UNNotificationRequest(
             identifier: RingNotifications.identifier(callId: callId),
             content: content,

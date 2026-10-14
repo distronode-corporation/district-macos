@@ -14,11 +14,13 @@ Support, Scheduling and Workspace settings), places calls from Dial, joins Rooms
 for calls handed to you and answers them. The direct download arrives with this
 repository's first GitHub Release. See [CHANGELOG.md](CHANGELOG.md).
 
-**How calls reach a Mac.** While District AI is open and you are signed in, a call handed
-to you rings on this Mac: a small call window, a notification with Answer and Decline,
-and a ring. Turn that off with Ring on this computer (in Account, and in Settings). When
-the app is closed, or the Mac is asleep, you get the notification only. The Mac does not
-use CallKit or VoIP push.
+**How calls reach a Mac.** While you are signed in, a call handed to you rings on this
+Mac: a small call window, a notification with Answer and Decline, and a ring. Closing the
+window does not stop it: District AI stays in the menu bar (Open District AI, Open at
+Login, Quit) and keeps ringing. Turn ringing off with Ring on this computer (in Account,
+and in Settings). Once you quit the app, or while the Mac is asleep, a call arrives as a
+Time Sensitive notification with a ring sound, and Answer opens the app and answers. A
+native Mac app cannot use CallKit or VoIP push, which is why the app stays running.
 
 This repository is the client's complete source, under the Apache License 2.0. The
 District AI service it talks to is not open source; signing in needs a District AI

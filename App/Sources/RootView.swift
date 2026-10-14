@@ -7,7 +7,6 @@ struct RootView: View {
     let session: SessionModel
     let push: PushRegistrar
     let live: DesktopLive
-    let incoming: IncomingCallModel
 
     var body: some View {
         content
@@ -18,19 +17,10 @@ struct RootView: View {
             // the sidebar's symbols) fall back to the system accent. ⚠️ MAC: a window is its
             // own root, so the Settings window and the ring panel apply it too.
             .districtTheme()
-            .task { await session.refreshPhase() }
-            // ⛔ THE RING FOLLOWS THE SESSION GATE IN BOTH DIRECTIONS: a ring waiting on an
-            // unresolved session is resolved here, and a session that ends (or cannot be
-            // checked) stops this Mac ringing. The shell starts it again with a workspace.
-            .onChange(of: session.phase, initial: true) {
-                incoming.sessionChanged(session.phase)
-                switch session.phase {
-                case .signedOut, .unavailable:
-                    live.sessionEnded()
-                case .checking, .signedIn:
-                    break
-                }
-            }
+            // ⚠️ A NO-OP ONCE THE APP DELEGATE HAS LAUNCHED THE SESSION, which it does with or
+            // without a window. ⛔ The ring follows the session gate in ``SessionModel``, not
+            // here: the app keeps ringing with this window closed (``BackgroundRinging``).
+            .task { await session.launch() }
             // ⛔ `districtai://handoff` IS TAKEN HERE AND HANDED TO THE ONE FLOW (S33); the
             // flow drops it unless it carries the state of the hand-off in flight.
             // ⚠️ `districtai://auth` never arrives here: `ASWebAuthenticationSession`

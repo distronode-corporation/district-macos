@@ -26,8 +26,9 @@ enum PushRegistrationStatus: Equatable, Sendable {
 
 /// The sequencing of push registration: after sign-in, on a token from APNs, and before
 /// the sign-out's revoke. Ported from district-ios, without PushKit, CallKit or the
-/// silent-push badge refresh (the Mac has no VoIP push by decision; the unread badge is
-/// set by the Inbox when it reads, and cleared here on sign-out).
+/// silent-push badge refresh (PushKit's VoIP push is unavailable on macOS, and a closed
+/// window keeps the app ringing over its socket instead (``BackgroundRinging``); the
+/// unread badge is set by the Inbox when it reads, and cleared here on sign-out).
 ///
 /// ⛔ IT NEVER THROWS INTO SIGN-IN OR SIGN-OUT. Push is a courtesy channel; a failed
 /// registration must not fail the thing it was attached to.

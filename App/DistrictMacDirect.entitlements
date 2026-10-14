@@ -9,6 +9,8 @@
 		<string>applinks:www.distronode.com</string>
 		<string>webcredentials:www.distronode.com</string>
 	</array>
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 	<key>com.apple.security.device.audio-input</key>

@@ -149,11 +149,12 @@ struct ShellView: View {
             paths.adopt(workspaceSession.workspaceId)
         }
         // ⛔ THIS MAC RINGS FOR THE SELECTED WORKSPACE, and moves with it. See ``DesktopLive``.
+        // ⚠️ NIL IS NOT REPORTED: it is the middle of a read (a reopened window, a switch),
+        // and reporting it would stop the ringing ``SessionModel`` started for a Mac with no
+        // window, only to start it again a moment later.
         .onChange(of: workspaceSession.workspaceId, initial: true) {
-            live.signedIn(
-                workspaceId: workspaceSession.workspaceId,
-                workspaceName: workspaceSession.selectedEntry?.name
-            )
+            guard let workspaceId = workspaceSession.workspaceId else { return }
+            live.signedIn(workspaceId: workspaceId, workspaceName: workspaceSession.selectedEntry?.name)
         }
     }
 
