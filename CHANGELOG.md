@@ -18,6 +18,14 @@ not sent.
 
 ### Added
 
+- New ticket on District Desk, as on iPhone and iPad (district-ios #37): a New ticket button
+  in the Desk toolbar, and File > New Ticket, open the form that raises a ticket on a
+  customer's behalf (a walk-in, an email), as Android, Linux and Windows already offer. It
+  is offered on the same rule as theirs: a role that may write, a desk that is on and a
+  queue that loaded (`DeskModel.canStartTicket`). The menu command is enabled wherever Desk
+  is offered to a role that may write; it opens Desk and then the form once the desk has
+  loaded, and nothing if the desk turns out to be off or unreadable. A failed submit is now
+  said in the form rather than on the queue behind it.
 - A live transcript on a call in progress, as on iPhone and iPad: a call's screen shows the
   conversation as it happens, then the full transcript in the same place once the call
   ends. It rides the telemetry socket the Mac already holds for ringing, as one

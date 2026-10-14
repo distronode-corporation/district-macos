@@ -1763,6 +1763,13 @@ ctx = "label"
 screen = "desk"
 id = { swift = "DeskCopy.messageLabel" }
 
+[desk.new_ticket_action]
+en = "New ticket"
+ctx = "button"
+screen = "desk"
+id = { swift = "DeskCopy.newTicketAction" }
+note = "The toolbar button that opens the new-ticket form, for a customer who got in touch another way (a walk-in, an email). Same words as the form's title, but a button."
+
 [desk.no_contact_details]
 en = "No contact details recorded"
 ctx = "label"
@@ -4417,6 +4424,13 @@ en = "New Message"
 ctx = "button"
 screen = "navigation"
 id = { swift = "NavigationCopy.newMessage" }
+
+[navigation.new_ticket]
+en = "New Ticket"
+ctx = "menu"
+screen = "navigation"
+id = { swift = "NavigationCopy.newTicket" }
+note = "File menu command that opens District Desk's new-ticket form (a ticket raised for a customer who got in touch another way). Title case, as macOS menu items are."
 
 [navigation.no_workspaces_yet]
 en = "No workspaces yet"

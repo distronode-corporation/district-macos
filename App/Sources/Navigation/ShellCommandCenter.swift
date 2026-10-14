@@ -39,6 +39,13 @@ final class ShellCommandCenter {
     /// create action a section has gets a File menu item, and Contacts is the other one.
     var createContactRequested = false
 
+    /// File > New Ticket was chosen and District Desk has not opened its form yet.
+    ///
+    /// ⚠️ MAC ONLY, LIKE ``createContactRequested``. Desk consumes it once its first read has
+    /// answered (``View/deskTicketCommandTarget(model:composing:)``), because whether the
+    /// form may open is a property of that read.
+    var newTicketRequested = false
+
     private var refreshers: [(id: UUID, action: Refresh)] = []
 
     /// A create action a screen on display offers, for ⌘N (``View/districtCreateCommand(_:action:)``).

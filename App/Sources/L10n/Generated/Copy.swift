@@ -885,6 +885,9 @@ extension DeskCopy {
     /// `desk.message_label`
     internal static var messageLabel: String { AppL10n.copyLocale == .frCA ? "What they need" : "What they need" }
 
+    /// `desk.new_ticket_action`
+    internal static var newTicketAction: String { AppL10n.copyLocale == .frCA ? "New ticket" : "New ticket" }
+
     /// `desk.no_contact_details`
     internal static var noContactDetails: String { AppL10n.copyLocale == .frCA ? "No contact details recorded" : "No contact details recorded" }
 
@@ -2176,6 +2179,9 @@ extension NavigationCopy {
 
     /// `navigation.new_message`
     internal static var newMessage: String { AppL10n.copyLocale == .frCA ? "New Message" : "New Message" }
+
+    /// `navigation.new_ticket`
+    internal static var newTicket: String { AppL10n.copyLocale == .frCA ? "New Ticket" : "New Ticket" }
 
     /// `navigation.no_workspaces_yet`
     internal static var noWorkspacesYet: String { AppL10n.copyLocale == .frCA ? "No workspaces yet" : "No workspaces yet" }
