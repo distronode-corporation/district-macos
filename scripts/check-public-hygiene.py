@@ -17,7 +17,11 @@ skipped. Three rules:
             website (origin-<region> under distronode.com or distronode.ca). Names under
             example.com, example.org, example.net, .test, .example and .invalid
             are reserved for examples (RFC 2606) and are what test data uses.
-    gitlab  A GitLab URL or host name. This repository lives on GitHub only.
+    gitlab  A GitLab URL or host name. This repository lives on GitHub. The one
+            exception is this repository's own read-only mirror,
+            https://gitlab.com/distronode-corporation/district-macos (OWN_MIRROR),
+            which the README links to. Any other GitLab URL, including a path
+            inside the mirror, is still a finding.
 
 Files under contracts/ are exempt from `dash` only. This app has no contracts/
 directory (its contract fixtures live in district-core-swift), and the exemption is
@@ -76,6 +80,12 @@ ORIGIN_HOST = re.compile(
 # happens to be spelt the same in another case is not a host name.
 GITLAB = re.compile(r"(?<![\w\-])((?:[a-z0-9\-]+\.)*gitlab(?:\.[a-z0-9\-]+)+)(?![\w\-])")
 
+# This repository's own GitLab mirror, the one GitLab URL the scan allows. Exactly
+# the project's root URL: not followed by a path, a word character, a hyphen or a
+# dot that starts a word (`.git`), so a longer project name or a page inside the
+# mirror is still a finding. A sentence-ending dot after it is fine.
+OWN_MIRROR = re.compile(r"https://gitlab\.com/distronode-corporation/district-macos(?![\w\-/]|\.\w)")
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -102,7 +112,10 @@ def scan_text(text: str, path: str = "<text>") -> list[Finding]:
                 findings.append(
                     Finding(path, number, m.start(1) + 1, "host", f"{m.group(1)!r} is an internal host name")
                 )
-        for m in GITLAB.finditer(line):
+        # Blank the allowed mirror URL out (same length, so columns stay right)
+        # before looking for GitLab names in what is left.
+        unmirrored = OWN_MIRROR.sub(lambda m: " " * len(m.group(0)), line)
+        for m in GITLAB.finditer(unmirrored):
             findings.append(
                 Finding(path, number, m.start(1) + 1, "gitlab", f"{m.group(1)!r} names GitLab")
             )
@@ -174,6 +187,11 @@ def self_test() -> int:
         ("a GitLab URL", "x.md", f"https://{lab}.com/group/project", {"gitlab"}),
         ("a self-managed GitLab", "x.md", f"{lab}.example.org/a/b", {"gitlab"}),
         ("an identifier, not a host", "x.py", "GIT" + "LAB.finditer(line)", set()),
+        ("this repository's own mirror", "README.md", f"[mirror](https://{lab}.com/distronode-corporation/district-macos) and https://{lab}.com/distronode-corporation/district-macos.", set()),
+        ("a page inside the own mirror", "x.md", f"https://{lab}.com/distronode-corporation/district-macos/-/tree/main", {"gitlab"}),
+        ("the own mirror's clone URL", "x.md", f"https://{lab}.com/distronode-corporation/district-macos.git", {"gitlab"}),
+        ("another project in the group", "x.md", f"https://{lab}.com/distronode-corporation/district-macos-x", {"gitlab"}),
+        ("another repository's mirror", "x.md", f"https://{lab}.com/distronode-corporation/district-ios", {"gitlab"}),
     ]
 
     failures = 0
