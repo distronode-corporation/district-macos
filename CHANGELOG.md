@@ -128,6 +128,11 @@ not sent.
 - The repository meets the public-repo standard: a Scorecard badge, the README and
   SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
   requests get dependency review, and a test uses a fictional email address.
+- The catalogs carry their reviewed Canadian French (fr-CA): 1,753 entries in
+  `l10n/macos.toml`, `l10n/push.toml` and `l10n/infoplist.toml`, regenerated into `Copy.swift`
+  and the `fr-CA.lproj` strings, so `FR_COMPLETE` is true. French stays switched off: the
+  French tables still enter the app only through `project.fr.yml` (`DISTRICT_FRENCH`), and
+  the release guard is unchanged.
 
 ### Release process
 
