@@ -380,23 +380,21 @@ final class VisualQATourTests: XCTestCase {
     }
 
     /// A Debug launch sometimes opens no window (see UITestWindowSize.swift). Activating the
-    /// app is the Dock's reopen; failing that, the menu bar extra's first item opens one.
+    /// app is the Dock's reopen; failing that, a fresh launch, twice at most.
+    ///
+    /// ⚠️ NOT THE MENU BAR EXTRA'S "OPEN" ITEM ANY MORE: in the dark run (38771069047) its
+    /// menu never reported open, and a failed menu traversal ends the test outright, so one
+    /// missing window cost the whole walk.
     @MainActor private func ensureWindow() -> Bool {
-        let window = app.windows.firstMatch
-        if window.waitForExistence(timeout: 20) { return true }
-        app.activate()
-        if window.waitForExistence(timeout: 10) { return true }
-        let status = app.statusItems.firstMatch
-        if status.waitForExistence(timeout: 3) {
-            status.click()
-            let open = app.menuItems.matching(NSPredicate(format: "title BEGINSWITH %@", openPrefix)).firstMatch
-            if open.waitForExistence(timeout: 3) {
-                open.click()
-            } else {
-                escape()
-            }
+        for attempt in 0 ..< 3 {
+            let window = app.windows.firstMatch
+            if window.waitForExistence(timeout: 20) { return true }
+            app.activate()
+            if window.waitForExistence(timeout: 10) { return true }
+            guard attempt < 2 else { break }
+            app.terminate()
+            app.launch()
         }
-        if window.waitForExistence(timeout: 15) { return true }
         missed.append("window")
         return false
     }

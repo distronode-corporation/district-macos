@@ -16,7 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: visual-qa-${{ github.ref }}
+  # `-dark`: must not cancel the 1280 run (38781796261) on the commit before.
+  group: visual-qa-dark-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,13 +32,14 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          # The light and dark sets ran on the previous commit (run 38771069047). This
-          # commit runs only the 1280x800 window, on a display set to hold it.
-          - set: light-1280
-            appearance: Light
+          # The dark set again (run 38771069047 lost it to a missing window), with the
+          # window recovery that relaunches rather than opening the menu bar extra.
+          - set: dark-2
+            appearance: Dark
             runs: >-
-              en|-|test_14_enUS_1280
-              fr|-|test_15_frCA_1280
+              en|-|test_03_enUS_dark
+              fr|-|test_04_frCA_dark
+              fr|ring|test_12_ring_frCA_dark
     env:
       APPEARANCE: ${{ matrix.appearance }}
       RUNS: ${{ matrix.runs }}
