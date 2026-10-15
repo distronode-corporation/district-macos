@@ -63,6 +63,21 @@ final class VisualQATourTests: XCTestCase {
         full(language: "fr-CA", locale: "fr_CA", dark: false, window: "1280x800", tag: "fr-CA-light-1280")
     }
 
+    /// Dark from the system setting alone (the workflow writes it), with no
+    /// `-AppleInterfaceStyle` argument: tells a launch-argument artefact from an app that
+    /// opens no window in dark mode (runs 38771069047 and 38784281594: no window at all).
+    @MainActor func test_16_enUS_dark_system() {
+        darkArgument = false
+        full(language: "en-US", locale: "en_US", dark: true, window: "1000x700", tag: "en-US-dark-system")
+    }
+
+    @MainActor func test_17_frCA_dark_system() {
+        darkArgument = false
+        full(language: "fr-CA", locale: "fr_CA", dark: true, window: "1000x700", tag: "fr-CA-dark-system")
+    }
+
+    private var darkArgument = true
+
     /// With QA_MODE=empty, error or slow on the mock, the principal sections only.
     @MainActor func test_06_enUS_empty() {
         states(tag: "en-US-light-empty")
@@ -341,7 +356,7 @@ final class VisualQATourTests: XCTestCase {
 
     @MainActor private var arguments: [String] {
         ["-UITestSession", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
-            + (dark ? ["-AppleInterfaceStyle", "Dark"] : [])
+            + (dark && darkArgument ? ["-AppleInterfaceStyle", "Dark"] : [])
     }
 
     /// The signed-out gate: an armed launch with no session is a fresh install.
