@@ -1,5 +1,5 @@
 import DistrictL10n
-import DistrictNetwork
+import DistrictModel
 import Foundation
 
 /// Tells the server which language this app is in, so email, Voice Studio and the server's

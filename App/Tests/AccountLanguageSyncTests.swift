@@ -1,6 +1,7 @@
 import DistrictAuthCore
 import DistrictL10n
 @testable import DistrictMac
+import DistrictModel
 import DistrictNetwork
 import Foundation
 import XCTest
