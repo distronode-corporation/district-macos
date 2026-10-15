@@ -125,8 +125,12 @@ final class VisualQATourTests: XCTestCase {
         openPrefix = language.hasPrefix("fr") ? "Ouvrir" : "Open"
     }
 
-    @MainActor private func states(tag: String, language: String = "en-US", locale: String = "en_US",
-                                   settle: TimeInterval = 2.5) {
+    @MainActor private func states(
+        tag: String,
+        language: String = "en-US",
+        locale: String = "en_US",
+        settle: TimeInterval = 2.5
+    ) {
         configure(language: language, locale: locale, dark: false, window: "1000x700", tag: tag)
         settleTime = settle
         guard launch() else { return }
@@ -135,7 +139,8 @@ final class VisualQATourTests: XCTestCase {
             (SidebarIDs.inbox, "02-inbox"), (SidebarIDs.calls, "06-calls"), (SidebarIDs.contacts, "10-contacts"),
             (SidebarIDs.account, "12-account"), (SidebarIDs.hq, "14-hq"), (SidebarIDs.analytics, "15-analytics"),
             (SidebarIDs.marketplace, "16-numbers"), (SidebarIDs.billing, "18-billing"), (SidebarIDs.rooms, "19-rooms"),
-            (SidebarIDs.workflows, "20-workflows"), (SidebarIDs.desk, "21-desk"), (SidebarIDs.scheduling, "25-scheduling"),
+            (SidebarIDs.workflows, "20-workflows"), (SidebarIDs.desk, "21-desk"),
+            (SidebarIDs.scheduling, "25-scheduling"),
             (SidebarIDs.support, "40-support"), (SidebarIDs.settings, "42-settings"),
         ]
         for (row, name) in rows where go(row) {
@@ -166,7 +171,9 @@ final class VisualQATourTests: XCTestCase {
                     capture("04-thread-menu")
                     if tapID("district-thread-report") {
                         capture("05-report")
-                        if !tapID("district-report-cancel") { escape() }
+                        if !tapID("district-report-cancel") {
+                            escape()
+                        }
                     } else {
                         escape()
                     }
@@ -180,7 +187,9 @@ final class VisualQATourTests: XCTestCase {
             if openFirst(prefix: "district-call-row") {
                 capture("07-call-detail")
                 scrollCapture("07b-call-detail")
-                if tapID("district-call-detail-show-transcript") { capture("08-call-transcript") }
+                if tapID("district-call-detail-show-transcript") {
+                    capture("08-call-transcript")
+                }
             }
         }
         if go(SidebarIDs.contacts) {
@@ -193,7 +202,9 @@ final class VisualQATourTests: XCTestCase {
         if go(SidebarIDs.account) {
             capture("12-account")
             scrollCapture("12b-account")
-            if tapID("district-account-devices") { capture("13-devices") }
+            if tapID("district-account-devices") {
+                capture("13-devices")
+            }
         }
         simple(SidebarIDs.hq, "14-hq")
         simple(SidebarIDs.analytics, "15-analytics", scrolls: 2)
@@ -216,7 +227,9 @@ final class VisualQATourTests: XCTestCase {
             }
             if tapID("district-desk-new-ticket") {
                 capture("23-new-ticket")
-                if !tapID("district-desk-compose-cancel") { escape() }
+                if !tapID("district-desk-compose-cancel") {
+                    escape()
+                }
             }
         }
         simple(SidebarIDs.dialer, "24-dialer")
@@ -235,7 +248,13 @@ final class VisualQATourTests: XCTestCase {
 
     /// The ring panel: the mock, armed by the workflow before this test, rings every open
     /// telemetry socket for the contract caller, and the panel is its own window.
-    @MainActor private func ring(language: String, locale: String, answer label: String, tag: String, dark: Bool = false) {
+    @MainActor private func ring(
+        language: String,
+        locale: String,
+        answer label: String,
+        tag: String,
+        dark: Bool = false
+    ) {
         configure(language: language, locale: locale, dark: dark, window: "1000x700", tag: tag)
         guard launch() else { return }
         capture("70-ring-shell")
@@ -244,7 +263,9 @@ final class VisualQATourTests: XCTestCase {
             Thread.sleep(forTimeInterval: 1.5)
             captureScreen("71-ring-panel")
             let panel = app.windows.matching(NSPredicate(format: "identifier != 'main-AppWindow-1'")).firstMatch
-            if panel.exists { captureElement(panel, "71b-ring-panel-window") }
+            if panel.exists {
+                captureElement(panel, "71b-ring-panel-window")
+            }
         } else {
             missed.append("ring-panel")
             captureScreen("71-no-ring")
@@ -277,9 +298,13 @@ final class VisualQATourTests: XCTestCase {
             scrollCapture("\(number)b-sched-\(segment)")
             switch segment {
             case "event-types":
-                if openFirst(prefix: "district-scheduling-event-type-row") { capture("\(number)c-sched-event-type") }
+                if openFirst(prefix: "district-scheduling-event-type-row") {
+                    capture("\(number)c-sched-event-type")
+                }
             case "bookings":
-                if openFirst(prefix: "district-scheduling-booking-row") { capture("\(number)c-sched-booking") }
+                if openFirst(prefix: "district-scheduling-booking-row") {
+                    capture("\(number)c-sched-booking")
+                }
             case "team":
                 if tapID("district-scheduling-entry-user-archive") {
                     capture("\(number)c-sched-archive")
@@ -296,7 +321,8 @@ final class VisualQATourTests: XCTestCase {
     }
 
     @MainActor private func tabs(prefix: String, number: Int) {
-        let query = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix + "-"))
+        let byPrefix = NSPredicate(format: "identifier BEGINSWITH %@", prefix + "-")
+        let query = app.descendants(matching: .any).matching(byPrefix)
         let count = min(query.count, 6)
         guard count > 1 else { return }
         for index in 1 ..< count {
@@ -311,8 +337,18 @@ final class VisualQATourTests: XCTestCase {
     }
 
     @MainActor private func settings() {
-        let sections = ["persona", "voiceStudio", "capabilities", "calls", "directory", "routing",
-                        "knowledge", "messaging", "members", "scheduling"]
+        let sections = [
+            "persona",
+            "voiceStudio",
+            "capabilities",
+            "calls",
+            "directory",
+            "routing",
+            "knowledge",
+            "messaging",
+            "members",
+            "scheduling",
+        ]
         guard launch(), go(SidebarIDs.settings) else { return }
         capture("42-settings")
         scrollCapture("42b-settings")
@@ -403,9 +439,13 @@ final class VisualQATourTests: XCTestCase {
     @MainActor private func ensureWindow() -> Bool {
         for attempt in 0 ..< 3 {
             let window = app.windows.firstMatch
-            if window.waitForExistence(timeout: 20) { return true }
+            if window.waitForExistence(timeout: 20) {
+                return true
+            }
             app.activate()
-            if window.waitForExistence(timeout: 10) { return true }
+            if window.waitForExistence(timeout: 10) {
+                return true
+            }
             guard attempt < 2 else { break }
             app.terminate()
             app.launch()
@@ -422,8 +462,9 @@ final class VisualQATourTests: XCTestCase {
         guard window.exists else { return }
         for _ in 0 ..< 8 where element.exists && !element.isHittable {
             let frame = window.frame
-            let x = min(max(element.frame.midX, frame.minX + 20), frame.maxX - 20) - frame.minX
-            let point = window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x, dy: frame.height * 0.6))
+            let across = min(max(element.frame.midX, frame.minX + 20), frame.maxX - 20) - frame.minX
+            let offset = CGVector(dx: across, dy: frame.height * 0.6)
+            let point = window.coordinate(withNormalizedOffset: .zero).withOffset(offset)
             point.scroll(byDeltaX: 0, deltaY: element.frame.midY > frame.midY ? -250 : 250)
             Thread.sleep(forTimeInterval: 0.5)
         }
@@ -435,7 +476,8 @@ final class VisualQATourTests: XCTestCase {
     }
 
     @MainActor private func openFirst(prefix: String) -> Bool {
-        let query = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix + "-"))
+        let byPrefix = NSPredicate(format: "identifier BEGINSWITH %@", prefix + "-")
+        let query = app.descendants(matching: .any).matching(byPrefix)
         return press(query.firstMatch, timeout: 8, name: prefix)
     }
 
