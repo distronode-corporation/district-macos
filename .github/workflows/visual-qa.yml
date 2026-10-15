@@ -37,6 +37,7 @@ jobs:
             runs: >-
               en|-|test_01_enUS_light
               fr|-|test_02_frCA_light
+              fr|ring|test_10_ring_frCA
           - set: dark
             appearance: Dark
             runs: >-
