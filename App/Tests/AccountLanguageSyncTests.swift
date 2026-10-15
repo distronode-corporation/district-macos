@@ -297,7 +297,7 @@ private struct SyncHarness {
 /// answered, everything recorded.
 @MainActor
 private struct SessionHarness {
-    let transport = SettingsTransport()
+    let transport = LocaleSaveTransport()
     let defaults: UserDefaults
     let language: AccountLanguageSync
     let session: SessionModel
@@ -341,7 +341,7 @@ private struct SessionHarness {
 }
 
 /// Answers `POST /api/settings` as the route does, and 404 to anything else.
-private final class SettingsTransport: HTTPTransport, @unchecked Sendable {
+private final class LocaleSaveTransport: HTTPTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var recorded: [HTTPRequest] = []
 
