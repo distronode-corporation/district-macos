@@ -2,8 +2,8 @@ import Foundation
 
 /// The words of the authenticator-code step after Sign in with Apple.
 ///
-/// ⚠️ ENGLISH CONSTANTS IN ONE PLACE, AS ``SessionCopy`` AND ``SignInCopy`` ARE: the app
-/// is English only, and a single home is what a later localisation pass replaces.
+/// ⚠️ ONE HOME, AS ``SessionCopy`` AND ``SignInCopy`` HAVE: its sentences are the catalog's
+/// (`l10n/macos.toml`), in English or Canadian French.
 ///
 /// ⛔ ``expired`` TELLS THE PERSON WHAT TO DO, because it is the one refusal no amount
 /// of typing can fix: the ticket is gone and only a fresh Apple sign-in mints another.

@@ -160,8 +160,8 @@ seam_hits="$(strings "$APP/Contents/MacOS/$PRODUCT" | grep -c 'DISTRICT_UITEST' 
 [ "$seam_hits" = "0" ] ||
   die "the archived binary contains 'DISTRICT_UITEST' ($seam_hits hits): the UI-test seam is in a Release build. Nothing was exported."
 echo "UI-test seam strings in the binary: 0"
-# ⛔ FRENCH STAYS OUT UNTIL IT IS SWITCHED ON, IN BOTH LANES, and the string tables are in
-# en.lproj rather than at the bundle root. The same verdict as the seam: the archive is
+# ⛔ BOTH LANES SHIP THE CANADIAN FRENCH (DISTRICT_FRENCH=YES from release.yml) AND NO OTHER
+# FRENCH, and the string tables are in their .lproj folders rather than at the bundle root. The same verdict as the seam: the archive is
 # deleted, not warned about. See scripts/check-bundle-l10n.sh.
 if ! "$SCRIPT_DIR/check-bundle-l10n.sh" "$APP"; then
   rm -rf "$ARCHIVE_PATH"

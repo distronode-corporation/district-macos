@@ -5,8 +5,9 @@ import DistrictModel
 ///
 /// The live transcript's words, in one place.
 ///
-/// ⚠️ ENGLISH ONLY, like the rest of this app. The wire never carries a label: the speaker is
-/// a role (`caller`, `agent`), and the persona's name is the only name it sends.
+/// ⚠️ THE LABELS ARE THE CATALOG'S, in English or Canadian French. The wire never carries a
+/// label: the speaker is a role (`caller`, `agent`), and the persona's name is the only name
+/// it sends.
 enum LiveTranscriptCopy {
     /// The speaker's label. ⚠️ An assistant line names its persona when the server sends
     /// one; a speaker this app does not know yet (a colleague who joined, say) is a third

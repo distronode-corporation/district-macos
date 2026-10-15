@@ -1,3 +1,4 @@
+import DistrictL10n
 import DistrictModel
 import DistrictNetwork
 import Foundation
@@ -71,10 +72,16 @@ struct SchedulingSSOClient: Sendable {
         guard let token = await accessToken() else {
             return .failure(.http(status: 401, message: nil))
         }
+        // ⚠️ `Accept-Language` AS ``ApiClient`` SENDS IT (the app's resolved language, not
+        // the device's list), so this request is no exception to "every request says it".
         let request = HTTPRequest(
             method: .get,
             url: url,
-            headers: ["Authorization": "Bearer \(token)", "Accept": "application/json"],
+            headers: [
+                "Authorization": "Bearer \(token)",
+                "Accept": "application/json",
+                "Accept-Language": L10nRuntime.locale.languageTag,
+            ],
             body: nil
         )
         do {

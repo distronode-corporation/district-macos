@@ -40,6 +40,14 @@ final class AppContainer {
         VoiceStudioRepository(client: api)
     }
 
+    /// The signed-in person's own settings, of which this app writes one: the language the
+    /// server writes to them in (``AccountLanguageSync``).
+    ///
+    /// ⚠️ COMPUTED, NOT STORED, for ``voiceStudio``'s reason.
+    var accountSettings: AccountSettingsRepository {
+        AccountSettingsRepository(client: api)
+    }
+
     /// Who answers a call, and whether THIS person can be rung for one (Account's
     /// "Calls to you" card).
     ///

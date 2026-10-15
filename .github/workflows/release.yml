@@ -76,13 +76,13 @@ env:
   SENTRY_CLI_SHA256: 2c26914636c47ab9bf9e710484ad7b44d371cbec8bd29cafb36b3cf877bf4285
   # Recommended by xcbeautify: without it xcodebuild buffers its output when piped.
   NSUnbufferedIO: "YES"
-  # ⛔ FRENCH (fr-CA) IS OFF UNTIL THE 3.0 CUT, AND THIS LINE IS THE ONE SWITCH, for both
-  # lanes. scripts/archive.sh hands it to `xcodegen generate`, which merges project.fr.yml
-  # (the fr-CA.lproj tables) only when it is YES, and scripts/check-bundle-l10n.sh reads
-  # the same value on the archived and the exported app: with "NO" an app holding
-  # fr-CA.lproj is refused, with "YES" one LACKING fr-CA.lproj's two tables is, and any
-  # other French .lproj is refused either way. At the cut it becomes "YES".
-  DISTRICT_FRENCH: "NO"
+  # ⛔ FRENCH (fr-CA) IS REQUIRED SINCE 3.0, for both lanes. project.yml puts the fr-CA.lproj
+  # tables in every build, and scripts/check-bundle-l10n.sh reads this value on the
+  # archived app (scripts/archive.sh) and on the exported Developer ID app
+  # (scripts/direct-package.sh): with "YES" an app LACKING fr-CA.lproj's two tables is
+  # refused, and any other French .lproj (fr.lproj, fr-FR.lproj, any case) is refused
+  # either way. ⚠️ "NO" no longer builds an English-only app; it refuses every release.
+  DISTRICT_FRENCH: "YES"
 
 jobs:
   appstore:

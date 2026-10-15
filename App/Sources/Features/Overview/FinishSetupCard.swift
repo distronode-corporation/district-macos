@@ -14,7 +14,7 @@ import SwiftUI
 /// page in an in-app Safari sheet; macOS has none, so the Mac names the default browser
 /// (``BrowserHandOff``), as Android's `launchExternally` names a browser package.
 ///
-/// ⚠️ ENGLISH ONLY, like the rest of both native apps, by decision.
+/// ⚠️ ITS WORDS ARE THE CATALOG'S, in English or Canadian French, like the rest of the app.
 struct FinishSetupCard: View {
     let onOpen: () -> Void
 
