@@ -264,6 +264,11 @@ struct DistrictAvatar: View {
         let increased = colorSchemeContrast == .increased
         return Circle()
             .fill(SelectionInk.chipFill(tone, colors, increasedContrast: increased, prominence: prominence))
+            .overlay {
+                if let outline = SelectionInk.chipOutline(prominence) {
+                    Circle().strokeBorder(outline, lineWidth: 1)
+                }
+            }
             .frame(width: 36, height: 36)
             .overlay {
                 Group {

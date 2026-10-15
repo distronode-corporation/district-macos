@@ -400,5 +400,11 @@ struct DeskStatusBadge: View {
                 SelectionInk.chipFill(tone, colors, increasedContrast: increased, prominence: prominence),
                 in: RoundedRectangle(cornerRadius: DistrictRadius.badge)
             )
+            .overlay {
+                if let outline = SelectionInk.chipOutline(prominence) {
+                    RoundedRectangle(cornerRadius: DistrictRadius.badge)
+                        .strokeBorder(outline, lineWidth: 1)
+                }
+            }
     }
 }
