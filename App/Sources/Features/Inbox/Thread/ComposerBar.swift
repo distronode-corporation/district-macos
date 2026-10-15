@@ -10,8 +10,12 @@ import UniformTypeIdentifiers
 /// styles stacked in a column (a grey box, plain text, « Ébaucher une réponse » wrapped on
 /// two lines, a filled Send). Now the attach and draft controls are borderless SF Symbol
 /// buttons that name themselves on hover and to VoiceOver, in one row under a full-width
-/// field that grows with the reply, and Send is the default button, so Return sends, as in
-/// Messages. A staged image is a small thumbnail with its own remove control.
+/// field that grows with the reply, and Send is the prominent button. A staged image is a
+/// small thumbnail with its own remove control.
+///
+/// ⛔ RETURN IS A NEW LINE AND ⌘↩ SENDS (``sendShortcut``). A send is billed, so a stray
+/// Return must not be one (decided 2026-10-15 for 3.0.1, over the default button that
+/// sent on Return); the chord is a deliberate second key, and Send's help tag names it.
 ///
 /// ⛔ TWO OF THESE FOUR CONTROLS SPEND MONEY AND BOTH ARE DISABLED WHILE IN FLIGHT.
 /// A send is billable carrier segments capped at 30/min per workspace; an AI draft
@@ -319,16 +323,51 @@ struct ComposerBar: View {
         }
     }
 
-    /// ⚠️ `axis: .vertical` SO THE BOX GROWS WITH THE REPLY, capped so it cannot eat
-    /// the conversation it is a reply to.
+    /// ⛔ A `TextEditor`, NOT A VERTICAL `TextField`: on a Mac a `TextField` ends editing
+    /// on Return and takes a new line only with Option-Return, and Return here must be a new
+    /// line (``sendShortcut``).
     ///
-    /// ⚠️ THE TITLE "Reply" IS THE PLACEHOLDER AND THE NAME VoiceOver READS, as in Mail
-    /// and Messages. An eyebrow over the box said it a second time and cost a line.
+    /// ⚠️ IT GROWS WITH THE REPLY, UP TO ``fieldMaxLines`` LINES, so it cannot eat the
+    /// conversation it is a reply to. A `TextEditor` takes whatever height it is offered,
+    /// so the box is as tall as a hidden `Text` of the same words in the same font, and the
+    /// editor fills it.
+    ///
+    /// ⚠️ "Reply" IS THE PLACEHOLDER AND THE NAME VoiceOver READS, as in Mail and Messages.
+    /// An eyebrow over the box said it a second time and cost a line.
     private var field: some View {
-        TextField(InboxCopy.reply, text: text, axis: .vertical)
-            .lineLimit(1 ... 5)
-            .disabled(content.sending)
-            .districtField()
+        // ⚠️ AN OVERLAY ON THE SIZING TEXT, NOT A `ZStack`: in a `ZStack` the editor's own
+        // greed would set the height.
+        Text(Self.sizingText(model.composerText))
+            .font(DistrictType.bodySmall)
+            .lineLimit(1 ... Self.fieldMaxLines)
+            .padding(.horizontal, Self.editorInset)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .hidden()
+            .accessibilityHidden(true)
+            .overlay {
+                TextEditor(text: text)
+                    .font(DistrictType.bodySmall)
+                    .scrollContentBackground(.hidden)
+                    .foregroundStyle(colors.foreground)
+                    .disabled(content.sending)
+                    .accessibilityLabel(InboxCopy.reply)
+            }
+            .overlay(alignment: .topLeading) {
+                if model.composerText.isEmpty {
+                    Text(InboxCopy.reply)
+                        .font(DistrictType.bodySmall)
+                        .foregroundStyle(colors.mutedForeground)
+                        .padding(.horizontal, Self.editorInset)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(DistrictSpacing.tight)
+            .background(colors.input, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
+            .overlay {
+                RoundedRectangle(cornerRadius: DistrictRadius.control)
+                    .strokeBorder(colors.border, lineWidth: 1)
+            }
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -396,14 +435,16 @@ struct ComposerBar: View {
     /// catch it; ``ThreadModel/canSendNow`` holds both rules so the button and the
     /// model can never disagree about them.
     ///
-    /// ⚠️ THE DEFAULT BUTTON, AS IN MESSAGES: Return sends, and the system draws it in the
-    /// accent colour. The guards above hold for the key as for the click.
+    /// ⛔ ⌘↩, NEVER A BARE RETURN (``sendShortcut``), and the help tag says so. The guards
+    /// above hold for the key as for the click.
     private var sendControl: some View {
-        Button(content.sending ? InboxCopy.sending : InboxCopy.send) {
+        let title = content.sending ? InboxCopy.sending : InboxCopy.send
+        return Button(title) {
             Task { await model.send() }
         }
         .buttonStyle(.borderedProminent)
-        .keyboardShortcut(.defaultAction)
+        .keyboardShortcut(Self.sendShortcut)
+        .help(Self.sendHelp(InboxCopy.send))
         .disabled(content.sending || !model.canSendNow)
         // ⛔ IT IS IN `UITestApp.forbiddenSurfaces`, AND THE REFUSAL IN
         // `UITestApp.tap(_:)` KEYS ON THIS IDENTIFIER. Without it that guard would
@@ -450,46 +491,6 @@ struct ComposerBar: View {
         Binding(
             get: { model.selectedReplyIndex },
             set: { model.selectReplyTarget($0) }
-        )
-    }
-
-    /// Read the picked item's bytes and hand them to the model.
-    ///
-    /// ⛔ THE BYTES CROSS INTO THE MODEL THROUGH ONE `@MainActor` CALL and nothing
-    /// else is carried across: `Data` is a value, the model owns every decision about
-    /// it, and the type and size are refused there before a byte is uploaded.
-    ///
-    /// ⚠️ A NIL OR THROWING LOAD IS "COULD NOT BE READ", WHICH IS NOT THE SAME AS A
-    /// REJECTED TYPE OR SIZE. Those three call for three different next actions from
-    /// the operator, and collapsing them would leave them re-picking the same file.
-    private func read(_ item: PhotosPickerItem) async {
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            model.refuseAttachment(ThreadModel.unreadableAttachment)
-            return
-        }
-        await model.attach(data, mimeType: item.preferredMIMEType(allowed: MediaUploadLimits.allowedMimeTypes))
-    }
-
-    /// Read a file chosen in the open panel and hand it to the model, as ``read(_:)`` does.
-    ///
-    /// ⛔ THE SECURITY-SCOPED ACCESS IS OPENED AND CLOSED AROUND THE ONE READ. The sandbox
-    /// grants this app the chosen file only (`files.user-selected.read-write`), and the
-    /// grant is through the URL's scope; reading outside it fails as "could not be read".
-    private func readFile(_ result: Result<URL, any Error>) async {
-        guard case let .success(url) = result else { return }
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer {
-            if scoped {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-        guard let data = try? Data(contentsOf: url) else {
-            model.refuseAttachment(ThreadModel.unreadableAttachment)
-            return
-        }
-        await model.attach(
-            data,
-            mimeType: AttachmentFile.mimeType(of: url, allowed: MediaUploadLimits.allowedMimeTypes)
         )
     }
 }

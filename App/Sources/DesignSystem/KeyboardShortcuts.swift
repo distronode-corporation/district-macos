@@ -11,5 +11,10 @@ extension KeyboardShortcut {
     /// ⛔ NEVER ON AN ACTION THAT DELETES, PLACES A CALL OR SPENDS MONEY. A shortcut removes
     /// the moment of looking at the button, which is the moment those actions keep on
     /// purpose; their sheets give Cancel its Esc and leave the confirm to a tap.
+    ///
+    /// ⚠️ ONE EXCEPTION, BY DECISION (2026-10-15, 3.0.1): a conversation's Send
+    /// (``ComposerBar/sendShortcut``). A reply box is typed into and sent many times a day,
+    /// as in Mail, and the chord, unlike a bare Return, is never pressed by accident; its
+    /// help tag names it.
     static let districtSubmit = KeyboardShortcut(.return, modifiers: .command)
 }
