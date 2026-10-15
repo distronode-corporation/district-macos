@@ -31,26 +31,13 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          # Each run is `<language>|<QA_MODE, ring or ->|<test>,<test>`.
-          - set: light
+          # The light and dark sets ran on the previous commit (run 38771069047). This
+          # commit runs only the 1280x800 window, on a display set to hold it.
+          - set: light-1280
             appearance: Light
             runs: >-
-              en|-|test_01_enUS_light
-              fr|-|test_02_frCA_light
-              fr|-|test_05_frCA_wide
-              en|empty|test_06_enUS_empty
-              en|error|test_07_enUS_error
-              en|slow|test_08_enUS_loading
-              fr|empty|test_09_frCA_empty
-              fr|ring|test_10_ring_frCA
-              en|ring|test_11_ring_enUS
-          - set: dark
-            appearance: Dark
-            runs: >-
-              en|-|test_03_enUS_dark
-              fr|-|test_04_frCA_dark
-              fr|ring|test_12_ring_frCA_dark
-              en|ring|test_13_ring_enUS_dark
+              en|-|test_14_enUS_1280
+              fr|-|test_15_frCA_1280
     env:
       APPEARANCE: ${{ matrix.appearance }}
       RUNS: ${{ matrix.runs }}
@@ -117,6 +104,22 @@ jobs:
           echo "AppleInterfaceStyle: $(defaults read -g AppleInterfaceStyle 2>/dev/null || echo Light)"
           sw_vers
           system_profiler SPDisplaysDataType | grep -E "Resolution|Retina" || true
+
+      # The runner's display is 1024x768, which clamps a 1280x800 window. displayplacer
+      # lists the modes the virtual display offers and picks the first one at least
+      # 1440x900; the step reads the result back, and a refusal leaves the run at 1024x768.
+      - name: Display at least 1440x900
+        run: |
+          brew install displayplacer >/dev/null 2>&1 || brew install jakehilborn/jakehilborn/displayplacer >/dev/null 2>&1 || true
+          displayplacer list | tee displays.txt || true
+          id="$(sed -n 's/^Persistent screen id: //p' displays.txt | head -1)"
+          mode="$(grep -Eo 'res:[0-9]+x[0-9]+ hz:[0-9]+ color_depth:[0-9]+( scaling:on)?' displays.txt \
+            | awk -F'[:x ]' '$2 >= 1440 && $3 >= 900 {print; exit}')"
+          echo "screen $id, chosen mode: ${mode:-none}"
+          if [ -n "$id" ] && [ -n "$mode" ]; then
+            displayplacer "id:$id $mode origin:(0,0) degree:0" || true
+          fi
+          system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" || true
 
       - name: Build
         run: |

@@ -54,6 +54,15 @@ final class VisualQATourTests: XCTestCase {
         full(language: "fr-CA", locale: "fr_CA", dark: false, window: "1440x900", tag: "fr-CA-light-wide")
     }
 
+    /// A common laptop window (1280x800), on a runner whose display was set to hold it.
+    @MainActor func test_14_enUS_1280() {
+        full(language: "en-US", locale: "en_US", dark: false, window: "1280x800", tag: "en-US-light-1280")
+    }
+
+    @MainActor func test_15_frCA_1280() {
+        full(language: "fr-CA", locale: "fr_CA", dark: false, window: "1280x800", tag: "fr-CA-light-1280")
+    }
+
     /// With QA_MODE=empty, error or slow on the mock, the principal sections only.
     @MainActor func test_06_enUS_empty() {
         states(tag: "en-US-light-empty")
