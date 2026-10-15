@@ -19,11 +19,13 @@ extension View {
     /// ⛔ THE GAP GOES ABOVE A ROW, NEVER BELOW, BECAUSE THAT IS HOW A `VStack` SPACES:
     /// between neighbours, and not after the last. The last row adds the stack's bottom
     /// padding itself, which is the only row that knows it is last.
+    ///
+    /// ⛔ THE GAPS ARE PADDING INSIDE THE ROW, NOT ITS LIST INSETS (``StackedRow/insets``).
     func stackedListRow(top: CGFloat, bottom: CGFloat = 0) -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
-            .listRowInsets(
-                EdgeInsets(top: top, leading: DistrictSpacing.gutter, bottom: bottom, trailing: DistrictSpacing.gutter)
-            )
+            .padding(.top, top)
+            .padding(.bottom, bottom)
+            .listRowInsets(StackedRow.insets)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
     }
@@ -43,6 +45,19 @@ extension View {
         listStyle(.plain)
             .environment(\.defaultMinListRowHeight, 0)
     }
+}
+
+/// The list insets of a stacked row: the page gutter at the sides, nothing above or below.
+///
+/// ⛔ A MAC `List` DROPS A ROW'S BOTTOM INSET AND REPEATS ITS TOP INSET BELOW THE ROW, so the
+/// gaps between rows cannot be insets. Measured from the frames of capture run 38795654701
+/// (Desk, fr-CA): every cell was its top inset, its content and its top inset again, and
+/// the last row's bottom inset was gone. The first ticket of a card spanning several rows
+/// then had 24pt of empty cell under it, which cut the card in two (3.0.1 visual QA).
+/// ``View/stackedListRow(top:bottom:)`` pads its content instead, which is laid out as
+/// written.
+enum StackedRow {
+    static let insets = EdgeInsets(top: 0, leading: DistrictSpacing.gutter, bottom: 0, trailing: DistrictSpacing.gutter)
 }
 
 /// One row's slice of a bordered card that spans several `List` rows.
