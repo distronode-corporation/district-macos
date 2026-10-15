@@ -7,12 +7,17 @@ receptionist service by Distronode. It matches the iPad app section for section:
 placed and answered on the Mac, the inbox, contacts, meeting rooms and the settings of a
 District AI workspace.
 
-**Status: version 1.0 is submitted to the Mac App Store and in review.** It has every
-section of the iPad app: it signs in, shows the Overview, the Inbox, Calls, Contacts and
+**Links:** [project page](https://www.distronode.com/open-source/district-macos),
+[GitLab mirror](https://gitlab.com/distronode-corporation/district-macos) (read-only
+mirror; issues and pull requests live on GitHub), [CHANGELOG](CHANGELOG.md).
+
+**Status: 2.0.1 (build 20042) is the current release**, a signed, notarised download on
+[Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and through Homebrew
+(`brew install distronode-corporation/tap/district-ai`). Not on the Mac App Store yet.
+It has every section of the iPad app: it signs in, shows the Overview, the Inbox, Calls, Contacts and
 the workspace's sections (District HQ, Analytics, Billing, Phone numbers, Workflows, Desk,
 Support, Scheduling and Workspace settings), places calls from Dial, joins Rooms, and rings
-for calls handed to you and answers them. The direct download arrives with this
-repository's first GitHub Release. See [CHANGELOG.md](CHANGELOG.md).
+for calls handed to you and answers them. See [CHANGELOG.md](CHANGELOG.md).
 
 **How calls reach a Mac.** While you are signed in, a call handed to you rings on this
 Mac: a small call window, a notification with Answer and Decline, and a ring. Closing the
@@ -35,16 +40,19 @@ use them with, so we are asking before we build anything:
 SwiftUI, Swift 6 language mode, macOS 14 Sonoma and later, one universal app for Apple
 silicon and Intel Macs.
 
+**Languages:** English and Canadian French (fr-CA), from 3.0.0. A Mac whose languages put
+any French first (Canada, France, Belgium, Switzerland) reads Canadian French; any other
+Mac reads English.
+
 ## Two ways to install it
 
-- **The Mac App Store.** The Mac app shares its App Store record with District AI for
-  iPhone and iPad, so it is one purchase across all three, and the App Store updates it.
-  Version 1.0 is in App Review.
-- **A direct download**, with this repository's first GitHub Release: a Developer ID
+- **A direct download** from [Releases](https://github.com/distronode-corporation/district-macos/releases/latest): a Developer ID
   signed and notarised `.dmg`, which keeps itself up to date with
-  [Sparkle](https://sparkle-project.org). The same build comes to our Homebrew tap with
-  that release, as `brew install distronode-corporation/tap/district-ai`. Neither the
-  Release nor the cask exists yet.
+  [Sparkle](https://sparkle-project.org). The same build is in our Homebrew tap:
+  `brew install distronode-corporation/tap/district-ai`.
+- **The Mac App Store.** Not on the Mac App Store yet. Once it is there, the Mac app
+  shares its App Store record with District AI for iPhone and iPad, so it is one
+  purchase across all three, and the App Store updates it.
 
 **Install one, not both.** The two builds are the same app (one bundle identifier), so
 they share their settings, their saved session and the `districtai://` links; installed
@@ -106,7 +114,7 @@ python3 scripts/check-public-hygiene.py
 ```
 
 The hygiene check fails on an em or en dash, an internal host name or a GitLab URL
-anywhere in the tree.
+anywhere in the tree. The one GitLab URL it allows is this repository's own mirror.
 
 ## Repository layout
 
@@ -162,7 +170,8 @@ repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the Op
 
 ## Releases
 
-Version 1.0 is submitted to the Mac App Store; there is no GitHub Release yet.
+2.0.1 (build 20042) is the current release, on [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and
+in the Homebrew tap. Not on the Mac App Store yet.
 [`release.yml`](.github/workflows/release.yml) builds both builds of one commit
 on GitHub-hosted macOS runners, from `main` or a protected `v*` tag, with no signing key
 or store credential stored in this repository or in GitHub (each run borrows them from

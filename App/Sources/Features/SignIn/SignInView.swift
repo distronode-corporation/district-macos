@@ -24,9 +24,11 @@ struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 20) {
+            // ⚠️ DECORATION: VoiceOver read it as "phone.bubble", in every language.
             Image(systemName: "phone.bubble")
                 .font(.system(size: 48))
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
             Text(SignInCopy.districtAi)
                 .font(.largeTitle.weight(.semibold))
             if !reason.isEmpty {

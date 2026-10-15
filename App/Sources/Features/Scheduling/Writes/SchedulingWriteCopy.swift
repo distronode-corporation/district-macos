@@ -9,9 +9,8 @@ import Foundation
 /// validation message that differs between the two is one product answering a
 /// question two ways. Where a string here has no web original it says so.
 ///
-/// ⛔ AND NOTHING HERE IS LOCALISED, because nothing in this app is yet. The
-/// French site is a website surface; the iOS client ships English only, and a
-/// half-localised catalog would be worse than an honest monolingual one.
+/// ⛔ THE FRENCH IS THE CATALOG'S (`l10n/macos.toml`), reviewed with the rest of the
+/// app's, never a sentence typed here.
 ///
 /// ⚠️ SEPARATE FROM `SchedulingCopy` (the hub card's copy) ON PURPOSE: keeping
 /// the two surfaces' wording in separate types lets each change without touching

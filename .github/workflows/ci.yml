@@ -322,10 +322,10 @@ jobs:
             grep -q '\*\* BUILD SUCCEEDED \*\*' "xcodebuild-$scheme.log"
             # ⛔ AFTER EACH BUILD, because both targets build `District AI.app` into the same
             # products folder and the second overwrites the first. Both string tables in
-            # en.lproj, none at the bundle root (a root table shadows every .lproj), and no
-            # French, since nothing here sets DISTRICT_FRENCH. The release lanes run the
-            # same check on the archive (scripts/archive.sh, scripts/direct-package.sh).
-            scripts/check-bundle-l10n.sh "DerivedData/Build/Products/Debug/District AI.app"
+            # en.lproj, none at the bundle root (a root table shadows every .lproj), both in
+            # fr-CA.lproj too, and no other French .lproj. The release lanes run the same
+            # check on the archive (scripts/archive.sh, scripts/direct-package.sh).
+            DISTRICT_FRENCH=YES scripts/check-bundle-l10n.sh "DerivedData/Build/Products/Debug/District AI.app"
           done
 
       # ⚠️ THE STORE SCHEME ONLY: `DistrictMacDirect` has no test action (project.yml says

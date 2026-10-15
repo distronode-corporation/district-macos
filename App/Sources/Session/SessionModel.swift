@@ -86,6 +86,10 @@ final class SessionModel {
     /// whose session ended stops. nil in a test that builds no incoming-call model.
     private let incoming: IncomingCallModel?
 
+    /// ⚠️ TOLD OF EVERY PHASE AND OF EVERY COMPLETED SIGN-IN, so the account's language on the
+    /// server follows this app's. nil in a test that is not about it.
+    private let language: AccountLanguageSync?
+
     /// Whether ``launch()`` has run in this process.
     private var launched = false
 
@@ -98,12 +102,14 @@ final class SessionModel {
         push: PushRegistrar,
         live: DesktopLive? = nil,
         incoming: IncomingCallModel? = nil,
+        language: AccountLanguageSync? = nil,
         selection: WorkspaceSelectionStore = WorkspaceSelectionStore()
     ) {
         self.container = container
         self.push = push
         self.live = live
         self.incoming = incoming
+        self.language = language
         self.selection = selection
     }
 
@@ -131,6 +137,7 @@ final class SessionModel {
     private func setPhase(_ next: AuthPhase) {
         phase = next
         incoming?.sessionChanged(next)
+        language?.sessionChanged(next)
         switch next {
         case .signedOut, .unavailable:
             // ⚠️ NOTHING IS WITHDRAWN: there is no session left to do it with, and the
@@ -268,6 +275,9 @@ final class SessionModel {
     private func settle(_ outcome: LoginOutcome) async {
         switch outcome {
         case .success:
+            // ⚠️ BEFORE the phase moves, so its `.signedIn` writes the language for this
+            // account whatever this Mac stored for the last one.
+            language?.signInCompleted()
             await refreshPhase()
             // ⚠️ AFTER the phase is settled, so a model woken by the change reads a
             // coordinator that already holds a token rather than racing the refresh.

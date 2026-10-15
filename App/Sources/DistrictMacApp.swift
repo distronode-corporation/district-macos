@@ -34,7 +34,8 @@ struct DistrictMacApp: App {
         DistrictSentry.startIfConfigured()
 
         // Before the container, so nothing it builds reads a string in the default
-        // language before the device's is known. English until the build ships French.
+        // language before the device's is known: Canadian French on a Mac that puts French
+        // first, English otherwise.
         AppL10n.bootstrap()
 
         let container = AppContainer.live()
@@ -54,7 +55,18 @@ struct DistrictMacApp: App {
         self.live = live
         ringPresenter = presenter
         ringPanel = RingPanelController(model: incoming, devices: container.callStack.devices)
-        let session = SessionModel(container: container, push: push, live: live, incoming: incoming)
+        // ⚠️ THE SERVER LEARNS THIS APP'S LANGUAGE on every sign-in and language change, so
+        // email and the server's own text match it (`Accept-Language` rides every request).
+        let settings = container.accountSettings
+        let language = AccountLanguageSync(save: { await settings.saveLocale($0) })
+        AppL10n.onChange = { language.languageChanged() }
+        let session = SessionModel(
+            container: container,
+            push: push,
+            live: live,
+            incoming: incoming,
+            language: language
+        )
         _session = State(initialValue: session)
         background = BackgroundRinging()
         // ⛔ HANDED TO THE DELEGATE HERE, NOT FROM A WINDOW'S `onAppear`: a launch at login

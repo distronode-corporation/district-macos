@@ -9,12 +9,15 @@ import Foundation
 /// through ``copyLocale``, so a screen's own words and the core's error sentence or
 /// date under them can never disagree about the language.
 ///
-/// ⛔ FRENCH ONLY WHEN THIS BUILD SHIPS IT. Until the 3.0 build that includes
-/// `project.fr.yml`, the bundle holds no French localization, and ``resolve`` answers
-/// English whatever the device is set to. The catalog's French is incomplete until
-/// then and the generated French branch carries the English, but the core's
-/// formatters are already French (« 249,00 $ »), so a French device must not reach
-/// them early.
+/// ⛔ FRENCH ONLY WHEN THIS BUILD SHIPS IT. Every build since 3.0 holds fr-CA.lproj
+/// (project.yml), so a Mac whose languages put any French first reads Canadian French; a
+/// bundle with no French localization (2.x, a test host built without it) answers
+/// English whatever the device is set to, because the core's formatters would otherwise
+/// turn French (« 249,00 $ ») under English screens.
+///
+/// ⚠️ WHAT THIS DECIDES IS ALSO WHAT THE SERVER IS TOLD: the core sends it as
+/// `Accept-Language` on every request, and ``AccountLanguageSync`` stores it as the
+/// account's language, so email and the server's own text match the app.
 enum AppL10n {
     /// The two languages the generated accessors know.
     ///
@@ -30,6 +33,10 @@ enum AppL10n {
         L10nRuntime.locale == .frCA ? .frCA : .en
     }
 
+    /// Called on the main thread after each language change the observer in ``bootstrap()``
+    /// applies (not at launch). The app sets it once, to ``AccountLanguageSync``.
+    @MainActor static var onChange: (@MainActor () -> Void)?
+
     /// Sets the language at launch, and again whenever the device's language changes.
     ///
     /// ⚠️ A LANGUAGE CHOSEN IN SYSTEM SETTINGS TAKES EFFECT WHEN THE APP IS NEXT OPENED
@@ -44,6 +51,8 @@ enum AppL10n {
             queue: .main
         ) { _ in
             apply(bundle: .main)
+            // ⚠️ THE OBSERVER'S QUEUE IS `.main`, so this runs on the main thread.
+            MainActor.assumeIsolated { onChange?() }
         }
     }
 
