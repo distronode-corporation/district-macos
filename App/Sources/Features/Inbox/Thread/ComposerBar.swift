@@ -335,12 +335,14 @@ struct ComposerBar: View {
     /// ⚠️ "Reply" IS THE PLACEHOLDER AND THE NAME VoiceOver READS, as in Mail and Messages.
     /// An eyebrow over the box said it a second time and cost a line.
     private var field: some View {
-        // ⚠️ AN OVERLAY ON THE SIZING TEXT, NOT A `ZStack`: in a `ZStack` the editor's own
-        // greed would set the height.
+        // ⚠️ AN OVERLAY ON THE SIZING TEXT: in a `ZStack` the editor would set the height.
         Text(Self.sizingText(model.composerText))
             .font(DistrictType.bodySmall)
             .lineLimit(1 ... Self.fieldMaxLines)
-            .padding(.horizontal, Self.editorInset)
+            // ⚠️ NARROWER THAN THE EDITOR'S LINE, so the box is never a line short of its
+            // text (at full width the last word scrolled out of sight, run 38792271530).
+            .padding(.leading, Self.editorInset)
+            .padding(.trailing, Self.editorInset + Self.sizingSlack)
             .frame(maxWidth: .infinity, alignment: .leading)
             .hidden()
             .accessibilityHidden(true)
@@ -348,6 +350,8 @@ struct ComposerBar: View {
                 TextEditor(text: text)
                     .font(DistrictType.bodySmall)
                     .scrollContentBackground(.hidden)
+                    // ⚠️ No scroller: a legacy one took its width from the line.
+                    .scrollIndicators(.never)
                     .foregroundStyle(colors.foreground)
                     .disabled(content.sending)
                     .accessibilityLabel(InboxCopy.reply)

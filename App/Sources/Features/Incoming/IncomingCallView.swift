@@ -87,13 +87,33 @@ struct IncomingCallView: View {
         }
     }
 
+    /// ⚠️ MAC: THE PANEL'S TITLE IS DRAWN HERE, IN FOREGROUND INK, and the window's own is
+    /// hidden: the system drew it in the inactive grey of a panel that never takes focus,
+    /// where it could hardly be read (3.0.1 visual QA, AP-018). The caller is one line and
+    /// the workspace that rang its own line under it, rather than both joined by a dot and
+    /// wrapped wherever the width fell (``IncomingRingLines``).
     private var ringing: some View {
-        VStack(spacing: DistrictSpacing.row) {
-            Spacer(minLength: 0)
-            Text(callerLine)
-                .font(DistrictType.headline)
+        let lines = IncomingRingLines(caller: model.caller?.displayLine, workspaceName: workspaceName)
+        return VStack(spacing: DistrictSpacing.row) {
+            Text(IncomingCallCopy.panelTitle)
+                .font(DistrictType.labelLarge)
                 .foregroundStyle(colors.foreground)
-                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0)
+            VStack(spacing: DistrictSpacing.hairline) {
+                Text(lines.lead)
+                    .font(DistrictType.headline)
+                    .foregroundStyle(colors.foreground)
+                    .multilineTextAlignment(.center)
+                if let workspace = lines.workspace {
+                    Text(workspace)
+                        .font(DistrictType.bodySmall)
+                        .foregroundStyle(colors.mutedForeground)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .accessibilityElement(children: .combine)
             Text(IncomingCallCopy.sentence(
                 for: model.state,
                 endedByOperator: model.endedByOperator,
@@ -129,19 +149,48 @@ struct IncomingCallView: View {
         }
     }
 
+    /// ⚠️ MAC: SIDE BY SIDE, DECLINE ON THE LEFT AND ANSWER ON THE RIGHT, as FaceTime and
+    /// the system's call notification place them (``IncomingRingAction/order``). They were
+    /// stacked, Answer over Decline (3.0.1 visual QA, AP-018).
     private var ringingActions: some View {
         VStack(spacing: DistrictSpacing.tight) {
             Text(IncomingCallCopy.answerNotice)
                 .font(DistrictType.caption)
                 .foregroundStyle(colors.mutedForeground)
                 .multilineTextAlignment(.center)
-            Button(IncomingCallCopy.answer) { model.answerPressed() }
-                .buttonStyle(.districtPrimary)
+            HStack(spacing: DistrictSpacing.row) {
+                ForEach(IncomingRingAction.order, id: \.self) { action in
+                    ringButton(action)
+                }
+            }
+            .controlSize(.large)
+        }
+    }
+
+    @ViewBuilder
+    private func ringButton(_ action: IncomingRingAction) -> some View {
+        switch action {
+        case .decline:
             // ⛔ DECLINING SENDS NOTHING TO THE SERVER. See the ⛔ on
             // ``IncomingCallController``: a deliberate refusal and a phone in a
             // pocket must be indistinguishable from outside.
-            Button(IncomingCallCopy.decline) { model.declinePressed() }
-                .buttonStyle(.districtDestructive)
+            Button(role: .destructive) { model.declinePressed() } label: {
+                Label(IncomingCallCopy.decline, systemImage: "phone.down.fill")
+                    .frame(maxWidth: .infinity)
+                    // ⚠️ THE PALETTE'S INK FOR THE FILL: white on the light fill, black on the
+                    // dark one, where white fails (``DistrictColors/onDestructive``).
+                    .foregroundStyle(colors.onDestructive)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(colors.destructive)
+        case .answer:
+            Button { model.answerPressed() } label: {
+                Label(IncomingCallCopy.answer, systemImage: "phone.fill")
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(colors.onSuccess)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(colors.success)
         }
     }
 }

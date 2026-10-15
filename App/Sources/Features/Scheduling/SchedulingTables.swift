@@ -1,3 +1,4 @@
+import DistrictData
 import DistrictModel
 import SwiftUI
 
@@ -104,6 +105,7 @@ struct SchedulingBookingsTable: View {
     @Environment(ShellNavigator.self) private var navigator: ShellNavigator?
 
     var body: some View {
+        let widths = SchedulingBookingsColumns.current
         Table(
             SchedulingBookingsTableRow.rows(rows, sortedBy: sortOrder),
             selection: $selection,
@@ -115,29 +117,77 @@ struct SchedulingBookingsTable: View {
                     .lineLimit(1)
                     .accessibilityIdentifier(A11yID.Scheduling.bookingRow(item.id))
             }
-            .width(min: 140, ideal: 170)
+            .width(min: widths.when, ideal: widths.when)
             TableColumn(SchedulingCopy.columnWho, value: \.who) { item in
-                Text(item.who).lineLimit(1)
+                Text(item.who).lineLimit(1).help(item.who)
             }
-            .width(min: 140, ideal: 200)
+            .width(min: widths.who, ideal: widths.who)
             TableColumn(SchedulingCopy.columnEventType, value: \.eventType) { item in
-                Text(item.eventType).lineLimit(1)
+                Text(item.eventType).lineLimit(1).help(item.eventType)
             }
-            .width(min: 100, ideal: 150)
+            .width(min: widths.eventType, ideal: widths.eventType)
             TableColumn(SchedulingCopy.columnHost, value: \.host) { item in
-                Text(item.host).lineLimit(1)
+                Text(item.host).lineLimit(1).help(item.host)
             }
-            .width(min: 80, ideal: 120)
+            .width(min: widths.host, ideal: widths.host)
             TableColumn(SchedulingCopy.columnStatus, value: \.status) { item in
                 DistrictBadge(text: item.row.status.label, tone: item.row.status.kind.tone)
             }
-            .width(min: 90, ideal: 110)
+            .width(min: widths.status, ideal: widths.status)
         }
         .contextMenu(forSelectionType: String.self) { _ in
             EmptyView()
         } primaryAction: { ids in
             guard ids.count == 1, let id = ids.first else { return }
             navigator?.push(.scheduling(workspaceId: workspaceId, role: role, section: .booking(id: id)))
+        }
+    }
+}
+
+/// The bookings table's column widths in the language showing (``ColumnFit``).
+///
+/// ⛔ EACH IDEAL IS ITS MINIMUM, AND THE MINIMUMS FIT THE PANE AT THE 1000pt WINDOW. With
+/// ideals above the minimums the table drew 850pt wide in a 740pt pane, scrolled sideways
+/// and cut Status to « Sta » (3.0.1 visual QA, AP-008). The stamp and the status are
+/// measured; the names truncate, with the whole on hover.
+struct SchedulingBookingsColumns: Equatable {
+    let when: CGFloat
+    let who: CGFloat
+    let eventType: CGFloat
+    let host: CGFloat
+    let status: CGFloat
+
+    static var current: SchedulingBookingsColumns {
+        SchedulingBookingsColumns(
+            when: max(ColumnFit.text(stamps, monospacedDigits: true), ColumnFit.header(SchedulingCopy.columnWhen)),
+            who: max(120, ColumnFit.header(SchedulingCopy.columnWho)),
+            eventType: max(100, ColumnFit.header(SchedulingCopy.columnEventType)),
+            host: max(80, ColumnFit.header(SchedulingCopy.columnHost)),
+            status: max(ColumnFit.badge(statusLabels), ColumnFit.header(SchedulingCopy.columnStatus))
+        )
+    }
+
+    var all: [CGFloat] {
+        [when, who, eventType, host, status]
+    }
+
+    var table: CGFloat {
+        ColumnFit.table(all)
+    }
+
+    /// Every word the Status column draws for a status the web lists.
+    static var statusLabels: [String] {
+        ["confirmed", "cancelled", "rescheduled"].map { SchedulingBookingFormat.statusLabel($0).label }
+    }
+
+    /// A booking late in the evening in each month (two-digit day and hour), as the When
+    /// column writes it.
+    static var stamps: [String] {
+        (1 ... 12).compactMap {
+            SchedulingBookingFormat.bookingDateTime(
+                startAt: String(format: "2026-%02d-28T02:59:00.000Z", $0),
+                timezone: "America/Toronto"
+            )
         }
     }
 }
@@ -164,23 +214,23 @@ struct SchedulingEventTypesTable: View {
                     .lineLimit(1)
                     .accessibilityIdentifier(A11yID.Scheduling.eventTypeRow(item.row.slug))
             }
-            .width(min: 140, ideal: 200)
+            .width(min: 140, ideal: 140)
             TableColumn(SchedulingCopy.factDuration, value: \.minutes) { item in
                 Text(item.row.duration).monospacedDigit().lineLimit(1)
             }
-            .width(min: 70, ideal: 90)
+            .width(min: 70, ideal: 70)
             TableColumn(SchedulingCopy.factInterval) { item in
                 Text(item.row.interval).monospacedDigit().lineLimit(1)
             }
-            .width(min: 80, ideal: 100)
+            .width(min: 80, ideal: 80)
             TableColumn(SchedulingCopy.factLocation, value: \.location) { item in
                 Text(item.location).lineLimit(1)
             }
-            .width(min: 100, ideal: 150)
+            .width(min: 100, ideal: 100)
             TableColumn(SchedulingCopy.factState, value: \.state) { item in
                 DistrictBadge(text: item.row.state.label, tone: item.row.state.kind.tone)
             }
-            .width(min: 80, ideal: 100)
+            .width(min: 80, ideal: 80)
         }
         .contextMenu(forSelectionType: String.self) { _ in
             EmptyView()

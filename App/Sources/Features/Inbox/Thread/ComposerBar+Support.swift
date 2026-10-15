@@ -23,6 +23,9 @@ extension ComposerBar {
     /// match so the three line up.
     static let editorInset: CGFloat = 5
 
+    /// How much narrower the sizing text is than the editor's line, so it wraps first.
+    static let sizingSlack: CGFloat = 8
+
     /// The words the box is sized by: the reply, with a trailing space so a new line the
     /// person has just typed already has its height, and one line when it is empty.
     static func sizingText(_ reply: String) -> String {
