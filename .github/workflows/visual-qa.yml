@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  # `-dark`: must not cancel the 1280 run (38781796261) on the commit before.
-  group: visual-qa-dark-${{ github.ref }}
+  # `-1280b`: must not cancel the dark rerun (38784281594) on the commit before.
+  group: visual-qa-1280b-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,14 +32,12 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          # The dark set again (run 38771069047 lost it to a missing window), with the
-          # window recovery that relaunches rather than opening the menu bar extra.
-          - set: dark-2
-            appearance: Dark
+          # 1280x800 again, French only (the longer strings): run 38781796261 chose a mode
+          # but displayplacer did not apply it, so its frames are 1000x612.
+          - set: light-1280b
+            appearance: Light
             runs: >-
-              en|-|test_03_enUS_dark
-              fr|-|test_04_frCA_dark
-              fr|ring|test_12_ring_frCA_dark
+              fr|-|test_15_frCA_1280
     env:
       APPEARANCE: ${{ matrix.appearance }}
       RUNS: ${{ matrix.runs }}
@@ -110,18 +108,23 @@ jobs:
       # The runner's display is 1024x768, which clamps a 1280x800 window. displayplacer
       # lists the modes the virtual display offers and picks the first one at least
       # 1440x900; the step reads the result back, and a refusal leaves the run at 1024x768.
+      # The runner's display is 1024x768, which clamps a 1280x800 window. displayplacer
+      # takes the WHOLE arrangement (res, hz, depth, enabled, scaling, origin, degree), as
+      # its own `list` prints it; a partial one is ignored without an error. Read back, and
+      # the job fails rather than walk at the wrong size.
       - name: Display at least 1440x900
         run: |
+          set -uo pipefail
           brew install displayplacer >/dev/null 2>&1 || brew install jakehilborn/jakehilborn/displayplacer >/dev/null 2>&1 || true
-          displayplacer list | tee displays.txt || true
-          id="$(sed -n 's/^Persistent screen id: //p' displays.txt | head -1)"
-          mode="$(grep -Eo 'res:[0-9]+x[0-9]+ hz:[0-9]+ color_depth:[0-9]+( scaling:on)?' displays.txt \
-            | awk -F'[:x ]' '$2 >= 1440 && $3 >= 900 {print; exit}')"
-          echo "screen $id, chosen mode: ${mode:-none}"
-          if [ -n "$id" ] && [ -n "$mode" ]; then
-            displayplacer "id:$id $mode origin:(0,0) degree:0" || true
-          fi
-          system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" || true
+          displayplacer list >displays.txt || true
+          current="$(grep -E '^displayplacer "' displays.txt | tail -1 | sed -E 's/^displayplacer "(.*)"$/\1/')"
+          wanted="$(echo "$current" | sed -E 's/res:[0-9]+x[0-9]+/res:1600x900/')"
+          echo "current: $current"
+          echo "wanted:  $wanted"
+          displayplacer "$wanted"; echo "displayplacer exit $?"
+          sleep 3
+          system_profiler SPDisplaysDataType | grep -E "Resolution|UI Looks like" | tee resolution.txt
+          grep -q "1600 x 900" resolution.txt || { echo "::error::the display is still not 1600x900"; exit 1; }
 
       - name: Build
         run: |
