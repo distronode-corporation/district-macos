@@ -194,6 +194,9 @@ not sent.
   or sign in with another account.
 - Quitting District AI no longer signs you out the next time you open it.
 - Once you are signed out, this Mac stops receiving that account's notifications.
+- The open call or contact beside the list is wider and easier to read, and the labels on a
+  selected row stay readable.
+- A more compact reply box in conversations: Return sends the message.
 
 ## [3.0.0]
 

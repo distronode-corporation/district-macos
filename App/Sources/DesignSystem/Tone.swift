@@ -176,6 +176,9 @@ struct DistrictBadge: View {
     /// ⚠️ THE SYSTEM'S "Increase Contrast" SWITCH, read straight from the environment.
     /// See the ⛔ on ``Tone/fill(_:increasedContrast:)``.
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    /// ⛔ `.increased` ON A SELECTED ROW, where the tint and ink give way to white. See
+    /// ``SelectionInk``.
+    @Environment(\.backgroundProminence) private var prominence
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
@@ -188,7 +191,7 @@ struct DistrictBadge: View {
     var body: some View {
         Text(text)
             .font(DistrictType.label)
-            .foregroundStyle(tone.ink(colors, increasedContrast: increased))
+            .foregroundStyle(SelectionInk.chipInk(tone, colors, increasedContrast: increased, prominence: prominence))
             .lineLimit(1)
             // ⚠️ HORIZONTAL ONLY. `fixedSize()` on both axes would also pin the height
             // against Dynamic Type, which is the one direction a pill must be free to
@@ -197,7 +200,7 @@ struct DistrictBadge: View {
             .padding(.horizontal, DistrictSpacing.tight)
             .padding(.vertical, 2)
             .background(
-                tone.fill(colors, increasedContrast: increased),
+                SelectionInk.chipFill(tone, colors, increasedContrast: increased, prominence: prominence),
                 in: RoundedRectangle(cornerRadius: DistrictRadius.badge)
             )
     }

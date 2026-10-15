@@ -1,3 +1,4 @@
+import DistrictL10n
 @testable import DistrictMac
 import DistrictModel
 import SwiftUI
@@ -191,26 +192,82 @@ final class ShellColumnsTests: XCTestCase {
 /// The list column's width against the tables' columns (``ListColumnWidth``).
 @MainActor
 final class ListColumnWidthTests: XCTestCase {
-    /// ⛔ A TABLE SCROLLS SIDEWAYS BELOW ITS COLUMNS' SUM (+17 per column, +15 inset, read off
-    /// the real `NSTableView`), which hid Duration and Status in build 20019.
-    func test_MAC_LISTWIDTH_1_theTablesFitTheirColumnsMinimum() {
-        let calls: [CGFloat] = [120, 66, 172, 56, 92]
-        let contacts: [CGFloat] = [150, 110, 150, 90]
-        func needed(_ columns: [CGFloat]) -> CGFloat {
-            columns.reduce(0, +) + 17 * CGFloat(columns.count) + 15
-        }
-        XCTAssertGreaterThanOrEqual(ListColumnWidth.of(.calls).min, needed(calls))
-        XCTAssertGreaterThanOrEqual(ListColumnWidth.of(.contacts).min, needed(contacts))
+    private func inBothLanguages(_ body: (String) -> Void) {
+        body("en")
+        L10nRuntime.withLocale(.frCA) { body("fr") }
     }
 
-    /// ⛔ AND THEY FIT AT THE 1000pt WINDOW MINIMUM WITH THE SIDEBAR SHOWING (200pt at its
-    /// narrowest), the open row giving way to its own minimum.
-    func test_MAC_LISTWIDTH_2_everyListSectionFitsTheWindowMinimum() {
-        for item in SidebarItem.allCases where item.isListSection {
-            let width = ListColumnWidth.of(item)
-            XCTAssertLessThanOrEqual(200 + 1 + width.min + 1 + ListColumnWidth.detailMin, 1000, "\(item)")
-            XCTAssertGreaterThanOrEqual(width.ideal, width.min, "\(item)")
+    /// ⛔ A TABLE SCROLLS SIDEWAYS BELOW ITS COLUMNS' SUM (+17 per column, +15 inset, read off
+    /// the real `NSTableView`), which hid Duration and Status in build 20019, and clipped
+    /// « Sans réponse » in 3.0.0.
+    func test_MAC_LISTWIDTH_1_theTablesFitTheirColumnsMinimum() {
+        inBothLanguages { language in
+            let calls = CallLogColumns.current
+            let contacts = ContactsColumns.current
+            XCTAssertEqual(calls.table, calls.all.reduce(0, +) + 17 * 4 + 15, language)
+            XCTAssertGreaterThanOrEqual(ListColumnWidth.of(.calls).min, calls.table, language)
+            XCTAssertGreaterThanOrEqual(ListColumnWidth.of(.contacts).min, contacts.table, language)
         }
+    }
+
+    /// ⛔ AND THE OPEN ROW KEEPS ITS MINIMUM AT THE 1000pt WINDOW MINIMUM WITH THE SIDEBAR
+    /// SHOWING AS IT OPENS, in both languages: it was 160pt, where a call's summary broke
+    /// inside words (3.0.1 visual QA).
+    func test_MAC_LISTWIDTH_2_everyListSectionFitsTheWindowMinimum() {
+        XCTAssertGreaterThanOrEqual(ListColumnWidth.detailMin, 270)
+        inBothLanguages { language in
+            for item in SidebarItem.allCases where item.isListSection {
+                let width = ListColumnWidth.of(item)
+                let used = ListColumnWidth.sidebarAtLaunch + 1 + width.min + 1 + ListColumnWidth.detailMin
+                XCTAssertLessThanOrEqual(used, ListColumnWidth.windowMin, "\(item) \(language)")
+                XCTAssertGreaterThanOrEqual(width.ideal, width.min, "\(item) \(language)")
+            }
+        }
+    }
+
+    /// ⛔ THE STATUS COLUMN HOLDS THE LONGEST BADGE IN EACH LANGUAGE, the transfer outcome
+    /// stacked over a status included.
+    func test_MAC_LISTWIDTH_3_theStatusColumnHoldsEveryBadge() {
+        XCTAssertTrue(CallLogColumns.statusLabels.contains("No answer"))
+        XCTAssertTrue(CallLogColumns.statusLabels.contains("Transfer failed"))
+        L10nRuntime.withLocale(.frCA) {
+            let labels = CallLogColumns.statusLabels
+            XCTAssertTrue(labels.contains("Sans réponse"), "\(labels)")
+            XCTAssertTrue(labels.contains("Échec du transfert"), "\(labels)")
+            XCTAssertTrue(labels.contains("Autre"), "an unlisted status reads as « Autre » in French")
+            let status = CallLogColumns.current.status
+            for label in labels {
+                XCTAssertGreaterThanOrEqual(status, ColumnFit.badge([label]), label)
+            }
+            XCTAssertGreaterThan(status, 92, "the 3.0.0 width that clipped « Sans réponse »")
+        }
+    }
+
+    /// ⚠️ THE MEASUREMENT IS THE SYSTEM FONT'S: wider text is wider, a badge adds its padding,
+    /// and a header leaves room for the sort arrow.
+    func test_MAC_LISTWIDTH_4_theMeasureIsTheSystemFonts() {
+        let short = ColumnFit.text(["Busy"])
+        let long = ColumnFit.text(["Busy", "Transfer failed"])
+        XCTAssertGreaterThan(long, short)
+        XCTAssertEqual(ColumnFit.text([]), 0)
+        XCTAssertEqual(long, long.rounded(.up), "whole points")
+        XCTAssertGreaterThanOrEqual(
+            ColumnFit.badge(["Busy"]),
+            ColumnFit.text(["Busy"], size: 12, weight: .semibold) + 16
+        )
+        XCTAssertGreaterThanOrEqual(ColumnFit.header("Status"), ColumnFit.headerArrow)
+        XCTAssertEqual(ColumnFit.table([10, 20]), 30 + 34 + 15)
+    }
+
+    /// ⚠️ THE NARROW WHEN COLUMN DRAWS THE DAY: each month's, in the language showing.
+    func test_MAC_LISTWIDTH_5_theDayStampsAreEachMonths() {
+        XCTAssertEqual(CallLogColumns.dayStamps.count, 12)
+        XCTAssertTrue(CallLogColumns.dayStamps.allSatisfy { !$0.contains(":") })
+        L10nRuntime.withLocale(.frCA) {
+            XCTAssertTrue(CallLogColumns.dayStamps.contains { $0.contains("sept.") }, "\(CallLogColumns.dayStamps)")
+            XCTAssertEqual(CallLogColumns.durations, ["59\u{00A0}min\u{00A0}59\u{00A0}s"])
+        }
+        XCTAssertEqual(CallLogColumns.durations, ["59m 59s"])
     }
 }
 

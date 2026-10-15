@@ -109,8 +109,9 @@ struct MarketplaceView: View {
         // the only thing that can open a confirmation, and therefore what lets it REFUSE to open
         // one whose write is unarmed after a failed irreversible attempt.
         .sheet(item: $openNumber) { selection in
+            // ⚠️ AS TALL AS ITS TEXT AND ITS BUTTON ROW: at 420pt half of it was empty.
             NumberActionsSheet(model: provisioning, number: selection.number)
-                .macSheetSize(width: 460, height: 420)
+                .macSheetSize(width: 460, height: 300)
         }
         .sheet(isPresented: confirmationBinding) {
             NumberConfirmationHost(model: provisioning)
@@ -120,31 +121,32 @@ struct MarketplaceView: View {
 
     // MARK: - The four segments
 
-    /// ⚠️ BUTTONS RATHER THAN A `Picker`, matching Android for the reason its own
-    /// note gives: this design system has no tab component, and inventing one for a
-    /// single screen is how a second, drifting set of primitives starts.
-    /// Primary-versus-secondary is already the system's "this one is active".
+    /// ⚠️ THE SYSTEM'S SEGMENTED CONTROL, AS EVERY MAC APP SWITCHES THE VIEWS OF ONE PANE.
+    /// The iPad's four buttons (one filled, three outlined, borrowed from Android, whose
+    /// design system has no tab component) read as four unrelated actions on a Mac (3.0.1
+    /// visual QA). The label is hidden on screen, where the window title already names the
+    /// pane, and spoken to VoiceOver.
     ///
-    /// ⚠️ FOUR OF THEM NOW, SO THEY SCROLL HORIZONTALLY rather than being squeezed below the
-    /// 44pt touch target ``DistrictButtonSize`` records as the floor for a thumb.
+    /// ⛔ THE SELECTION WRITES THROUGH ``MarketplaceModel/selectTab(_:)``, as the buttons did,
+    /// in a closure literal (see the custom lint rule in `.swiftlint.yml`).
     private var segments: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DistrictSpacing.tight) {
-                segment(MarketplaceCopy.tabOwned, tab: .owned)
-                segment(MarketplaceCopy.tabSearch, tab: .search)
-                segment(MarketplaceCopy.tabRegistrations, tab: .registrations)
-                segment(MarketplaceCopy.tabCarrier, tab: .carrier)
-            }
+        Picker(MarketplaceCopy.title, selection: tabSelection) {
+            Text(MarketplaceCopy.tabOwned).tag(MarketplaceTab.owned)
+            Text(MarketplaceCopy.tabSearch).tag(MarketplaceTab.search)
+            Text(MarketplaceCopy.tabRegistrations).tag(MarketplaceTab.registrations)
+            Text(MarketplaceCopy.tabCarrier).tag(MarketplaceTab.carrier)
         }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .accessibilityIdentifier(A11yID.Marketplace.tabs)
     }
 
-    /// ⚠️ `medium`, NOT `small`, WHICH IS A DELIBERATE DIVERGENCE FROM ANDROID'S
-    /// `ButtonSize.Sm`. ``DistrictButtonSize`` records that 32pt is below Apple's
-    /// 44pt touch-target guidance and that `small` is for pointer-dense surfaces
-    /// only; all four of these are primary thumb targets on the screen.
-    private func segment(_ label: String, tab: MarketplaceTab) -> some View {
-        Button(label) { model.selectTab(tab) }
-            .buttonStyle(DistrictButtonStyle(variant: model.tab == tab ? .primary : .secondary))
+    private var tabSelection: Binding<MarketplaceTab> {
+        Binding(
+            get: { model.tab },
+            set: { model.selectTab($0) }
+        )
     }
 
     @ViewBuilder
