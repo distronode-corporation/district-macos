@@ -4,19 +4,21 @@ import Foundation
 /// The words a screen shows for what the API sends as data: an enumerated value (a call's
 /// status, a carrier, a role), a call length the server wrote, a count.
 ///
-/// ⛔ ENGLISH SHOWS THE VALUE AS IT ALWAYS HAS, AND ONLY FRENCH READS THE VOCABULARY. English
-/// screens have drawn these values as sent since 1.0 (`completed`, `twilio`, `1m 5s`), and
-/// 3.0 keeps English unchanged; a French screen must never show an English wire word, so it
-/// takes ``WireLabel/label(_:_:)`` (`contracts/i18n/wire-vocabulary.json`), where a value the
-/// vocabulary does not list reads as the category's fallback or « Autre ». district-android
-/// made the same call in its W4 pass.
+/// ⛔ BOTH LANGUAGES READ THE VOCABULARY (`contracts/i18n/wire-vocabulary.json`), WHICH HOLDS
+/// THE PORTAL'S OWN WORDS. Until 3.0.1 English drew the value as sent, so the Overview showed
+/// `completed` beside "Transferred" where the portal says "Completed". English now shows the
+/// vocabulary's label and keeps a value the vocabulary does not list as sent
+/// (``WireLabel/knownLabel(_:_:)``); a French screen must never show an English wire word, so
+/// it takes ``WireLabel/label(_:_:)``, where an unlisted value reads as the category's
+/// fallback or « Autre ».
 ///
 /// ⚠️ WIRE VALUES NEVER LOCALIZE: a screen keeps branching on the raw value and only shows
 /// this beside it.
 enum AppWire {
-    /// The label of `value` in `category`: as sent in English, the vocabulary's in French.
+    /// The label of `value` in `category`: the vocabulary's, in either language. ⚠️ English
+    /// keeps a value the vocabulary does not list as sent; French reads it as the fallback.
     static func label(_ category: WireCategory, _ value: String) -> String {
-        AppL10n.copyLocale == .frCA ? WireLabel.label(category, value) : value
+        AppL10n.copyLocale == .frCA ? WireLabel.label(category, value) : WireLabel.knownLabel(category, value) ?? value
     }
 
     /// ``label(_:_:)`` of a value that may be absent: nil when there is no value or only

@@ -3983,11 +3983,11 @@ note = "The notice under the Answer button.\n⚠️ SAID BEFORE THE SYSTEM ASKS,
 
 [incoming_call.answered_elsewhere]
 en = "Answered on another device"
-fr = "Pris sur un autre appareil"
+fr = "Appel pris sur un autre appareil"
 ctx = "label"
 screen = "incoming"
 tier = "T0"
-state = "draft"
+state = "reviewed"
 id = { swift = "IncomingCallCopy.answeredElsewhere" }
 note = "3.0.1: the ring ended because the call was answered on another device (`call_ring_cancelled`, reason `answered`). Shown in place of 'Call ended · nobody answered'. ⛔ Never 'the caller hung up'."
 
@@ -8403,13 +8403,13 @@ id = { swift = "SchedulingCopy.sectionsEyebrow" }
 note = "⚠️ THE EYEBROW OVER THE SECTION LIST. \"Manage\" rather than \"Sections\", because the list is the point of the screen and its own noun would describe the furniture."
 
 [scheduling.sections_footnote]
-en = "These sections are read-only for now. Anything that changes a booking page opens in a browser."
-fr = "Ces sections sont en lecture seule pour l'instant. Tout ce qui modifie une page de réservation s'ouvre hors de l'app."
+en = "Anything these sections do not cover opens in a browser."
+fr = "Ce que ces sections ne couvrent pas s'ouvre hors de l'app."
 ctx = "body"
 screen = "scheduling"
-state = "reviewed"
+state = "draft"
 id = { swift = "SchedulingCopy.sectionsFootnote" }
-note = "⛔ IT SAYS WHY THERE IS STILL A BUTTON OUT OF THE APP, AND IT MUST NOT NAME THE WEBSITE. App Store Review Guideline 3.1.1 covers steering toward an external surface as well as the purchase itself, which is also why ``FailureText``'s 402 sentence names no domain. \"In a browser\" is a capability, not a destination."
+note = "⛔ IT SAYS WHY THERE IS STILL A BUTTON OUT OF THE APP, AND IT MUST NOT NAME THE WEBSITE. ⚠️ 3.0.1: it said the sections were read-only, which stopped being true when they became writable in 3.0. App Store Review Guideline 3.1.1 covers steering toward an external surface as well as the purchase itself, which is also why ``FailureText``'s 402 sentence names no domain. \"In a browser\" is a capability, not a destination."
 
 [scheduling.set]
 en = "Set"

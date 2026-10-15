@@ -17,8 +17,11 @@ final class FrenchWireTextTests: XCTestCase {
 
     // MARK: - Wire labels
 
-    func testEnglishShowsTheWireValueAsSentAndFrenchTheVocabularysLabel() {
-        XCTAssertEqual(AppWire.label(.callStatus, "completed"), "completed")
+    /// ⛔ 3.0.1: ENGLISH SHOWS THE PORTAL'S WORD, not the wire value (the Overview's
+    /// `completed` beside "Transferred").
+    func testBothLanguagesShowTheVocabularysLabel() {
+        XCTAssertEqual(AppWire.label(.callStatus, "completed"), "Completed")
+        XCTAssertEqual(AppWire.label(.callStatus, " In-Progress "), "In progress")
         XCTAssertEqual(french { AppWire.label(.callStatus, "completed") }, "Terminé")
         XCTAssertEqual(french { AppWire.label(.messageDeliveryStatus, "delivered") }, "Livré")
         XCTAssertEqual(french { AppWire.label(.numberStatus, "active") }, "Actif")
@@ -27,7 +30,7 @@ final class FrenchWireTextTests: XCTestCase {
     /// ⛔ AN UNLISTED VALUE IS NEVER SHOWN AS ITSELF IN FRENCH: it takes the category's
     /// fallback, or « Autre ».
     func testAnUnlistedValueReadsAsTheFallbackInFrench() {
-        XCTAssertEqual(AppWire.label(.callStatus, "machine"), "machine")
+        XCTAssertEqual(AppWire.label(.callStatus, "machine"), "machine", "English keeps an unlisted value as sent")
         XCTAssertEqual(french { AppWire.label(.callStatus, "machine") }, "Autre")
     }
 
@@ -35,7 +38,7 @@ final class FrenchWireTextTests: XCTestCase {
     func testAnAbsentOrBlankValueHasNoLabel() {
         XCTAssertNil(french { AppWire.label(.sentiment, ifAny: nil) })
         XCTAssertNil(french { AppWire.label(.sentiment, ifAny: "  ") })
-        XCTAssertEqual(AppWire.label(.sentiment, ifAny: "positive"), "positive")
+        XCTAssertEqual(AppWire.label(.sentiment, ifAny: "positive"), WireLabel.label(.sentiment, "positive"))
     }
 
     func testACallLengthIsTheServersInEnglishAndWrittenFromTheSecondsInFrench() {
