@@ -1,3 +1,4 @@
+import AppKit
 import AuthenticationServices
 import SwiftUI
 
@@ -37,19 +38,21 @@ struct SignInView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: 420)
             }
+            // ⚠️ THE TWO DOORS ARE ONE SIZE AND ONE SHAPE (``SignInDoor``): the Sign in capsule
+            // was wider and rounder than Apple's rectangle beside it (3.0.1 visual QA,
+            // AP-030), and Apple asks that its button be no smaller than the others.
             Button(action: action) {
                 Text(actionTitle)
-                    .frame(width: 260)
             }
-            .controlSize(.large)
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(SignInDoorStyle())
             .keyboardShortcut(.defaultAction)
             .disabled(isBusy)
 
             if let apple {
                 SignInWithAppleButton(.signIn, onRequest: apple.prepare, onCompletion: apple.finish)
                     .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                    .frame(width: 260, height: 32)
+                    .frame(width: SignInDoor.width, height: SignInDoor.height)
+                    .clipShape(RoundedRectangle(cornerRadius: SignInDoor.radius))
                     .disabled(isBusy)
             }
 
@@ -64,17 +67,58 @@ struct SignInView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    /// ⚠️ THE TWO PAGES READ AS LINKS: the link colour, underlined, as the system draws one.
+    /// The line's own words are secondary. Until 3.0.1 the secondary ink covered the links
+    /// too, so nothing said they could be clicked (visual QA, AP-030).
     private var terms: some View {
         VStack(spacing: 4) {
             Text(SignInTermsCopy.prefix)
+                .foregroundStyle(.secondary)
             HStack(spacing: 0) {
                 Link(SignInTermsCopy.termsName, destination: SignInTermsCopy.termsURL)
+                    .foregroundStyle(Color(nsColor: .linkColor))
+                    .underline()
                 Text(SignInTermsCopy.conjunction)
+                    .foregroundStyle(.secondary)
                 Link(SignInTermsCopy.privacyName, destination: SignInTermsCopy.privacyURL)
+                    .foregroundStyle(Color(nsColor: .linkColor))
+                    .underline()
                 Text(SignInTermsCopy.terminator)
+                    .foregroundStyle(.secondary)
             }
         }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
+        .font(.callout)
+    }
+}
+
+/// The size and shape both sign-in doors share.
+enum SignInDoor {
+    static let width: CGFloat = 280
+    static let height: CGFloat = 32
+    static let radius: CGFloat = 6
+}
+
+/// The Sign in door: the accent filled to Apple's button's size and corner.
+private struct SignInDoorStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SignInDoorLabel(configuration: configuration)
+    }
+}
+
+private struct SignInDoorLabel: View {
+    let configuration: ButtonStyleConfiguration
+
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let colors = DistrictColors.resolve(colorScheme)
+        configuration.label
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(colors.districtForeground)
+            .frame(width: SignInDoor.width, height: SignInDoor.height)
+            .background(colors.district, in: RoundedRectangle(cornerRadius: SignInDoor.radius))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.5)
+            .contentShape(RoundedRectangle(cornerRadius: SignInDoor.radius))
     }
 }

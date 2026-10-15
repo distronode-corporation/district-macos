@@ -229,23 +229,21 @@ struct SchedulingDeveloperView: View {
         .task { await model.loadContext() }
     }
 
+    /// ⚠️ THE SYSTEM'S SEGMENTED CONTROL (3.0.1 visual QA, AP-016), through
+    /// ``SchedulingDeveloperModel/selectTab(_:)``.
     private var tabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DistrictSpacing.tight) {
-                ForEach(
-                    Array(SchedulingDeveloperFormat.tabIds.enumerated()),
-                    id: \.offset
-                ) { index, id in
-                    Button(SchedulingDeveloperFormat.tabLabels[index]) {
-                        Task { await model.selectTab(id) }
-                    }
-                    .buttonStyle(DistrictButtonStyle(
-                        variant: model.tab == id ? .primary : .secondary
-                    ))
-                    .accessibilityIdentifier(A11yID.Scheduling.developerTab(id))
-                }
+        Picker(SchedulingCopy.sectionTitle(.developer), selection: Binding(
+            get: { model.tab },
+            set: { next in Task { await model.selectTab(next) } }
+        )) {
+            ForEach(Array(SchedulingDeveloperFormat.tabIds.enumerated()), id: \.offset) { index, id in
+                Text(SchedulingDeveloperFormat.tabLabels[index]).tag(id)
             }
         }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .accessibilityIdentifier(A11yID.Scheduling.developerTabBase)
     }
 
     @ViewBuilder

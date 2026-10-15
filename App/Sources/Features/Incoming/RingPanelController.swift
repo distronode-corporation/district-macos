@@ -58,6 +58,10 @@ final class RingPanelController {
             defer: false
         )
         panel.title = IncomingCallCopy.panelTitle
+        // ⚠️ THE TITLE STAYS THE WINDOW'S NAME (the Window menu, VoiceOver) BUT IS NOT DRAWN
+        // in the titlebar, where a panel that never takes focus drew it in inactive grey;
+        // ``IncomingCallView`` draws it in foreground ink.
+        panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isFloatingPanel = true
         panel.level = .floating

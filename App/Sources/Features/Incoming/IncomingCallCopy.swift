@@ -88,3 +88,30 @@ enum IncomingCallCopy {
         }
     }
 }
+
+/// The ring panel's caller and workspace, one line each (3.0.1 visual QA, AP-018).
+///
+/// ⚠️ THE SAME FACTS AS ``IncomingCallCopy/callerLine(caller:workspaceName:)``, which the call
+/// screen keeps: the caller (or "Incoming call" until the lookup answers), and the workspace
+/// that rang when the app holds its name. A blank caller or name is treated as none.
+struct IncomingRingLines: Equatable {
+    let lead: String
+    let workspace: String?
+
+    init(caller: String?, workspaceName: String?) {
+        let known = caller?.trimmingCharacters(in: .whitespaces) ?? ""
+        lead = known.isEmpty ? IncomingCallCopy.incomingCall : known
+        let name = workspaceName?.trimmingCharacters(in: .whitespaces) ?? ""
+        workspace = name.isEmpty ? nil : name
+    }
+}
+
+/// The ring panel's two buttons, in the order they are drawn.
+enum IncomingRingAction: Hashable {
+    case decline
+    case answer
+
+    /// ⛔ DECLINE LEFT, ANSWER RIGHT, as FaceTime and the system's call notification place
+    /// them, so a hand that knows the Mac finds Answer where it expects it.
+    static let order: [IncomingRingAction] = [.decline, .answer]
+}

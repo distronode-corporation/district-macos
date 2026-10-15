@@ -5519,6 +5519,45 @@ extension SupportCopy {
     /// `support.sla`
     internal static var sla: String { AppL10n.copyLocale == .frCA ? "Nous répondons dans un délai d'un jour ouvrable." : "We reply within one business day." }
 
+    /// `support.status_canceled`
+    internal static var statusCanceled: String { AppL10n.copyLocale == .frCA ? "Annulée" : "Canceled" }
+
+    /// `support.status_closed`
+    internal static var statusClosed: String { AppL10n.copyLocale == .frCA ? "Fermée" : "Closed" }
+
+    /// `support.status_declined`
+    internal static var statusDeclined: String { AppL10n.copyLocale == .frCA ? "Refusée" : "Declined" }
+
+    /// `support.status_done`
+    internal static var statusDone: String { AppL10n.copyLocale == .frCA ? "Terminée" : "Done" }
+
+    /// `support.status_escalated`
+    internal static var statusEscalated: String { AppL10n.copyLocale == .frCA ? "Transférée" : "Escalated" }
+
+    /// `support.status_in_progress`
+    internal static var statusInProgress: String { AppL10n.copyLocale == .frCA ? "En cours" : "In progress" }
+
+    /// `support.status_open`
+    internal static var statusOpen: String { AppL10n.copyLocale == .frCA ? "Ouverte" : "Open" }
+
+    /// `support.status_pending`
+    internal static var statusPending: String { AppL10n.copyLocale == .frCA ? "En attente" : "Pending" }
+
+    /// `support.status_received`
+    internal static var statusReceived: String { AppL10n.copyLocale == .frCA ? "Reçue" : "Received" }
+
+    /// `support.status_resolved`
+    internal static var statusResolved: String { AppL10n.copyLocale == .frCA ? "Réglée" : "Resolved" }
+
+    /// `support.status_unknown`
+    internal static var statusUnknown: String { AppL10n.copyLocale == .frCA ? "État inconnu" : "Status unknown" }
+
+    /// `support.status_waiting_for_customer`
+    internal static var statusWaitingForCustomer: String { AppL10n.copyLocale == .frCA ? "En attente de votre réponse" : "Waiting for your reply" }
+
+    /// `support.status_waiting_for_support`
+    internal static var statusWaitingForSupport: String { AppL10n.copyLocale == .frCA ? "En attente du soutien" : "Waiting for support" }
+
     /// `support.subtitle`
     internal static var subtitle: String { AppL10n.copyLocale == .frCA ? "Les demandes que vous avez soumises à l'équipe de Distronode." : "Requests you have raised with the Distronode team." }
 
