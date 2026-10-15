@@ -21,6 +21,8 @@ swiftformat --lint .                          # SwiftFormat 0.63.0
 swiftlint --strict                            # SwiftLint 0.65.1
 python3 scripts/check-public-hygiene.py --self-test
 python3 scripts/check-public-hygiene.py
+python3 tools/l10n/frcheck.py all --termbase '' --tm '' .
+python3 scripts/check-fr-signoff.py --self-test
 xcodegen generate --spec project.yml
 # then both targets built, and DistrictMacTests run (the README has the commands)
 ```
@@ -53,6 +55,22 @@ which build it is in checks `#if DEVELOPER_ID`.
 `ClientPlatform` that defaults to `.ios`, so a request built without one lists this Mac as
 an iPhone. Each such request is built in one place in the app, with `.macos`, and
 `App/Tests/MacClientPlatformTests.swift` pins its bytes: a new one gets a test there.
+
+## Strings and French
+
+The app's words live in the catalogs in `l10n/` (`macos.toml`, `infoplist.toml`,
+`push.toml`), in English and Canadian French; `python3 scripts/gen-l10n.py` regenerates the
+Swift after an edit. CI runs `tools/l10n/frcheck.py all`, the French rules (typography,
+terms, one French version of an English string across catalogs), over every catalog; an
+error fails it, a warning does not.
+
+The French is signed off per release. `i18n/fr-CA/signoff.json` names who signed it off,
+the release and commit the catalogs were read at, and the SHA-256 of every catalog;
+`python3 scripts/check-fr-signoff.py` fails, naming each catalog, when one differs, is
+missing or is not listed. `release.yml` runs it on a tag, never on pull requests, because
+catalogs change between releases. A release whose catalogs changed (French, or English the
+French follows) needs the manager's review of the French and a new `signoff.json` before
+it is tagged.
 
 ## Pull requests
 
