@@ -35,13 +35,12 @@ jobs:
           - set: light
             appearance: Light
             runs: >-
-              en|-|test_01_enUS_light
-              fr|-|test_02_frCA_light
               fr|ring|test_10_ring_frCA
+              en|ring|test_11_ring_enUS
           - set: dark
             appearance: Dark
             runs: >-
-              en|-|test_03_enUS_dark
+              en|ring|test_13_ring_enUS_dark
     env:
       APPEARANCE: ${{ matrix.appearance }}
       RUNS: ${{ matrix.runs }}
