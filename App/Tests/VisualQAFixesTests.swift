@@ -94,4 +94,16 @@ final class VisualQAFixesTests: XCTestCase {
             XCTAssertEqual(IncomingRingLines(caller: nil, workspaceName: nil).lead, "Appel entrant")
         }
     }
+
+    /// ⛔ DECLINE IS THE RED FILL AND ANSWER THE GREEN, EACH WITH ITS OWN PALETTE INK, in
+    /// both appearances. These are the filled pairs `DistrictContrastTests` holds to AA,
+    /// and `RingButtonStyle` draws them whether or not the panel is the key window.
+    func test_VQA_RING_4_theButtonsAreThePalettesFilledPairs() {
+        for palette in [DistrictColors.light, DistrictColors.dark] {
+            XCTAssertEqual(IncomingRingAction.decline.fill(in: palette), palette.destructive)
+            XCTAssertEqual(IncomingRingAction.decline.ink(in: palette), palette.onDestructive)
+            XCTAssertEqual(IncomingRingAction.answer.fill(in: palette), palette.success)
+            XCTAssertEqual(IncomingRingAction.answer.ink(in: palette), palette.onSuccess)
+        }
+    }
 }
