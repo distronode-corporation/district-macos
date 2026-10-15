@@ -139,12 +139,34 @@ not sent.
   requests get dependency review, and a test uses a fictional email address.
 - The catalogs carry their reviewed Canadian French (fr-CA): 1,753 entries in
   `l10n/macos.toml`, `l10n/push.toml` and `l10n/infoplist.toml`, regenerated into `Copy.swift`
-  and the `fr-CA.lproj` strings, so `FR_COMPLETE` is true. French stays switched off: the
-  French tables still enter the app only through `project.fr.yml` (`DISTRICT_FRENCH`), and
-  the release guard is unchanged.
+  and the `fr-CA.lproj` strings, so `FR_COMPLETE` is true.
+- French is on, in both builds (3.0.0). `project.fr.yml` is gone: project.yml copies
+  `App/Localization/fr-CA.lproj` into the Mac App Store and the Developer ID apps alike, so
+  a Mac whose languages put any French first (fr-CA, fr-FR, fr-BE, fr-CH) reads Canadian
+  French, and any other Mac reads English. `AppL10n` decides, as before; nothing else
+  changes in English.
+- The server learns the app's language. Every request says it as `Accept-Language` (`fr-CA`
+  or `en`), the scheduler hand-off included, and `AccountLanguageSync` stores it as the
+  account's language (`POST /api/settings` with `{"profile":{"locale":"fr"}}` or `"en"`,
+  nothing else) on every completed sign-in, at a launch whose language differs from the one
+  last stored, and when the language changes while the app runs, so email and the server's
+  own text match the app. The last writer wins against the website's language menu. A
+  failed write is tried again at the next of those, never on a timer, and a sign-out
+  forgets what was stored.
+- Placeholder titles never break inside a word: beside the call log at the smallest window
+  the detail column is about 160 points wide, and a long French word was hyphenated.
+  `WholeWordTitle` picks the largest of five fonts at which every word fits on its line.
+  The sign-in screen's and the placeholder's symbols are hidden from VoiceOver, which read
+  their names aloud.
 
 ### Release process
 
+- The release guard requires the Canadian French: `DISTRICT_FRENCH` is `"YES"` for both
+  lanes in `release.yml` (and for CI's own check of both targets), so
+  `scripts/check-bundle-l10n.sh` refuses an app lacking `fr-CA.lproj`'s two tables, and
+  any other French `.lproj` in `Contents/Resources` (`fr.lproj`, `fr_CA.lproj`,
+  `fr-FR.lproj`, any case) is refused. Sparkle's own `fr.lproj`, under
+  `Contents/Frameworks`, is not this app's French and is not checked.
 - Submitting a version with no App Store Connect record of its own renames the platform's one
   editable version (a rejected version that was never approved, as Mac 1.0 is) rather than
   creating a second one, which App Store Connect refuses, and only upwards. A review
@@ -157,6 +179,22 @@ not sent.
   Release with its Sparkle signature, checksums and provenance attestation, and adds it
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
+
+## [3.0.0]
+
+District AI is now in Canadian French.
+
+- Calls ring with the window closed: District AI stays in the menu bar (Open District AI,
+  Open at Login, Quit) and keeps ringing. Open at Login is off until you turn it on.
+- See a call's transcript live while it is in progress, then the full transcript in the same
+  place once it ends.
+- Raise a ticket on a customer's behalf from District Desk, with the New ticket button or
+  File > New Ticket.
+- Knowledge: Read a text file fills a new document's title and text from a plain text file
+  (.txt or .md, up to 1 MB). Nothing is added until you click Add document.
+- If your account has an authenticator app turned on, Sign in with Apple asks for its code.
+- Clicking a notification opens the right place: a message opens its conversation, a call
+  opens the call log.
 
 ## [2.0.1] - 2026-10-13
 

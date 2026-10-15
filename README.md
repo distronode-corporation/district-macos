@@ -40,6 +40,10 @@ use them with, so we are asking before we build anything:
 SwiftUI, Swift 6 language mode, macOS 14 Sonoma and later, one universal app for Apple
 silicon and Intel Macs.
 
+**Languages:** English and Canadian French (fr-CA), from 3.0.0. A Mac whose languages put
+any French first (Canada, France, Belgium, Switzerland) reads Canadian French; any other
+Mac reads English.
+
 ## Two ways to install it
 
 - **A direct download** from [Releases](https://github.com/distronode-corporation/district-macos/releases/latest): a Developer ID

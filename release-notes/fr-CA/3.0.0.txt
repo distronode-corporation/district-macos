@@ -1,0 +1,8 @@
+District AI est maintenant en français canadien.
+
+- Les appels sonnent même quand la fenêtre est fermée : District AI reste dans la barre des menus (« Ouvrir District AI », « Ouvrir à l'ouverture de session », « Quitter ») et continue de sonner. L'option « Ouvrir à l'ouverture de session » reste désactivée tant que vous ne l'activez pas.
+- Suivez la transcription d'un appel en direct pendant qu'il est en cours, puis la transcription complète au même endroit une fois l'appel terminé.
+- Créez un billet au nom d'un client depuis District Desk, avec le bouton « Nouveau billet » ou « Fichier > Nouveau billet ».
+- Connaissances : « Importer un fichier texte » remplit le titre et le texte d'un nouveau document à partir d'un fichier texte brut (.txt ou .md, jusqu'à 1 Mo). Rien n'est ajouté avant que vous cliquiez sur « Ajouter un document ».
+- Si une application d'authentification est activée sur votre compte, la connexion avec Apple demande le code qu'elle affiche.
+- Un clic sur une notification ouvre le bon endroit : un message ouvre sa conversation, un appel ouvre le journal des appels.
