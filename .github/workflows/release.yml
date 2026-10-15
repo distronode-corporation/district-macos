@@ -114,6 +114,14 @@ jobs:
         id: preflight
         run: scripts/release-preflight.sh
 
+      # The French is signed off per release. On a tag, every string catalog must be the
+      # one i18n/fr-CA/signoff.json records (scripts/check-fr-signoff.py names each one
+      # that is not), before anything is built or any secret is read. A dispatch on main
+      # publishes nothing and is not checked. CONTRIBUTING.md, "Strings and French".
+      - name: The catalogs are the signed-off French
+        if: startsWith(github.ref, 'refs/tags/')
+        run: python3 scripts/check-fr-signoff.py
+
       # The release scripts' own tests, so a broken script fails here rather than halfway
       # through an upload.
       - name: Release script tests
@@ -248,6 +256,14 @@ jobs:
       - name: Preflight
         id: preflight
         run: scripts/release-preflight.sh
+
+      # The French is signed off per release. On a tag, every string catalog must be the
+      # one i18n/fr-CA/signoff.json records (scripts/check-fr-signoff.py names each one
+      # that is not), before anything is built or any secret is read. A dispatch on main
+      # publishes nothing and is not checked. CONTRIBUTING.md, "Strings and French".
+      - name: The catalogs are the signed-off French
+        if: startsWith(github.ref, 'refs/tags/')
+        run: python3 scripts/check-fr-signoff.py
 
       - name: Authenticate to Google Cloud
         id: gcp
