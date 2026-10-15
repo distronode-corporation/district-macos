@@ -244,18 +244,11 @@ struct SupportView: View {
                         }
                     }
                 )
-                .background(selection?.wrappedValue == route ? selectedTint : Color.clear)
+                .modifier(SelectedRowGround(selected: selection?.wrappedValue == route))
                 DistrictRowDivider()
             }
         }
         .plainRouteRow()
-    }
-
-    /// ⚠️ THE ROW PAINTS ITS OWN SELECTION: its `List` row is clear so the page shows
-    /// through, which leaves the system nothing to paint on. The tint is a selected
-    /// filter chip's.
-    private var selectedTint: Color {
-        colors.district.opacity(DistrictColors.containerAlpha)
     }
 
     /// ⚠️ THE KEY IS SHOWN WHEN THERE IS ONE, because it is what a customer quotes in

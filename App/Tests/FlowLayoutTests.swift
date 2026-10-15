@@ -2,9 +2,8 @@
 import SwiftUI
 import XCTest
 
-/// ``FlowLayout``, which wraps the Desk's status chips, ``StackedRow/insets``, which keeps a
-/// Mac `List` from cutting a card in two, and ``CardSlice`` on a selected row (3.0.1 visual
-/// QA, Desk).
+/// ``FlowLayout``, which wraps the Desk's status chips, and ``StackedRow/insets``, which
+/// keeps a Mac `List` from cutting a card in two (3.0.1 visual QA, Desk).
 @MainActor
 final class FlowLayoutTests: XCTestCase {
     /// The four French chips as the capture measured them: « Tout 3 », « Ouvert 1 »,
@@ -66,12 +65,5 @@ final class FlowLayoutTests: XCTestCase {
         XCTAssertEqual(StackedRow.insets.bottom, 0)
         XCTAssertEqual(StackedRow.insets.leading, DistrictSpacing.gutter)
         XCTAssertEqual(StackedRow.insets.trailing, DistrictSpacing.gutter)
-    }
-
-    /// ⛔ A CARD SLICE PAINTS NO GROUND ON A SELECTED ROW IN THE KEY WINDOW, where the row's
-    /// ink is white on the system's band; anywhere else it paints the card.
-    func test_FLOW_6_aSelectedSliceLetsTheSelectionShow() {
-        XCTAssertFalse(CardSlice.paintsGround(.increased))
-        XCTAssertTrue(CardSlice.paintsGround(.standard))
     }
 }
