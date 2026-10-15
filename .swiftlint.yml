@@ -19,6 +19,9 @@ excluded:
   # The Swift `l10n.py gen` writes from l10n/macos.toml: one table of a thousand strings,
   # checked against the catalog by `l10n.py check` rather than linted.
   - App/Sources/L10n/Generated
+  # QA ONLY, on the visual-qa/apple-capture branch and never merged: the capture walk is one
+  # long script on purpose (its length and complexity), and nothing ships from it.
+  - App/UITests/VisualQATourTests.swift
 
 line_length:
   warning: 120
