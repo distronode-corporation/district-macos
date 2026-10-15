@@ -115,7 +115,7 @@ final class SchedulingHandOffTests: XCTestCase {
     func test_IOS_SCH_28_noCallbackAsksForAnotherPress() throws {
         XCTAssertEqual(
             SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.noCallback),
-            "Opening the website took too long. Try again."
+            "Opening the page took too long. Try again."
         )
         XCTAssertEqual(
             SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.failed(.invalidNonce)),
