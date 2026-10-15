@@ -82,6 +82,20 @@ struct CardSlice: ViewModifier {
     var selected = false
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.backgroundProminence) private var prominence
+
+    /// Whether the slice paints the card's ground.
+    ///
+    /// ⛔ NOT ON A SELECTED ROW IN THE KEY WINDOW. A Mac `List` draws its own accent band
+    /// under a selected row whatever the row's background, and the row's text and chips turn
+    /// white on it (``SelectionInk``); a card painted over the band put that white on the pale
+    /// card, where it could not be read (3.0.1 visual QA, Desk 22-ticket). The slice keeps its
+    /// outline and lets the band show, as the Support list's selected row does. In a window
+    /// that is not key the band is pale grey and the prominence `.standard`, so the card and
+    /// its selected tint are drawn as before.
+    static func paintsGround(_ prominence: BackgroundProminence) -> Bool {
+        !SelectionInk.onSelection(prominence)
+    }
 
     func body(content: Content) -> some View {
         let colors = DistrictColors.resolve(colorScheme)
@@ -89,9 +103,11 @@ struct CardSlice: ViewModifier {
         return content
             .background {
                 ZStack {
-                    shape.fill(colors.card)
-                    if selected {
-                        shape.fill(colors.district.opacity(DistrictColors.containerAlpha))
+                    if Self.paintsGround(prominence) {
+                        shape.fill(colors.card)
+                        if selected {
+                            shape.fill(colors.district.opacity(DistrictColors.containerAlpha))
+                        }
                     }
                 }
                 .padding(.top, first ? 0 : -overhang)
