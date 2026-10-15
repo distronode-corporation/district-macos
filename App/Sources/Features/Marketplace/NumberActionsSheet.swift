@@ -116,6 +116,9 @@ struct NumberActionsSheet: View {
         Button(MarketplaceCopy.releaseAction, role: .destructive) {
             model.requestConfirmation(.release(phoneNumber: number.phoneNumber))
         }
+        // ⚠️ THE DESTRUCTIVE INK, WHICH A MAC BUTTON'S ROLE DOES NOT DRAW ON ITS OWN: under
+        // the app's accent tint it read as a peer of Reapply.
+        .tint(colors.destructive)
         .disabled(!model.numberWrite.isArmed)
         // ⛔ IDENTIFIED SO A TEST CAN ASSERT IT EXISTS AND NEVER PRESS IT. It is in
         // `UITestApp.forbiddenSurfaces` and the tap helper refuses it outright:
