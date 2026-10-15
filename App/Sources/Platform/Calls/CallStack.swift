@@ -208,17 +208,9 @@ final class CallStack {
     func drainServerHangUps(within seconds: Double) async {
         let pending = Array(pendingHangUps.values)
         guard !pending.isEmpty else { return }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let resume = ResumeOnce(continuation)
-            Task {
-                for task in pending {
-                    await task.value
-                }
-                resume.fire()
-            }
-            Task {
-                try? await Task.sleep(for: .seconds(seconds))
-                resume.fire()
+        await QuitDeadline.wait(atMost: seconds) {
+            for task in pending {
+                await task.value
             }
         }
     }
@@ -256,22 +248,4 @@ protocol LiveCallOwner: AnyObject {
     /// End the call because the Mac is sleeping or quitting, or the session is ending.
     /// ⚠️ Not a press: the ended-call summary must not say "you hung up".
     func endForSystem() async
-}
-
-/// Resumes a continuation the first time it is fired, and never again.
-private final class ResumeOnce: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<Void, Never>?
-
-    init(_ continuation: CheckedContinuation<Void, Never>) {
-        self.continuation = continuation
-    }
-
-    func fire() {
-        let pending: CheckedContinuation<Void, Never>? = lock.withLock {
-            defer { continuation = nil }
-            return continuation
-        }
-        pending?.resume()
-    }
 }

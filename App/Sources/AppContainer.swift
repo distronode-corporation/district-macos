@@ -196,11 +196,14 @@ final class AppContainer {
     /// - Parameter tokenStore: where the session persists. nil is the keychain, the only
     ///   correct store for the app; ⛔ a test passes an in-memory one, which in the app would
     ///   sign the user out on every cold start (see `InMemoryTokenStore`).
+    /// - Parameter pushTokenMemory: where the last registered APNs token is remembered. nil
+    ///   is the standard defaults; ⚠️ a test passes its own, so it never writes the app's.
     init(
         baseURL: URL = ApiClient.productionBaseURL,
         microphone: any MicrophoneAccess = LiveMicrophoneAccess(),
         transport: any HTTPTransport = URLSessionHTTPTransport(),
-        tokenStore: (any TokenStore)? = nil
+        tokenStore: (any TokenStore)? = nil,
+        pushTokenMemory: (any PushTokenMemory)? = nil
     ) {
         // ⛔ THE LEDGER FIRST, BEFORE `DeviceIdentity.current()` MINTS AN ID: a missing id
         // is how a fresh install is recognised. See ``FreshInstallTokenStore``.
@@ -252,7 +255,7 @@ final class AppContainer {
         knowledge = KnowledgeRepository(client: api)
         messaging = MessagingRepository(client: api)
         numbers = NumbersRepository(client: api)
-        pushTokens = Self.pushTokenRepository(client: api, memory: UserDefaultsPushTokenMemory())
+        pushTokens = Self.pushTokenRepository(client: api, memory: pushTokenMemory ?? UserDefaultsPushTokenMemory())
         scheduling = SchedulingRepository(client: api)
         schedulingAdmin = Self.schedulingAdmin(client: api)
         schedulingAdminMedia = SchedulingAdminMediaRepository(client: api)

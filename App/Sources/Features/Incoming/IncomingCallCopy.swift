@@ -53,10 +53,14 @@ enum IncomingCallCopy {
     ///   the ring ended because the call did, which the reducer records as a timeout.
     ///   It is worded as the caller hanging up, the iOS sentence for a caller gone at
     ///   the answer, so no new copy is introduced.
+    /// - Parameter ringAnsweredElsewhere: ⚠️ MAC ONLY, see
+    ///   ``IncomingCallModel/ringAnsweredElsewhere``: the ring ended because another device
+    ///   answered. Its own sentence, never the caller hanging up.
     static func sentence(
         for state: IncomingCallState,
         endedByOperator: Bool,
-        ringEndedByCall: Bool = false
+        ringEndedByCall: Bool = false,
+        ringAnsweredElsewhere: Bool = false
     ) -> String {
         switch state.phase {
         case .idle, .ringing:
@@ -68,6 +72,8 @@ enum IncomingCallCopy {
             answering
         case .inCall:
             connected(InCallCopy.duration(state.media?.elapsedSeconds ?? 0))
+        case .ended(.ringTimedOut) where ringAnsweredElsewhere:
+            answeredElsewhere
         case let .ended(reason):
             InCallCopy.endedSentence(
                 reason: ringEndedByCall && reason == .ringTimedOut ? .callerCancelled : reason,

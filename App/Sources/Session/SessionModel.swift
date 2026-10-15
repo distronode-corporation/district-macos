@@ -71,10 +71,9 @@ final class SessionModel {
     private let container: AppContainer
     private let selection: WorkspaceSelectionStore
 
-    /// ⚠️ HELD ONLY TO ORDER THE PUSH SIDE OF A SIGN-OUT. This model does not turn
-    /// push ON, that is the session gate's job, once it renders the shell, but it
-    /// is the one place that observes a session ENDING, in either of the two ways
-    /// that can happen. See ``refreshPhase()`` and ``signOut()``.
+    /// ⚠️ HELD TO TURN PUSH ON AT EVERY SIGN-IN AND TO ORDER ITS SIDE OF A SIGN-OUT. This is
+    /// the one place that observes a session STARTING and ENDING, with or without a window.
+    /// See ``setPhase(_:)``, ``refreshPhase()`` and ``signOut()``.
     private let push: PushRegistrar
 
     /// ⚠️ HELD TO ORDER THE RINGING SIDE OF A SIGN-OUT, for the reason ``push`` is: a live
@@ -129,6 +128,23 @@ final class SessionModel {
         await refreshPhase()
     }
 
+    /// How long a quit waits for a token refresh already on the wire. ⚠️ Bounded: a quit
+    /// must not hang on a network that has gone.
+    static let quitRefreshSeconds: Double = 5
+
+    /// The app is quitting: let a token refresh already on the wire reach the keychain first.
+    ///
+    /// ⛔ THE QUIT THAT SIGNED SOMEONE OUT (3.0.0, 2026-10-15): the server rotated the session
+    /// at 14:29:02Z, the app quit at 14:29:05Z before the successor was written, and the next
+    /// launch could only report an interrupted refresh ("Your session ended unexpectedly").
+    /// The coordinator writes the successor before anything may use it; this keeps the
+    /// process alive until that write has happened. It starts no refresh of its own
+    /// (`TokenRefreshCoordinator.finishRefreshInFlight()`).
+    func finishForQuit(within seconds: Double = SessionModel.quitRefreshSeconds) async {
+        let coordinator = container.coordinator
+        await QuitDeadline.wait(atMost: seconds) { await coordinator.finishRefreshInFlight() }
+    }
+
     /// Move the gate, and tell everything that follows it.
     ///
     /// ⛔ HERE AND NOT IN A VIEW'S `onChange`, so a Mac with its window closed still follows
@@ -145,6 +161,10 @@ final class SessionModel {
             ringingLookup?.cancel()
             live?.sessionEnded()
         case .signedIn:
+            // ⛔ HERE AND NOT IN A VIEW, like the ringing: the quit app's ring is the APNs
+            // alert, and a launch at login that restores no window must register for it too.
+            // Once per signed-in session (``PushRegistrar/enableAfterSignIn()``).
+            push.enableAfterSignIn()
             startRinging()
         case .checking:
             break

@@ -327,7 +327,7 @@ private struct SessionHarness {
         language = AccountLanguageSync(save: { await settings.saveLocale($0) }, defaults: defaults)
         session = SessionModel(
             container: container,
-            push: PushRegistrar(container: container),
+            push: PushRegistrar(container: container, system: .silent),
             language: language,
             selection: WorkspaceSelectionStore(defaults: defaults)
         )

@@ -53,6 +53,11 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
 
     private let room: Room
 
+    /// Whether the join (and the microphone it publishes) is still on its way.
+    ///
+    /// ⛔ ONE MICROPHONE TRACK PER CALL: see ``setMuted(_:)`` and `DistrictCall.CallJoinGate`.
+    private let joinGate = CallJoinGate()
+
     init(devices: AudioDevices) {
         let (stream, continuation) = AsyncStream<CallEngineEvent>.makeStream()
         events = stream
@@ -80,18 +85,23 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
     /// reducers make the first one terminal and absorb the second.
     func connect(url: String, token: String) async throws {
         await devices.applySavedChoice()
+        await joinGate.begin()
         do {
             // ⚠️ `enableMicrophone: true` PUBLISHES THE MIC CONCURRENTLY WITH THE JOIN
             // rather than after it, which is what stops the first second of a call
             // being silent. It matches ``CallMediaState/microphoneEnabled`` defaulting
             // to true: a softphone that joined muted would put the operator on a call
-            // the callee cannot hear.
+            // the callee cannot hear. ⛔ IT IS THE CALL'S ONE MICROPHONE TRACK, and
+            // `connect` returns only once it is published, which is when the join gate
+            // opens (``setMuted(_:)``).
             try await room.connect(
                 url: url,
                 token: token,
                 connectOptions: ConnectOptions(enableMicrophone: true)
             )
+            await joinGate.finish(joined: true)
         } catch {
+            await joinGate.finish(joined: false)
             continuation.yield(.failed(message: error.localizedDescription))
             throw error
         }
@@ -114,7 +124,16 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
     /// ``CallMediaState/microphoneEnabled`` saying the microphone is live, which is the
     /// truth and the one direction that matters: the alternative invites somebody to
     /// speak on a line nobody can hear.
+    ///
+    /// ⛔ NOTHING REACHES THE SDK WHILE THE JOIN IS STILL PUBLISHING THE MICROPHONE, and an
+    /// unmute in that window is dropped (`CallJoinGate.admitsMute(_:)`). The SDK reports the
+    /// room connected BEFORE it publishes the join's microphone, both reducers answer
+    /// `.connected` with an unmute, and `setMicrophone(enabled: true)` in that gap found no
+    /// publication and published a SECOND track: 3.0.0 published two on every answered call
+    /// (2026-10-15, 14:07:23Z), and the join's own publish then timed out waiting for its
+    /// first audio frame ("Timed out"), which ended the call on screen 0:00 in.
     func setMuted(_ muted: Bool) async {
+        guard await joinGate.admitsMute(muted) else { return }
         let enabled = !muted
         do {
             try await room.localParticipant.setMicrophone(enabled: enabled)

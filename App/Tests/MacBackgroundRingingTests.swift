@@ -137,7 +137,7 @@ private struct Harness {
         let defaults = UserDefaults(suiteName: "MacBackgroundRingingTests-\(UUID().uuidString)") ?? .standard
         session = SessionModel(
             container: container,
-            push: PushRegistrar(container: container),
+            push: PushRegistrar(container: container, system: .silent),
             live: live,
             selection: WorkspaceSelectionStore(defaults: defaults)
         )

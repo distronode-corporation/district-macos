@@ -34,8 +34,9 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .signedIn:
+            // ⚠️ PUSH IS TURNED ON BY ``SessionModel`` WHEN THE GATE REACHES SIGNED-IN, not
+            // by this view's appearance: a launch with no window must register too.
             ShellView(container: container, session: session, push: push, live: live)
-                .onAppear { push.enableAfterSignIn() }
 
         case let .signedOut(reason):
             SignInView(

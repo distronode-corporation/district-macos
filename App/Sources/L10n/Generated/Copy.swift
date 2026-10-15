@@ -1549,6 +1549,9 @@ extension IncomingCallCopy {
     /// `incoming_call.answer_notice`
     internal static var answerNotice: String { AppL10n.copyLocale == .frCA ? "Répondre active votre microphone." : "Answering turns on your microphone." }
 
+    /// `incoming_call.answered_elsewhere`
+    internal static var answeredElsewhere: String { AppL10n.copyLocale == .frCA ? "Pris sur un autre appareil" : "Answered on another device" }
+
     /// `incoming_call.answering`
     internal static var answering: String { AppL10n.copyLocale == .frCA ? "Réponse…" : "Answering…" }
 

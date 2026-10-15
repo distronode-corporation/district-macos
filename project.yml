@@ -53,9 +53,12 @@ packages:
   # `App/Sources/L10n/`), the Linux-tested half of both Swift apps.
   # ⛔ PINNED TO ONE RELEASE, THE SAME ONE district-ios's project.yml NAMES. A core change
   # lands in district-core-swift, is tagged, and arrives here as a one-line bump.
+  # ⚠️ 3.0.1 PRE-RELEASE: pinned by revision to district-core-swift's 7.0.1 pull request
+  # head (v3/7.0.1) until that is tagged; the release commit swaps this for
+  # `exactVersion: 7.0.1` (district-ios moves to the same pin in its next release).
   DistrictCore:
     url: https://github.com/distronode-corporation/district-core-swift
-    exactVersion: 7.0.0
+    revision: 41586c7ef9b8409633a34e9cf9e71c427948e3bd
   # ⛔ LINKED BY NOTHING, DECLARED ONLY TO PIN IT. swift-crypto takes swift-asn1 by range,
   # so without this root-level constraint Xcode resolves the newest one on a cache miss.
   # 1.7.3 is what district-core-swift 7.0.0's Package.resolved records. Bump with the core.
@@ -242,7 +245,7 @@ targetTemplates:
         # scheme at a time, and the test host is the store build (see `DistrictMacTests`).
         PRODUCT_NAME: District AI
         PRODUCT_MODULE_NAME: DistrictMac
-        MARKETING_VERSION: "3.0.0"
+        MARKETING_VERSION: "3.0.1"
         # ⚠️ A placeholder the release lane overrides with a build number App Store
         # Connect has not seen.
         CURRENT_PROJECT_VERSION: "1"

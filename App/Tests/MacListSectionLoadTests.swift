@@ -94,7 +94,7 @@ final class MacListSectionLoadTests: XCTestCase {
             ),
             deviceId: container.deviceId
         )
-        let push = PushRegistrar(container: container)
+        let push = PushRegistrar(container: container, system: .silent)
         // ⛔ NO LIVE SESSION: the factory builds nothing, so no socket is opened.
         let live = DesktopLive(calls: container.callStack) { _ in nil }
         let session = SessionModel(container: container, push: push, live: live)

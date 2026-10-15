@@ -56,6 +56,12 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
     /// to the server) and this bit words it as "the caller hung up".
     private(set) var ringEndedByCall = false
 
+    /// Whether the ring ended because the call was ANSWERED ON ANOTHER DEVICE (the server's
+    /// `call_ring_cancelled` with reason `answered`, 3.0.1). ⚠️ MAC ONLY, worded like
+    /// ``ringEndedByCall`` over the same ``IncomingCallEvent/ringTimedOut`` exit, which sends
+    /// nothing to the server. ⛔ Never worded as the caller hanging up.
+    private(set) var ringAnsweredElsewhere = false
+
     /// The workspace being called, for a screen that wants to name it.
     var workspaceId: String? {
         state.workspaceID?.rawValue
@@ -144,12 +150,35 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         switch reason {
         case .cleared:
             return
-        case .timedOut:
+        case .timedOut, .cancelled(.timeout), .cancelled(.withdrawn):
             ringEndedByCall = false
-        case .callEnded, .noLongerAnswerable:
+            ringAnsweredElsewhere = false
+        case .callEnded, .noLongerAnswerable, .cancelled(.callEnded):
             ringEndedByCall = true
+            ringAnsweredElsewhere = false
+        case .cancelled(.answered):
+            ringEndedByCall = false
+            ringAnsweredElsewhere = true
         }
         Task { await apply(.ringTimedOut) }
+    }
+
+    /// The server ended the ring for a call (`call_ring_cancelled`), from the background push.
+    /// The socket's copy of the same cancel arrives through the gate (``ringStopped(workspaceId:callId:reason:)``);
+    /// either may come first, more than once, and both are idempotent.
+    ///
+    /// ⛔ IGNORED FOR THE CALL THIS MAC ANSWERED: the cancel reaches every device that rang, the
+    /// answering one included, and may arrive after the answer. Answering, in the call, or on
+    /// its summary, nothing changes: no hang-up and no new sentence.
+    ///
+    /// ⚠️ OTHERWISE THE CALL'S DELIVERED RING ALERT IS TAKEN AWAY EVEN WHEN NOTHING RINGS HERE:
+    /// the server's Time Sensitive APNs alert for a call this app never rang (it was quit, or
+    /// its socket missed the ring) would otherwise stay in Notification Center with an Answer
+    /// button for a call that is over.
+    func ringCancelled(_ cancel: RingCancel) {
+        guard state.callID?.rawValue != cancel.callId || state.phase == .ringing else { return }
+        presenter.withdrawAlerts(callId: cancel.callId)
+        ringStopped(workspaceId: cancel.workspaceId, callId: cancel.callId, reason: .cancelled(cancel.reason))
     }
 
     /// The live session stopped while `callId` rang (the Mac is going to sleep, the app is
@@ -278,6 +307,7 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         }
         endedByOperator = false
         ringEndedByCall = false
+        ringAnsweredElsewhere = false
         guard state.phase == .idle, !calls.hasLiveCall else {
             onRingSettled?()
             return nil
@@ -335,6 +365,13 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         state = controller.state
         if before == .ringing, state.phase != .ringing {
             onRingSettled?()
+        }
+        // ⛔ THE DURATION STARTS AT THE MEDIA, BEFORE THE COMMANDS ARE PERFORMED, not after
+        // them: `.connected` asks the engine to unmute, and an engine command that took its
+        // time held the clock at 0:00 on a live call (3.0.0, 2026-10-15). Idempotent with
+        // ``settle()``'s own start.
+        if state.phase == .inCall {
+            startTicking()
         }
         await perform(commands)
         await settle()

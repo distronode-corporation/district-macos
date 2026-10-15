@@ -3981,6 +3981,16 @@ state = "reviewed"
 id = { swift = "IncomingCallCopy.answerNotice" }
 note = "The notice under the Answer button.\n⚠️ SAID BEFORE THE SYSTEM ASKS, like the dialer's, so the microphone prompt has a visible reason. The app asks at Answer (``IncomingCallModel/prepareMicrophoneForAnswer()``), and a request with no explanation is the one people deny permanently."
 
+[incoming_call.answered_elsewhere]
+en = "Answered on another device"
+fr = "Pris sur un autre appareil"
+ctx = "label"
+screen = "incoming"
+tier = "T0"
+state = "draft"
+id = { swift = "IncomingCallCopy.answeredElsewhere" }
+note = "3.0.1: the ring ended because the call was answered on another device (`call_ring_cancelled`, reason `answered`). Shown in place of 'Call ended · nobody answered'. ⛔ Never 'the caller hung up'."
+
 [incoming_call.answering]
 en = "Answering…"
 fr = "Réponse…"

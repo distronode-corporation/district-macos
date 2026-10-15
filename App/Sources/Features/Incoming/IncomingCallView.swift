@@ -97,7 +97,8 @@ struct IncomingCallView: View {
             Text(IncomingCallCopy.sentence(
                 for: model.state,
                 endedByOperator: model.endedByOperator,
-                ringEndedByCall: model.ringEndedByCall
+                ringEndedByCall: model.ringEndedByCall,
+                ringAnsweredElsewhere: model.ringAnsweredElsewhere
             ))
             .font(DistrictType.title)
             .foregroundStyle(colors.mutedForeground)
