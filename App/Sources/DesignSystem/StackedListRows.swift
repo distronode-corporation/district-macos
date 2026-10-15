@@ -26,6 +26,8 @@ extension View {
             .padding(.top, top)
             .padding(.bottom, bottom)
             .listRowInsets(StackedRow.insets)
+            // ⛔ THE SYSTEM'S SELECTION BAND IS OFF; THE ROW DRAWS ITS OWN (``RowSelection``).
+            .background(SystemRowHighlightOff())
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
     }
@@ -76,38 +78,31 @@ struct CardSlice: ViewModifier {
     let first: Bool
     let last: Bool
 
-    /// ⚠️ DRAWN BY THE ROW RATHER THAN BY THE `List`. The row's own background is clear so
-    /// the page shows in the gutters, which leaves the system nothing to paint a selection
-    /// on; the card says it instead, in the same tint as a selected filter chip.
+    /// ⚠️ DRAWN BY THE ROW RATHER THAN BY THE `List`, whose own band is off
+    /// (``RowSelection``): in the key window the selected slice is the accent with white
+    /// ink, inside the card's outline and with its corners where it is the first or last
+    /// row; elsewhere the card in the palette's tint.
     var selected = false
 
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.backgroundProminence) private var prominence
-
-    /// Whether the slice paints the card's ground.
-    ///
-    /// ⛔ NOT ON A SELECTED ROW IN THE KEY WINDOW. A Mac `List` draws its own accent band
-    /// under a selected row whatever the row's background, and the row's text and chips turn
-    /// white on it (``SelectionInk``); a card painted over the band put that white on the pale
-    /// card, where it could not be read (3.0.1 visual QA, Desk 22-ticket). The slice keeps its
-    /// outline and lets the band show, as the Support list's selected row does. In a window
-    /// that is not key the band is pale grey and the prominence `.standard`, so the card and
-    /// its selected tint are drawn as before.
-    static func paintsGround(_ prominence: BackgroundProminence) -> Bool {
-        !SelectionInk.onSelection(prominence)
-    }
+    @Environment(\.controlActiveState) private var controlActive
 
     func body(content: Content) -> some View {
         let colors = DistrictColors.resolve(colorScheme)
         let shape = RoundedRectangle(cornerRadius: DistrictRadius.card)
+        let look = RowSelection.look(selected: selected, controlActive: controlActive)
         return content
+            .environment(\.backgroundProminence, look.prominence)
             .background {
                 ZStack {
-                    if Self.paintsGround(prominence) {
+                    switch look {
+                    case .none:
                         shape.fill(colors.card)
-                        if selected {
-                            shape.fill(colors.district.opacity(DistrictColors.containerAlpha))
-                        }
+                    case .tint:
+                        shape.fill(colors.card)
+                        shape.fill(colors.district.opacity(DistrictColors.containerAlpha))
+                    case .accent:
+                        shape.fill(RowSelection.accentFill)
                     }
                 }
                 .padding(.top, first ? 0 : -overhang)
