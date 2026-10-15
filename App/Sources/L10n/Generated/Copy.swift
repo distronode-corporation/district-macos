@@ -2997,6 +2997,9 @@ extension SchedulingCopy {
     /// `scheduling.hand_off_failed`
     internal static var handOffFailed: String { AppL10n.copyLocale == .frCA ? "Impossible d'ouvrir la page. Réessayez." : "The website could not be opened. Try again." }
 
+    /// `scheduling.hand_off_no_callback`
+    internal static var handOffNoCallback: String { AppL10n.copyLocale == .frCA ? "L'ouverture de la page a pris trop de temps. Réessayez." : "Opening the website took too long. Try again." }
+
     /// `scheduling.host_archived`
     internal static func hostArchived(_ role: String) -> String {
         AppL10n.copyLocale == .frCA ? "\(role) · archivé" : "\(role) · archived"
@@ -3269,7 +3272,7 @@ extension SchedulingCopy {
     internal static var sectionsEyebrow: String { AppL10n.copyLocale == .frCA ? "Gérer" : "Manage" }
 
     /// `scheduling.sections_footnote`
-    internal static var sectionsFootnote: String { AppL10n.copyLocale == .frCA ? "Ce que ces sections ne couvrent pas s'ouvre hors de l'app." : "Anything these sections do not cover opens in a browser." }
+    internal static var sectionsFootnote: String { AppL10n.copyLocale == .frCA ? "Ce que ces sections ne couvrent pas s'ouvre hors de l'application." : "Anything these sections do not cover opens in a browser." }
 
     /// `scheduling.set`
     internal static var set: String { AppL10n.copyLocale == .frCA ? "Défini" : "Set" }

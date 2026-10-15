@@ -58,7 +58,7 @@ packages:
   # `exactVersion: 7.0.1` (district-ios moves to the same pin in its next release).
   DistrictCore:
     url: https://github.com/distronode-corporation/district-core-swift
-    revision: 9d7294b35b2f36bf8b2081ba1aeea0c80e0db910
+    revision: 1972dc9bc273649bcc233fc4feb7b8cfe2c5c379
   # ⛔ LINKED BY NOTHING, DECLARED ONLY TO PIN IT. swift-crypto takes swift-asn1 by range,
   # so without this root-level constraint Xcode resolves the newest one on a cache miss.
   # 1.7.3 is what district-core-swift 7.0.0's Package.resolved records. Bump with the core.

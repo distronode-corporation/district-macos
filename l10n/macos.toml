@@ -7724,6 +7724,16 @@ state = "reviewed"
 id = { swift = "SchedulingCopy.handOffFailed" }
 note = "`invalid_nonce`: the hand-off was refused and pressing again starts a new one."
 
+[scheduling.hand_off_no_callback]
+en = "Opening the website took too long. Try again."
+fr = "L'ouverture de la page a pris trop de temps. Réessayez."
+ctx = "error"
+screen = "scheduling"
+tier = "T2"
+state = "draft"
+id = { swift = "SchedulingCopy.handOffNoCallback" }
+note = "3.0.1 (S33): the browser never handed back to the app within 30 s, so nothing was minted (there is no unbound fallback any more). Pressing again starts a new hand-off."
+
 [scheduling.host_archived]
 en = "{role} · archived"
 fr = "{role} · archivé"
@@ -8404,10 +8414,10 @@ note = "⚠️ THE EYEBROW OVER THE SECTION LIST. \"Manage\" rather than \"Secti
 
 [scheduling.sections_footnote]
 en = "Anything these sections do not cover opens in a browser."
-fr = "Ce que ces sections ne couvrent pas s'ouvre hors de l'app."
+fr = "Ce que ces sections ne couvrent pas s'ouvre hors de l'application."
 ctx = "body"
 screen = "scheduling"
-state = "draft"
+state = "reviewed"
 id = { swift = "SchedulingCopy.sectionsFootnote" }
 note = "⛔ IT SAYS WHY THERE IS STILL A BUTTON OUT OF THE APP, AND IT MUST NOT NAME THE WEBSITE. ⚠️ 3.0.1: it said the sections were read-only, which stopped being true when they became writable in 3.0. App Store Review Guideline 3.1.1 covers steering toward an external surface as well as the purchase itself, which is also why ``FailureText``'s 402 sentence names no domain. \"In a browser\" is a capability, not a destination."
 
