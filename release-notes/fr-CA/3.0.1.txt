@@ -5,4 +5,4 @@
 - Quitter District AI ne vous déconnecte plus à sa prochaine ouverture.
 - Après votre déconnexion, ce Mac ne reçoit plus les notifications de ce compte.
 - L'appel ou le contact ouvert à côté de la liste est plus large et plus facile à lire, et les étiquettes d'une ligne sélectionnée restent lisibles.
-- La zone de réponse des conversations est plus compacte : la touche Retour envoie le message.
+- La zone de réponse des conversations est plus compacte; Commande + Retour envoie le message.
