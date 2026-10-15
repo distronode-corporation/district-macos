@@ -203,13 +203,14 @@ struct DeskView: View {
     /// ⚠️ THE CHIPS COUNT THE WHOLE QUEUE, WHICH IS WHY THE READ IS UNFILTERED. A
     /// server-side filter would mean one request per chip and the counts could
     /// disagree with each other between responses.
+    ///
+    /// ⚠️ THEY WRAP ONTO A SECOND LINE (``FlowLayout``), NEVER A SIDEWAYS SCROLLER, which
+    /// hid « Réglé 1 » at the column's edge in French (3.0.1 visual QA).
     private var filters: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DistrictSpacing.tight) {
-                chip(nil, DeskCopy.allFilter)
-                ForEach(DeskTicketStatus.allCases, id: \.rawValue) { status in
-                    chip(status, Self.label(for: status))
-                }
+        FlowLayout(spacing: DistrictSpacing.tight, lineSpacing: DistrictSpacing.tight) {
+            chip(nil, DeskCopy.allFilter)
+            ForEach(DeskTicketStatus.allCases, id: \.rawValue) { status in
+                chip(status, Self.label(for: status))
             }
         }
     }
