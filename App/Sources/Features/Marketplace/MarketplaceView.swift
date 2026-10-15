@@ -111,7 +111,7 @@ struct MarketplaceView: View {
         .sheet(item: $openNumber) { selection in
             // ⚠️ AS TALL AS ITS TEXT AND ITS BUTTON ROW: at 420pt half of it was empty.
             NumberActionsSheet(model: provisioning, number: selection.number)
-                .macSheetSize(width: 460, height: 300)
+                .macSheetSize(width: 460, height: 260)
         }
         .sheet(isPresented: confirmationBinding) {
             NumberConfirmationHost(model: provisioning)

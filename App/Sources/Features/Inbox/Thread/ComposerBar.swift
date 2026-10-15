@@ -5,12 +5,12 @@ import UniformTypeIdentifiers
 
 /// The reply box: text, attachments, the AI draft, and send.
 ///
-/// ⛔ ONE ROW OF CONTROLS, THE FIELD BETWEEN THEM, AS A MAC COMPOSER IS DRAWN. The 3.0.1
+/// ⛔ THE FIELD, THEN ONE ROW OF CONTROLS, AS A MAC COMPOSER IS DRAWN. The 3.0.1
 /// visual QA found the box taking about 60% of the open thread, its four buttons in four
 /// styles stacked in a column (a grey box, plain text, « Ébaucher une réponse » wrapped on
-/// two lines, a filled Send). Now the attach and draft controls are bordered SF Symbol
-/// buttons that name themselves on hover and to VoiceOver, the field takes the rest of the
-/// row and grows with the reply, and Send is the default button, so Return sends, as in
+/// two lines, a filled Send). Now the attach and draft controls are borderless SF Symbol
+/// buttons that name themselves on hover and to VoiceOver, in one row under a full-width
+/// field that grows with the reply, and Send is the default button, so Return sends, as in
 /// Messages. A staged image is a small thumbnail with its own remove control.
 ///
 /// ⛔ TWO OF THESE FOUR CONTROLS SPEND MONEY AND BOTH ARE DISABLED WHILE IN FLIGHT.
@@ -52,14 +52,20 @@ struct ComposerBar: View {
             failureStrip
             subjectField
             attachmentStrip
-            // ⚠️ THE CONTROLS ARE ICONS, SO THE ROW HOLDS AT ANY TEXT SIZE: the field keeps
-            // the width the labelled buttons used to squeeze out of it.
-            HStack(alignment: .bottom, spacing: DistrictSpacing.tight) {
+            field
+            // ⚠️ THE FIELD TAKES THE WHOLE WIDTH AND THE CONTROLS SIT IN ONE ROW UNDER IT, as
+            // Mail's composer does. Beside the field, even as icons, the four took
+            // two thirds of a 370pt open thread and the reply wrapped every two words (first
+            // after-capture, run 38781965734). The three icons are borderless; Send alone is
+            // bordered, and prominent, as the default button.
+            HStack(spacing: DistrictSpacing.row) {
                 attachControl
-                field
                 draftControl
+                Spacer(minLength: DistrictSpacing.tight)
                 sendControl
             }
+            .buttonStyle(.borderless)
+            .imageScale(.large)
             .controlSize(.large)
         }
         .padding(.horizontal, DistrictSpacing.gutter)
