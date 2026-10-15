@@ -110,6 +110,10 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
+- DistrictCore 7.0.0 (district-core-swift 1292c25), the release of the three betas below
+  with the reviewed v3.0 French in the core's catalog: in French, a cancelled-bookings
+  view reads « Annulés » and the scheduling team roles « Administrateur » and « Membre ».
+  English is unchanged.
 - DistrictCore 7.0.0-beta.3: the contracts from monorepo 43eed5fd6 (French API errors,
   masculine desk statuses), the billing currency, and the portal's four booking webhook
   events. Billing amounts come from its `BillingMoneyFormat`: English exactly as before
