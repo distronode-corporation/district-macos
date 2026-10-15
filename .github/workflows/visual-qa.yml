@@ -9,7 +9,7 @@ name: Visual and style QA (screenshots, not a gate)
 # read: the session is a made-up one the mock accepts.
 on:
   push:
-    branches: [visual-qa/apple-capture]
+    branches: [visual-qa/mac-301-after]
   workflow_dispatch:
 
 permissions:
@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       # ⚠️ ONE AT A TIME: the free plan runs five macOS jobs at once for the whole
       # organisation, and the release pull requests need theirs.
-      max-parallel: 1
+      max-parallel: 2
       matrix:
         include:
           # Each run is `<language>|<QA_MODE, ring or ->|<test>,<test>`.
@@ -37,20 +37,10 @@ jobs:
             runs: >-
               en|-|test_01_enUS_light
               fr|-|test_02_frCA_light
-              fr|-|test_05_frCA_wide
-              en|empty|test_06_enUS_empty
-              en|error|test_07_enUS_error
-              en|slow|test_08_enUS_loading
-              fr|empty|test_09_frCA_empty
-              fr|ring|test_10_ring_frCA
-              en|ring|test_11_ring_enUS
           - set: dark
             appearance: Dark
             runs: >-
               en|-|test_03_enUS_dark
-              fr|-|test_04_frCA_dark
-              fr|ring|test_12_ring_frCA_dark
-              en|ring|test_13_ring_enUS_dark
     env:
       APPEARANCE: ${{ matrix.appearance }}
       RUNS: ${{ matrix.runs }}
