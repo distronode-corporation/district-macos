@@ -163,7 +163,6 @@ struct IncomingCallView: View {
                     ringButton(action)
                 }
             }
-            .controlSize(.large)
         }
     }
 
@@ -176,21 +175,68 @@ struct IncomingCallView: View {
             // pocket must be indistinguishable from outside.
             Button(role: .destructive) { model.declinePressed() } label: {
                 Label(IncomingCallCopy.decline, systemImage: "phone.down.fill")
-                    .frame(maxWidth: .infinity)
-                    // ⚠️ THE PALETTE'S INK FOR THE FILL: white on the light fill, black on the
-                    // dark one, where white fails (``DistrictColors/onDestructive``).
-                    .foregroundStyle(colors.onDestructive)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(colors.destructive)
+            .buttonStyle(RingButtonStyle(action: .decline))
         case .answer:
             Button { model.answerPressed() } label: {
                 Label(IncomingCallCopy.answer, systemImage: "phone.fill")
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(colors.onSuccess)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(colors.success)
+            .buttonStyle(RingButtonStyle(action: .answer))
+        }
+    }
+}
+
+extension IncomingRingAction {
+    /// The button's own fill: red for Decline, green for Answer.
+    func fill(in colors: DistrictColors) -> Color {
+        switch self {
+        case .decline: colors.destructive
+        case .answer: colors.success
+        }
+    }
+
+    /// The palette's ink for ``fill(in:)``: white on the light fills, black on the dark
+    /// ones, where white fails (``DistrictColors/onDestructive``).
+    func ink(in colors: DistrictColors) -> Color {
+        switch self {
+        case .decline: colors.onDestructive
+        case .answer: colors.onSuccess
+        }
+    }
+}
+
+/// Decline and Answer: the palette's red and green, filled, whatever the window's state.
+///
+/// ⛔ A FILL OF OUR OWN, NOT `.borderedProminent`. The ring panel is non-activating and is
+/// not the key window until it is clicked (``RingPanelController``), and the system draws
+/// a prominent button in a window that is not key as a grey bezel: the white or black ink
+/// chosen for the red and green then sat on grey and could hardly be read, on every ring
+/// that arrives while the person works in another app (3.0.1 visual QA, AP-018, capture
+/// run 38795654701). A `ButtonStyle` draws the same fill in either state.
+struct RingButtonStyle: ButtonStyle {
+    let action: IncomingRingAction
+
+    func makeBody(configuration: Configuration) -> some View {
+        Face(action: action, configuration: configuration)
+    }
+
+    /// ⛔ NOT NAMED `Body` OR `Label`: those are ``ButtonStyle``'s associated types, and a
+    /// nested type of either name becomes its witness (see ``DistrictButtonStyle``).
+    private struct Face: View {
+        let action: IncomingRingAction
+        let configuration: ButtonStyleConfiguration
+
+        @Environment(\.colorScheme) private var colorScheme
+
+        var body: some View {
+            let colors = DistrictColors.resolve(colorScheme)
+            configuration.label
+                .font(DistrictButtonSize.medium.font)
+                .foregroundStyle(action.ink(in: colors))
+                .frame(maxWidth: .infinity, minHeight: DistrictButtonSize.medium.minHeight)
+                .background(action.fill(in: colors), in: RoundedRectangle(cornerRadius: DistrictRadius.control))
+                .opacity(configuration.isPressed ? 0.8 : 1)
+                .contentShape(RoundedRectangle(cornerRadius: DistrictRadius.control))
         }
     }
 }
