@@ -42,6 +42,7 @@ jobs:
             runs: >-
               en|ring|test_13_ring_enUS_dark
               en|-|test_03_enUS_dark
+              en|-|test_03_enUS_dark
     env:
       APPEARANCE: ${{ matrix.appearance }}
       RUNS: ${{ matrix.runs }}
