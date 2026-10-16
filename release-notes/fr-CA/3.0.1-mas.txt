@@ -1,0 +1,16 @@
+District AI est maintenant en français canadien.
+
+- Les appels sonnent même quand la fenêtre est fermée : District AI reste dans la barre des menus (« Ouvrir District AI », « Ouvrir à l'ouverture de session », « Quitter ») et continue de sonner. L'option « Ouvrir à l'ouverture de session » reste désactivée tant que vous ne l'activez pas.
+- Créez un billet au nom d'un client depuis District Desk, avec le bouton « Nouveau billet » ou « Fichier > Nouveau billet ».
+- Connaissances : « Importer un fichier texte » remplit le titre et le texte d'un nouveau document à partir d'un fichier texte brut (.txt ou .md, jusqu'à 1 Mo). Rien n'est ajouté avant que vous cliquiez sur « Ajouter un document ».
+- Un clic sur une notification ouvre le bon endroit : un message ouvre sa conversation, un appel ouvre le journal des appels.
+
+Corrections et améliorations :
+- Lorsqu'un appel est pris sur un autre appareil, ce Mac cesse de sonner et l'indique.
+- Lorsque vous répondez à un appel, l'écran d'appel s'affiche et reste ouvert tant que vous êtes en ligne, au lieu d'indiquer « Appel terminé ».
+- Répondre à un appel n'active plus votre microphone deux fois.
+- Une fois District AI quitté, les appels entrants font sonner ce Mac après une déconnexion suivie d'une reconnexion, ou après une connexion avec un autre compte.
+- Quitter District AI ne vous déconnecte plus à sa prochaine ouverture.
+- Après votre déconnexion, ce Mac ne reçoit plus les notifications de ce compte.
+- L'appel ou le contact ouvert à côté de la liste est plus large et plus facile à lire, et les étiquettes d'une ligne sélectionnée restent lisibles.
+- La zone de réponse des conversations est plus compacte; Commande + Retour envoie le message.

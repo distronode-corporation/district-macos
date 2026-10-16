@@ -166,7 +166,19 @@ def whats_new(changelog: Path, version: str) -> str:
 # English is the version's CHANGELOG section; every other language is a committed plain-text
 # file, release-notes/<locale>/<version>.txt, as on district-android (there the locale is the
 # Play language code; here it is the App Store Connect locale, e.g. fr-CA).
+#
+# The Mac App Store's own notes, release-notes/<locale>/<version>-mas.txt (English in
+# release-notes/en-US/), replace all of those for the store when they exist. They are for a
+# store version whose readers come from an older version than the CHANGELOG section assumes:
+# Mac 3.0.0 was never on the store, so its readers go from 2.0.1 to 3.0.1 and never saw
+# 3.0.0's notes. The CHANGELOG section stays the notes of the GitHub Release and the
+# direct download, which did ship 3.0.0.
 NOTES_ROOT = Path(__file__).resolve().parent.parent / "release-notes"
+STORE_SUFFIX = "-mas"
+
+
+def _is_english(locale: str) -> bool:
+    return locale.split("-")[0].lower() == "en"
 
 
 class ReleaseNotes:
@@ -183,6 +195,13 @@ class ReleaseNotes:
 
     Every language directory is read and checked when this is built, before any request is
     made, so a missing, empty or too long file stops the run with nothing half done.
+
+    ⛔ THE STORE'S OWN NOTES ARE ALL OR NOTHING. Once any language has
+    `<version>-mas.txt`, English (release-notes/en-US/) and every other language directory
+    must have one too, or the run stops: a store page whose French tells readers about 3.0.0
+    while its English only lists 3.0.1's fixes is the mismatch this exists to prevent. An
+    English directory holds nothing but store notes, so it is never asked for `<version>.txt`.
+    The CHANGELOG section is still read and checked either way.
     """
 
     def __init__(self, changelog: Path, version: str, root: Path = NOTES_ROOT) -> None:
@@ -190,9 +209,31 @@ class ReleaseNotes:
         self.root = root
         self.english = whats_new(changelog, version)
         self.translations: dict[str, str] = {}
-        if root.is_dir():
-            for folder in sorted(d for d in root.iterdir() if d.is_dir()):
-                self.translations[folder.name] = self._read(folder / f"{version}.txt")
+        self.source = f"CHANGELOG.md [{version}] and {root.name}/<locale>/{version}.txt"
+        folders = sorted(d for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
+        store_name = f"{version}{STORE_SUFFIX}.txt"
+        store = [d for d in folders if (d / store_name).is_file()]
+        if store:
+            missing = [d.name for d in folders if d not in store]
+            if not any(_is_english(d.name) for d in store):
+                missing.append("en-US")
+            if missing:
+                die(
+                    f"{root.name}/ has store notes ({store_name}) for {', '.join(d.name for d in store)} "
+                    f"but not for {', '.join(sorted(missing))}. Store notes replace every language's "
+                    f"notes or none: add {', '.join(f'{root.name}/{m}/{store_name}' for m in sorted(missing))}."
+                )
+            english = [d for d in store if _is_english(d.name)]
+            self.english = self._read(english[0] / store_name)
+            for folder in store:
+                if not _is_english(folder.name):
+                    self.translations[folder.name] = self._read(folder / store_name)
+            self.source = f"{root.name}/<locale>/{store_name} (the Mac App Store's own notes)"
+            return
+        for folder in folders:
+            if _is_english(folder.name):
+                continue  # English comes from the CHANGELOG; its directory holds store notes only.
+            self.translations[folder.name] = self._read(folder / f"{version}.txt")
 
     def _read(self, path: Path) -> str:
         if not path.is_file():
@@ -750,7 +791,9 @@ def main() -> None:
         return
     if args.command == "whats-new":
         # Builds every language's notes, so this is also the pre-flight check of all of them.
-        print(ReleaseNotes(Path(args.changelog), args.version).for_locale(args.locale))
+        notes = ReleaseNotes(Path(args.changelog), args.version)
+        print(f"whatsNew source: {notes.source}", file=sys.stderr)
+        print(notes.for_locale(args.locale))
         return
     if args.command in ("highest-build", "train-open"):
         if not re.fullmatch(r"\d+(\.\d+){1,2}", args.version):
@@ -771,7 +814,9 @@ def main() -> None:
     else:
         # The notes are read BEFORE anything is changed in App Store Connect, so a missing
         # CHANGELOG section or language file stops the run with nothing half done.
-        submit(client, args.version, args.build, ReleaseNotes(Path(args.changelog), args.version), args.timeout)
+        notes = ReleaseNotes(Path(args.changelog), args.version)
+        print(f"whatsNew source: {notes.source}")
+        submit(client, args.version, args.build, notes, args.timeout)
 
 
 if __name__ == "__main__":

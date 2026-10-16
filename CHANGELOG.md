@@ -168,6 +168,13 @@ not sent.
 
 ### Release process
 
+- The Mac App Store can have its own What's New for a version:
+  `release-notes/<locale>/<version>-mas.txt`, English in `release-notes/en-US/`, replaces the
+  CHANGELOG section and every `<version>.txt` for the store when it exists, in every language
+  or none (a missing language stops the run before anything is written). The GitHub Release
+  keeps the CHANGELOG section. 3.0.1 uses it: Mac 3.0.0 never reached the store, so store
+  readers go from 2.0.1 to 3.0.1, and their notes open with what 3.0.0 brought. `whats-new`
+  and `submit` print which source they used.
 - The release guard requires the Canadian French: `DISTRICT_FRENCH` is `"YES"` for both
   lanes in `release.yml` (and for CI's own check of both targets), so
   `scripts/check-bundle-l10n.sh` refuses an app lacking `fr-CA.lproj`'s two tables, and
