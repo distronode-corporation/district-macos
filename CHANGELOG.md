@@ -263,6 +263,21 @@ not sent.
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
 
+## [3.0.2] - 2026-10-16
+
+- Text on coloured badges, avatars and District Desk chips has more contrast and is easier
+  to read.
+- Section and field labels are in sentence case, no longer in spaced-out capitals.
+- Text fields have a clear edge and easier-to-read placeholder text, and a field whose label
+  is shown above it no longer repeats that label inside.
+- An empty Calls, Contacts or Inbox list fills its column instead of showing a grey band.
+- Revoke key, Revoke access and Delete webhook look like destructive actions instead of
+  plain text.
+- In Working hours, the Edit working hours and Edit date overrides buttons say what they do
+  and no longer look like tabs.
+- In French, a call's length is never split across two lines, the intelligence dossier's
+  headings are in French, and the Inbox search prompt fits its field.
+
 ## [3.0.1]
 
 - When a call is answered on another device, this Mac stops ringing and says so.

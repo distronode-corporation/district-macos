@@ -1,0 +1,23 @@
+District AI is now in Canadian French.
+
+- Calls ring with the window closed: District AI stays in the menu bar (Open District AI, Open at Login, Quit) and keeps ringing. Open at Login is off until you turn it on.
+- Raise a ticket on a customer's behalf from District Desk, with the New ticket button or File > New Ticket.
+- Knowledge: Read a text file fills a new document's title and text from a plain text file (.txt or .md, up to 1 MB). Nothing is added until you click Add document.
+- Clicking a notification opens the right place: a message opens its conversation, a call opens the call log.
+
+Fixes and improvements:
+- An answered call connects even when your microphone is slow to start. If the microphone cannot start, the call stays connected and muted, and Unmute tries again.
+- The end of a call is always described in plain words, never with a technical message.
+- When a call is answered on another device, this Mac stops ringing and says so.
+- Answering a call shows the call screen and keeps it while you are connected, instead of "Call ended".
+- Answering a call no longer starts your microphone twice.
+- Quitting District AI no longer signs you out the next time you open it.
+- Once you are signed out, this Mac stops receiving that account's notifications.
+- The open call or contact beside the list is wider and easier to read, and the labels on a selected row stay readable.
+- A more compact reply box in conversations: Command-Return sends the message.
+- Text on coloured badges, avatars and District Desk chips has more contrast and is easier to read.
+- Section and field labels are in sentence case, no longer in spaced-out capitals.
+- Text fields have a clear edge and easier-to-read placeholder text, and a field whose label is shown above it no longer repeats that label inside.
+- An empty Calls, Contacts or Inbox list fills its column instead of showing a grey band.
+- Revoke key, Revoke access and Delete webhook look like destructive actions instead of plain text.
+- In Working hours, the Edit working hours and Edit date overrides buttons say what they do and no longer look like tabs.

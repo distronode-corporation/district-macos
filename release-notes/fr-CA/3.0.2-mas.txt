@@ -1,0 +1,23 @@
+District AI est maintenant en français canadien.
+
+- Les appels sonnent même quand la fenêtre est fermée : District AI reste dans la barre des menus (« Ouvrir District AI », « Ouvrir à l'ouverture de session », « Quitter ») et continue de sonner. L'option « Ouvrir à l'ouverture de session » reste désactivée tant que vous ne l'activez pas.
+- Créez un billet au nom d'un client depuis District Desk, avec le bouton « Nouveau billet » ou « Fichier > Nouveau billet ».
+- Connaissances : « Importer un fichier texte » remplit le titre et le texte d'un nouveau document à partir d'un fichier texte brut (.txt ou .md, jusqu'à 1 Mo). Rien n'est ajouté avant que vous cliquiez sur « Ajouter un document ».
+- Un clic sur une notification ouvre le bon endroit : un message ouvre sa conversation, un appel ouvre le journal des appels.
+
+Corrections et améliorations :
+- Un appel auquel vous répondez s'établit même si votre microphone tarde à démarrer. S'il ne peut pas démarrer, l'appel reste établi, micro coupé, et « Rétablir le micro » réessaie.
+- La fin d'un appel est toujours expliquée en termes simples, jamais par un message technique.
+- Lorsqu'un appel est pris sur un autre appareil, ce Mac cesse de sonner et l'indique.
+- Lorsque vous répondez à un appel, l'écran d'appel s'affiche et reste ouvert tant que vous êtes en ligne, au lieu d'indiquer « Appel terminé ».
+- Répondre à un appel n'active plus votre microphone deux fois.
+- Quitter District AI ne vous déconnecte plus à sa prochaine ouverture.
+- Après votre déconnexion, ce Mac ne reçoit plus les notifications de ce compte.
+- L'appel ou le contact ouvert à côté de la liste est plus large et plus facile à lire, et les étiquettes d'une ligne sélectionnée restent lisibles.
+- La zone de réponse des conversations est plus compacte; Commande + Retour envoie le message.
+- Le texte des pastilles colorées, des avatars et des étiquettes de District Desk est plus contrasté et plus facile à lire.
+- Les titres de section et de champ ne s'affichent plus en majuscules espacées.
+- Les champs de texte ont un contour net et un texte indicatif plus lisible, et un champ dont le libellé figure au-dessus ne le répète plus à l'intérieur.
+- Quand la liste des appels, des contacts ou de la boîte de réception est vide, elle occupe toute sa colonne au lieu d'afficher une bande grise.
+- Les boutons « Révoquer la clé », « Révoquer l'accès » et « Supprimer le webhook » ont l'apparence d'actions destructives, et non plus de texte ordinaire.
+- Dans « Heures de disponibilité », les boutons « Modifier les heures » et « Modifier les exceptions » disent ce qu'ils font et ne ressemblent plus à des onglets.
