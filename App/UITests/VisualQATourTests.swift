@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import XCTest
 
 /// Visual and style QA only, never merged: the app walked over the contract fixtures (and,
@@ -221,12 +222,40 @@ final class VisualQATourTests: XCTestCase {
             captureScreen("71-ring-panel")
             let panel = app.windows.matching(NSPredicate(format: "identifier != 'main-AppWindow-1'")).firstMatch
             if panel.exists { captureElement(panel, "71b-ring-panel-window") }
+            axDecline(answer: label, decline: language.hasPrefix("fr") ? "Refuser" : "Decline", answerButton: answer)
         } else {
             missed.append("ring-panel")
             captureScreen("71-no-ring")
         }
         report()
         app.terminate()
+    }
+
+    /// The ring panel's buttons read and pressed through the C Accessibility API (``AXProbe``),
+    /// as VoiceOver and an automation script do: both are AXButtons offering AXPress, and
+    /// AXPress on Decline (which sends nothing to the server) closes the ring.
+    @MainActor private func axDecline(answer: String, decline: String, answerButton: XCUIElement) {
+        let trusted = AXIsProcessTrusted()
+        guard let pid = AXProbe.pid() else {
+            print("VQA-AX[\(tag)] no app process")
+            XCTFail("no app process")
+            return
+        }
+        let answers = AXProbe.buttons(pid: pid, labelled: answer)
+        let declines = AXProbe.buttons(pid: pid, labelled: decline)
+        let answerActions = answers.first.map(AXProbe.actions) ?? []
+        let declineActions = declines.first.map(AXProbe.actions) ?? []
+        print("VQA-AX[\(tag)] trusted=\(trusted) answerButtons=\(answers.count) \(answerActions) "
+            + "declineButtons=\(declines.count) \(declineActions)")
+        XCTAssertEqual(answers.count, 1, AXProbe.report(pid: pid))
+        XCTAssertEqual(declines.count, 1, AXProbe.report(pid: pid))
+        guard let button = declines.first else { return }
+        let result = AXUIElementPerformAction(button, kAXPressAction as CFString)
+        let closed = answerButton.waitForNonExistence(timeout: 10)
+        print("VQA-AX[\(tag)] AXPress \(decline) = \(result.rawValue), ring closed = \(closed)")
+        XCTAssertEqual(result, .success)
+        XCTAssertTrue(closed, "AXPress on \(decline) did not close the ring")
+        capture("72-after-ax-decline")
     }
 
     @MainActor private func simple(_ row: String, _ name: String, scrolls: Int = 0) {
