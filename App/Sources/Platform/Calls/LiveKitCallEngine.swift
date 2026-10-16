@@ -68,6 +68,7 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
     private let joinGate = CallJoinGate()
 
     convenience init(devices: AudioDevices) {
+        _ = LiveKitCallEngine.diagnostics
         self.init(
             prepareAudio: { await devices.applySavedChoice() },
             makeRoom: { LiveKitCallRoom(delegate: $0) }
@@ -184,6 +185,25 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
     /// is chosen, so the in-call surface offers the output picker instead of a speaker
     /// toggle and nothing sends ``CallCommand/setSpeakerphone(_:)``.
     func setSpeakerphone(_ enabled: Bool) async {}
+
+    /// The defaults key that turns on the join diagnostics, per Mac. ⚠️ THE APP IS SANDBOXED,
+    /// so the key goes in its container's preferences, then the app is relaunched:
+    /// `defaults write "$P/com.distronode.district" diagnostics.webrtcLog -bool YES`, with
+    /// `P=~/Library/Containers/com.distronode.district/Data/Library/Preferences`.
+    static let diagnosticsKey = "diagnostics.webrtcLog"
+
+    /// ⚠️ OFF UNLESS A TESTER TURNS IT ON, AND THEN IT IS LOUD. The SDK's own lines that say
+    /// where a join stopped ("Received offer with offerId", each transport's state) are at
+    /// its `.debug` level, below the default logger's `.info`, and WebRTC's native lines
+    /// (the audio device module's "StartPlayout", "Starting AVAudioEngine...", "Failed to
+    /// start engine") are not forwarded at all by default. This forwards both to the
+    /// unified log under `io.livekit.sdk`, read with `log stream --level debug --predicate
+    /// 'subsystem == "io.livekit.sdk"'` while the call joins. Evaluated once, at the first
+    /// call's engine, which is before that call logs anything.
+    private static let diagnostics: Void = {
+        guard UserDefaults.standard.bool(forKey: diagnosticsKey) else { return }
+        LiveKitSDK.setLogger(OSLogger(minLevel: .debug, rtc: true))
+    }()
 }
 
 /// Turns `RoomDelegate` callbacks into ``CallEngineEvent`` values.
