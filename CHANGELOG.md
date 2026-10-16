@@ -18,6 +18,15 @@ not sent.
 
 ### Fixed
 
+- 3.0.2: APNs delivery to the Mac can be diagnosed from the Mac itself. No APNs alert has
+  ever reached the QA iMac, with the app running or quit: APNs answered 200 to every one
+  (production, `com.distronode.district`), and apsd logged none arriving (2026-10-15 and
+  10-16, 3.0.0 and 3.0.1). The app's push lifecycle is now logged under subsystem
+  `com.distronode.district`, category `push`, at the default level, so `log show` keeps it.
+  The log covers the authorization answer, the APNs registration, the token's length (never
+  the token), the service's answer to the register, APNs and authorization failures (domain
+  and code), the unregister on sign-out, and each push the running app receives (its `type`
+  only). The cause of the non-delivery is not fixed here; it is still being traced.
 - An answered call joins before its microphone starts. The softphone joined with LiveKit's
   concurrent microphone mode (`ConnectOptions(enableMicrophone: true)`), which starts Core
   Audio on the SDK's one serial WebRTC queue while the join builds its peer connections on
@@ -83,6 +92,35 @@ not sent.
 
 ### Changed
 
+- 3.0.2, the Apple batch after 3.0.1 (the 3.0.1 visual QA's MEDIUM and LOW findings, the
+  queued contrast and type items, and the French notes from the 3.0.1 round):
+  - Every tinted badge clears WCAG AA. A badge's label (and an avatar's initials, and a
+    desk chip's) is drawn in a chip ink, its tone moved a fifth of the way towards
+    `foreground`, on the same 12% tint: the six pairs that sat between 3.91:1 and 4.44:1
+    now measure 4.71:1 or better, and `DistrictContrastTests` asserts all fifty instead of
+    pinning the gap. The destructive button's label takes the same ink (it was 4.20:1 on
+    its own 10% tint in dark).
+  - Section and field labels (`DistrictEyebrow`) are sentence case in the system face,
+    with no capitals and no letter spacing, as the design system now asks (AP-011).
+  - Text fields take the site's field grammar, a `card` ground inside an `input` edge,
+    instead of a grey `input` fill on which the dark placeholder was 4.34:1; a field whose
+    label is drawn above it no longer repeats that label as its placeholder (AP-021).
+  - An empty Calls, Contacts or Inbox list fills its column instead of drawing a grey band
+    across it (AP-022). Revoke key, Revoke access and Delete webhook look destructive
+    rather than like plain text (AP-023). A workspace name that ends in a period no longer
+    closes the Account sentence twice (AP-024). The Numbers footnote drops the second
+    sentence that contradicted the first (AP-031). Every item the app adds to a system
+    menu carries a symbol, as macOS 26 draws on its own items (AP-032).
+  - Working hours: the two buttons say what they do (Edit working hours, Edit date
+    overrides) in one style, so they no longer read as tabs.
+  - French: a call length never wraps between its minutes and seconds (« 3 min 4 s »);
+    the contact dossier heads the keys the vocabulary lists in the portal's words
+    (« Enjeux CRM déduits », not « Core pain points »); the Inbox search field says
+    « Rechercher », which fits (AP-025). A test holds every French ellipsis to U+2026
+    attached to its word (« Sonnerie… » already was).
+  - Sign in, Decline, Answer and the app's icon buttons carry a plain accessibility
+    label, so AXDescription names them for AppleScript and other AX clients, not only
+    AXAttributedDescription. VoiceOver and the visible text are unchanged.
 - Calls ring with the window closed. Closing the window no longer quits District AI: it
   stays in the menu bar (Open District AI, Open at Login, Quit) and its telemetry socket
   keeps ringing. `SessionModel` checks the session and starts the ringing when the app
@@ -133,6 +171,14 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
+- DistrictCore 7.0.2 (district-core-swift 5d03f80, tag 7.0.2), pinned by its tag: the i18n
+  contracts from monorepo ecf098046 (in French, the number status `in-use` reads « Actif »,
+  the research keys `estimatedValue`, `person` and `callerIntel` take the portal's headings
+  « Évaluation DGI », « Profil du contact » and « Renseignements sur l'appelant », the skip
+  reasons `email-misconfigured` and `ses-missing` have labels, and the error
+  `sending_domain_provider_changed` its sentence), and a French call length that never
+  breaks (« 1 min 5 s », every space U+00A0). swift-asn1 stays 1.7.3. district-ios
+  names the same release.
 - DistrictCore 7.0.1 (district-core-swift d7bf46d, tag 7.0.1), pinned by its tag. 3.0.1 was
   built and reviewed against the 7.0.1 pull request's head, 1972dc9, by revision; the tag's
   tree is the same tree, so nothing in the app changes.

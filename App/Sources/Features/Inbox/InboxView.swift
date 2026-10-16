@@ -126,7 +126,7 @@ private struct InboxScreen: View {
     }
 
     var body: some View {
-        content
+        content.fillsListColumn()
             .navigationTitle(InboxCopy.inbox)
             .toolbar { toolbar }
             .sheet(isPresented: $composing) {

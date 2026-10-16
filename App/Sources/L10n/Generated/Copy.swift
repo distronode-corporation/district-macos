@@ -1476,7 +1476,7 @@ extension InboxCopy {
     internal static var reply: String { AppL10n.copyLocale == .frCA ? "Réponse" : "Reply" }
 
     /// `inbox.search_messages`
-    internal static var searchMessages: String { AppL10n.copyLocale == .frCA ? "Rechercher les messages" : "Search messages" }
+    internal static var searchMessages: String { AppL10n.copyLocale == .frCA ? "Rechercher" : "Search messages" }
 
     /// `inbox.search_too_short`
     internal static func searchTooShort(_ minimum: Int) -> String {
@@ -1813,9 +1813,6 @@ extension MarketplaceCopy {
 
     /// `marketplace.purchase_elsewhere`
     internal static var purchaseElsewhere: String { AppL10n.copyLocale == .frCA ? "Cette app ne permet pas d'acheter de nouveaux numéros. Tout le reste concernant un numéro, y compris ses inscriptions et sa libération, se trouve ici." : "New numbers cannot be purchased in this app. Everything else about a number, including its paperwork and releasing it, is here." }
-
-    /// `marketplace.read_only`
-    internal static var readOnly: String { AppL10n.copyLocale == .frCA ? "Tout le reste concernant vos numéros se trouve dans les autres onglets." : "Everything else about your numbers is on the other tabs." }
 
     /// `marketplace.read_only_viewer`
     internal static var readOnlyViewer: String { AppL10n.copyLocale == .frCA ? "Modifier un numéro exige un rôle Administrateur ou Membre. Demandez à un membre de cet espace de travail qui en a un." : "Changing a number needs an agency or client role. Ask someone on this workspace who has one." }
@@ -3895,6 +3892,9 @@ extension SchedulingWriteCopy {
     /// `scheduling_write.hours_copy_to_weekdays`
     internal static var hoursCopyToWeekdays: String { AppL10n.copyLocale == .frCA ? "Copier sur tous les jours de semaine" : "Copy to all weekdays" }
 
+    /// `scheduling_write.hours_edit`
+    internal static var hoursEdit: String { AppL10n.copyLocale == .frCA ? "Modifier les heures" : "Edit working hours" }
+
     /// `scheduling_write.hours_never_bookable`
     internal static var hoursNeverBookable: String { AppL10n.copyLocale == .frCA ? "Aucune journée réservable pour l'instant." : "Not bookable on any day yet." }
 
@@ -4019,6 +4019,9 @@ extension SchedulingWriteCopy {
 
     /// `scheduling_write.override_unavailable`
     internal static var overrideUnavailable: String { AppL10n.copyLocale == .frCA ? "Indisponible" : "Unavailable" }
+
+    /// `scheduling_write.overrides_edit`
+    internal static var overridesEdit: String { AppL10n.copyLocale == .frCA ? "Modifier les exceptions" : "Edit date overrides" }
 
     /// `scheduling_write.overrides_empty`
     internal static var overridesEmpty: String { AppL10n.copyLocale == .frCA ? "Aucune exception à venir. Ajoutez-en une pour un congé ou des heures différentes." : "No overrides ahead. Add one for a day off or different hours." }

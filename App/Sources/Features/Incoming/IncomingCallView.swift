@@ -177,11 +177,14 @@ struct IncomingCallView: View {
                 Label(IncomingCallCopy.decline, systemImage: "phone.down.fill")
             }
             .buttonStyle(RingButtonStyle(action: .decline))
+            // ⚠️ A plain AXDescription for AX clients, see ``SignInView``'s Sign in.
+            .accessibilityLabel(IncomingCallCopy.decline)
         case .answer:
             Button { model.answerPressed() } label: {
                 Label(IncomingCallCopy.answer, systemImage: "phone.fill")
             }
             .buttonStyle(RingButtonStyle(action: .answer))
+            .accessibilityLabel(IncomingCallCopy.answer)
         }
     }
 }

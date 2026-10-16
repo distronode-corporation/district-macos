@@ -19,10 +19,8 @@ final class MacMarketplaceTests: XCTestCase {
             let provisioning = NumberProvisioningModel(container: container, workspaceId: "ws_1", role: role)
             XCTAssertEqual(model.canChangeNumbers, mutates, "\(String(describing: role))")
             XCTAssertEqual(provisioning.canProvision, mutates, "\(String(describing: role))")
-            XCTAssertEqual(
-                model.readOnlyCaption,
-                mutates ? MarketplaceCopy.readOnly : MarketplaceCopy.readOnlyViewer
-            )
+            // ⚠️ 3.0.2, AP-031: no second line for a role that can change numbers.
+            XCTAssertEqual(model.readOnlyCaption, mutates ? nil : MarketplaceCopy.readOnlyViewer)
         }
     }
 

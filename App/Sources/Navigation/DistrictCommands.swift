@@ -121,27 +121,30 @@ struct DistrictCommands: Commands {
             }
         #endif
 
+        // ⚠️ EVERY ITEM WE ADD TO A SYSTEM MENU CARRIES A SYMBOL (3.0.2, AP-032). macOS 26 draws
+        // one beside its own items (File > Close's ×), so ours, drawn bare, made each menu
+        // half with icons and half without. The Go menu is all ours and stays all text.
         CommandGroup(replacing: .newItem) {
             // ⚠️ ⌘N IS THE CREATE OF THE SCREEN ON DISPLAY WHEN IT OFFERS ONE (titled with
             // that button's own words), and New Message otherwise; see ``ShellCommandCenter``.
             if let title = availability.screenCreateTitle {
-                Button(title) { shell?.screenCreate() }
+                Button(title, systemImage: "plus") { shell?.screenCreate() }
                     .keyboardShortcut("n")
-                Button(NavigationCopy.newMessage) { shell?.newMessage() }
+                Button(NavigationCopy.newMessage, systemImage: "square.and.pencil") { shell?.newMessage() }
                     .disabled(!availability.canCompose)
             } else {
-                Button(NavigationCopy.newMessage) { shell?.newMessage() }
+                Button(NavigationCopy.newMessage, systemImage: "square.and.pencil") { shell?.newMessage() }
                     .keyboardShortcut("n")
                     .disabled(!availability.canCompose)
             }
-            Button(NavigationCopy.newContact) { shell?.newContact() }
+            Button(NavigationCopy.newContact, systemImage: "person.badge.plus") { shell?.newContact() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(!availability.canCreateContact)
-            Button(NavigationCopy.newTicket) { shell?.newTicket() }
+            Button(NavigationCopy.newTicket, systemImage: "ticket") { shell?.newTicket() }
                 .disabled(!availability.canCreateTicket)
         }
         CommandGroup(after: .textEditing) {
-            Button(NavigationCopy.searchMessages) { shell?.search() }
+            Button(NavigationCopy.searchMessages, systemImage: "magnifyingglass") { shell?.search() }
                 .keyboardShortcut("f")
                 .disabled(!availability.canSearch)
         }
@@ -149,14 +152,17 @@ struct DistrictCommands: Commands {
         // split view controller through the responder chain, and the shell swaps between two
         // split views (see ``ShellView``). ⌃⌘S is the system's shortcut for it.
         CommandGroup(before: .toolbar) {
-            Button(ShellColumns.commandTitle(sidebarShown: shell?.sidebarShown ?? true)) {
+            Button(
+                ShellColumns.commandTitle(sidebarShown: shell?.sidebarShown ?? true),
+                systemImage: "sidebar.left"
+            ) {
                 shell?.toggleSidebar()
             }
             .keyboardShortcut("s", modifiers: [.command, .control])
             .disabled(shell == nil)
         }
         CommandGroup(after: .toolbar) {
-            Button(NavigationCopy.refresh) { shell?.refresh() }
+            Button(NavigationCopy.refresh, systemImage: "arrow.clockwise") { shell?.refresh() }
                 .keyboardShortcut("r")
                 .disabled(!availability.canRefresh)
         }
@@ -168,7 +174,7 @@ struct DistrictCommands: Commands {
         }
 
         CommandGroup(after: .appSettings) {
-            Button(NavigationCopy.signOut) {
+            Button(NavigationCopy.signOut, systemImage: "rectangle.portrait.and.arrow.right") {
                 Task { await session.signOut() }
             }
             .disabled(session.phase != .signedIn || session.isBusy)

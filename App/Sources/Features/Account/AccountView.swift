@@ -132,7 +132,7 @@ struct AccountView: View {
     /// unqualified "Available for calls" switch on an account screen reads as an
     /// account-wide setting, and the same person can be available in one workspace and
     /// not in another, so the unqualified version would be wrong in the one direction
-    /// that matters. See ``AvailabilityCopy/rowSubtitle(_:)``.
+    /// that matters. See ``AvailabilityCopy/rowSubtitleOnce(_:)``.
     ///
     /// ⛔ AND A `reason` RENDERS AS A SENTENCE RATHER THAN A DEAD SWITCH. The route
     /// answers a **200** carrying `false` plus a reason for a viewer and for somebody
@@ -168,7 +168,7 @@ struct AccountView: View {
             Toggle(isOn: availabilityBinding(status)) {
                 DistrictListRow(
                     title: AvailabilityCopy.rowTitle,
-                    subtitle: AvailabilityCopy.rowSubtitle(status.workspaceName)
+                    subtitle: AvailabilityCopy.rowSubtitleOnce(status.workspaceName)
                 )
             }
             // ⚠️ MAC: `.switch`, the iPad's control, not the macOS default checkbox.
@@ -181,7 +181,7 @@ struct AccountView: View {
         } else {
             DistrictListRow(
                 title: AvailabilityCopy.rowTitle,
-                subtitle: AvailabilityCopy.rowSubtitle(status.workspaceName)
+                subtitle: AvailabilityCopy.rowSubtitleOnce(status.workspaceName)
             )
             availabilityNote(Self.reasonSentence(status.reason), colors.mutedForeground)
         }

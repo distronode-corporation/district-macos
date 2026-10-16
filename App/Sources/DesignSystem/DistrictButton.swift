@@ -145,7 +145,10 @@ struct DistrictButtonStyle: ButtonStyle {
             case .primary: colors.districtForeground
             case .secondary: colors.foreground
             case .ghost: colors.mutedForeground
-            case .destructive: colors.destructive
+            // ⚠️ THE CHIP INK, NOT `destructive` (3.0.2): the label sits on its own 10% tint,
+            // where `destructive` itself measured 4.20:1 (dark, on `elevated`) and 4.35:1
+            // (light, on `surface`). See ``DistrictColors/destructiveChipInk``.
+            case .destructive: colors.destructiveChipInk
             }
         }
 
@@ -178,5 +181,18 @@ extension ButtonStyle where Self == DistrictButtonStyle {
     /// ⚠️ A TINTED OUTLINE, NOT A RED FILL. See ``DistrictButtonVariant``.
     static var districtDestructive: DistrictButtonStyle {
         DistrictButtonStyle(variant: .destructive)
+    }
+}
+
+extension View {
+    /// A button's name as a plain `accessibilityLabel`, and its tooltip.
+    ///
+    /// ⚠️ FOR THE AX CLIENTS THAT READ AXDescription (3.0.2). An icon-plus-text button (and
+    /// one labelled through a custom style) carried its name only in AXAttributedDescription:
+    /// VoiceOver read it, an AppleScript `click button "..."` through System Events did not
+    /// find it. An explicit label fills AXDescription too; the visible text is unchanged.
+    /// See ``SignInView``'s Sign in, which carries the label without a tooltip.
+    func buttonName(_ name: String) -> some View {
+        accessibilityLabel(name).help(name)
     }
 }

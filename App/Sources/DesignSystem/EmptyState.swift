@@ -71,6 +71,19 @@ struct EmptyStateView<Action: View>: View {
     }
 }
 
+extension View {
+    /// A list column's empty state, filling the column.
+    ///
+    /// ⚠️ OR THE PAGE'S GROUND IS A BAND (3.0.2, visual QA AP-022). `districtBackground()`
+    /// paints behind the column's content at the content's own size, so an empty state only
+    /// as tall as its words drew a grey band across the middle of the white column. Filling
+    /// the column puts the whole column on the one ground, as the detail column's
+    /// placeholder beside it already is.
+    func fillsListColumn() -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 extension EmptyStateView where Action == EmptyView {
     init(systemImage: String, title: String, message: String) {
         self.init(systemImage: systemImage, title: title, message: message) { EmptyView() }

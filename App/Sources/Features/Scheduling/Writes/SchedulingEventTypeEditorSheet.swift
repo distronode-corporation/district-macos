@@ -97,7 +97,7 @@ struct SchedulingEventTypeEditorSheet: View {
 
     private func durationField(label: String, text: Binding<String>) -> some View {
         SchedulingWriteField(label: label, hint: SchedulingWriteCopy.durationHint) {
-            TextField(label, text: text)
+            TextField(label, text: text, prompt: .noPlaceholder)
                 .districtField()
                 .disabled(model.state.isWorking)
                 .accessibilityIdentifier(A11yID.SchedulingWrites.editorDuration)
@@ -126,7 +126,7 @@ struct SchedulingEventTypeEditorSheet: View {
     private var locationValueField: some View {
         if let title = model.locationValueTitle {
             SchedulingWriteField(label: title) {
-                TextField(title, text: $model.form.locationValue)
+                TextField(title, text: $model.form.locationValue, prompt: .noPlaceholder)
                     .districtField()
                     .disabled(model.state.isWorking)
                     .accessibilityIdentifier(A11yID.SchedulingWrites.editorLocationValue)
@@ -155,7 +155,7 @@ struct SchedulingEventTypeEditorSheet: View {
 
     private func count(_ label: String, _ hint: String, _ text: Binding<String>) -> some View {
         SchedulingWriteField(label: label, hint: hint) {
-            TextField(label, text: text)
+            TextField(label, text: text, prompt: .noPlaceholder)
                 .districtField()
                 .disabled(model.state.isWorking)
         }
