@@ -27,7 +27,12 @@ extension View {
             .padding(.bottom, bottom)
             .listRowInsets(StackedRow.insets)
             // ⛔ THE SYSTEM'S SELECTION BAND IS OFF; THE ROW DRAWS ITS OWN (``RowSelection``).
-            .background(SystemRowHighlightOff())
+            // ⛔ ZERO BY ZERO: an AppKit view sits above SwiftUI's drawing whatever its place in
+            // the stack, and at the row's size it took the row's accessibility hit test, so
+            // the row's button read as covered (capture run 38825632861, "not hittable").
+            .background(alignment: .topLeading) {
+                SystemRowHighlightOff().frame(width: 0, height: 0)
+            }
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
     }

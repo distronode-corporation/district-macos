@@ -43,6 +43,8 @@ final class RowSelectionTests: XCTestCase {
         XCTAssertEqual(row.selectionHighlightStyle, NSTableView.SelectionHighlightStyle.none)
         XCTAssertTrue(table.allowsEmptySelection)
         XCTAssertNil(probe.hitTest(.zero))
+        XCTAssertNil(probe.accessibilityHitTest(.zero))
+        XCTAssertFalse(probe.isAccessibilityElement())
     }
 
     /// ⚠️ OUTSIDE A TABLE THE PROBE DOES NOTHING, and an outline view (what a `List` is on
