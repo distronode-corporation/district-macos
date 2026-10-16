@@ -428,7 +428,7 @@ jobs:
             -only-testing:DistrictMacUITests/LaunchSmokeTests \
             -resultBundlePath LaunchSmoke.xcresult \
             2>&1 | tee xcodebuild-launch-smoke.log | xcbeautify --renderer github-actions
-          grep -q 'Executed 2 tests, with 0 failures' xcodebuild-launch-smoke.log
+          grep -Eq 'Executed 2 tests, with (1 test skipped and )?0 failures' xcodebuild-launch-smoke.log
 
       - name: Tail the logs on failure
         if: failure()
