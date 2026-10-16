@@ -1,7 +1,6 @@
 - Lorsqu'un appel est pris sur un autre appareil, ce Mac cesse de sonner et l'indique.
 - Lorsque vous répondez à un appel, l'écran d'appel s'affiche et reste ouvert tant que vous êtes en ligne, au lieu d'indiquer « Appel terminé ».
 - Répondre à un appel n'active plus votre microphone deux fois.
-- Les appels entrants font de nouveau sonner ce Mac lorsque District AI est fermé, après une déconnexion suivie d'une reconnexion ou une connexion avec un autre compte.
 - Quitter District AI ne vous déconnecte plus à sa prochaine ouverture.
 - Après votre déconnexion, ce Mac ne reçoit plus les notifications de ce compte.
 - L'appel ou le contact ouvert à côté de la liste est plus large et plus facile à lire, et les étiquettes d'une ligne sélectionnée restent lisibles.
