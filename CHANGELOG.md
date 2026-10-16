@@ -171,6 +171,14 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
+- DistrictCore 7.0.2 (district-core-swift 5d03f80, tag 7.0.2), pinned by its tag: the i18n
+  contracts from monorepo ecf098046 (in French, the number status `in-use` reads « Actif »,
+  the research keys `estimatedValue`, `person` and `callerIntel` take the portal's headings
+  « Évaluation DGI », « Profil du contact » and « Renseignements sur l'appelant », the skip
+  reasons `email-misconfigured` and `ses-missing` have labels, and the error
+  `sending_domain_provider_changed` its sentence), and a French call length that never
+  breaks (« 1 min 5 s », every space U+00A0). swift-asn1 stays 1.7.3. district-ios
+  names the same release.
 - DistrictCore 7.0.1 (district-core-swift d7bf46d, tag 7.0.1), pinned by its tag. 3.0.1 was
   built and reviewed against the 7.0.1 pull request's head, 1972dc9, by revision; the tag's
   tree is the same tree, so nothing in the app changes.
