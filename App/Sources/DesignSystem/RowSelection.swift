@@ -81,9 +81,17 @@ struct SystemRowHighlightOff: NSViewRepresentable {
             apply()
         }
 
-        /// It takes no clicks: the row under it does.
+        /// It takes no clicks and no accessibility hit test: the row under it does.
         override func hitTest(_: NSPoint) -> NSView? {
             nil
+        }
+
+        override func accessibilityHitTest(_: NSPoint) -> Any? {
+            nil
+        }
+
+        override func isAccessibilityElement() -> Bool {
+            false
         }
 
         func apply() {
