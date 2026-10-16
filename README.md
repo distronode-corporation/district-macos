@@ -23,9 +23,9 @@ for calls handed to you and answers them. See [CHANGELOG.md](CHANGELOG.md).
 Mac: a small call window, a notification with Answer and Decline, and a ring. Closing the
 window does not stop it: District AI stays in the menu bar (Open District AI, Open at
 Login, Quit) and keeps ringing. Turn ringing off with Ring on this computer (in Account,
-and in Settings). Once you quit the app, or while the Mac is asleep, a call arrives as a
-Time Sensitive notification with a ring sound, and Answer opens the app and answers. A
-native Mac app cannot use CallKit or VoIP push, which is why the app stays running.
+and in Settings). When the app is quit, calls handed to you still ring on your other
+signed-in devices. A native Mac app cannot use CallKit or VoIP push, which is why the app
+stays running.
 
 This repository is the client's complete source, under the Apache License 2.0. The
 District AI service it talks to is not open source; signing in needs a District AI

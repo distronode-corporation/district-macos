@@ -71,9 +71,11 @@ not sent.
   ring notification is Time Sensitive (the new
   `com.apple.developer.usernotifications.time-sensitive` entitlement, in both
   distributions), and `ring.wav` (25 s) is bundled for the server's APNs incoming-call alert,
-  which since the server's 3.0 batch is Time Sensitive and names that sound, so a Mac where
-  the app has quit still rings loudly. A native Mac app has no VoIP push or CallKit
-  provider, which is why the app stays running. Ring on this computer says so.
+  which since the server's 3.0 batch is Time Sensitive and names that sound. Whether that
+  alert reaches a Mac where the app has quit is under investigation: in the 3.0.1 round,
+  APNs accepted the pushes to the Mac's token (200) and the Mac never received them. A
+  native Mac app has no VoIP push or CallKit provider, which is why the app stays running.
+  Ring on this computer says so.
 - Every sentence the `*Copy` enums say comes from one catalog, `l10n/macos.toml` (1,286
   entries), with English and room for Canadian French side by side, keyed as district-ios's
   `l10n/ios.toml` wherever the two apps share a sentence. `scripts/gen-l10n.py` writes
