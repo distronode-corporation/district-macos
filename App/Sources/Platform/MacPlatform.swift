@@ -65,10 +65,11 @@ enum MacWindowSize {
 /// sheet, framed at 600pt, drawn 661pt tall in a window with 560pt of content: 101pt
 /// below the edge, with Done among them.
 ///
-/// ⚠️ THE 61pt OVER THE FRAME IS THE BAR A SHEET ADDS BELOW ITS CONTENT for its
-/// `.cancellationAction` and `.confirmationAction` toolbar items. ``toolbarBar`` keeps a
-/// few points over that measurement, and every sheet is allowed for it, with a bar or
-/// not, so one cap holds for both shapes.
+/// ⚠️ THE 61pt OVER THE FRAME WAS THE BAR macOS ADDED BELOW A SHEET'S CONTENT for its
+/// toolbar's Cancel and Done. ``toolbarBar`` keeps a few points over that measurement.
+/// Since the 3.0.2 walk 2 no sheet draws a system bar (``MacSheetChrome`` draws its title
+/// and buttons inside the frame), and the allowance is kept as margin, so the cap holds
+/// whichever shape a sheet takes.
 enum MacSheetFit {
     static let toolbarBar: CGFloat = 64
     /// 496pt: the minimum window's content height less the bar.
@@ -108,10 +109,15 @@ extension View {
 
     /// The palette's page colour under a sheet, the colour the app's content is drawn on.
     ///
-    /// ⛔ EVERY SHEET TAKES IT, through ``macSheetSize(width:height:)`` or, for the few that
-    /// size themselves, directly at their root. Without it a Mac sheet shows the system's
-    /// own sheet colour (#1E1E1E in dark), a different grey from the `#0E1C1F` page the
-    /// sheet sits over (3.0.2 visual walk). `MacSheetFitTests` fails a sheet that has neither.
+    /// ⛔ EVERY SHEET TAKES IT, through ``macSheetSize(width:height:)``, ``MacSheetChrome``
+    /// or, for the few that size themselves, directly at their root. Without it a Mac sheet
+    /// shows the system's own sheet colour (#1E1E1E in dark), a different grey from the
+    /// `#0E1C1F` page the sheet sits over (3.0.2 visual walk). `MacSheetFitTests` fails a
+    /// sheet that has none of them.
+    ///
+    /// ⚠️ IT PAINTS THE CONTENT AREA ONLY. A `NavigationStack`'s title bar and a toolbar's
+    /// button bar stay the system's grey over it, which is why no sheet draws either
+    /// (``MacSheetChrome``, 3.0.2 walk 2).
     func macSheetBackground() -> some View {
         modifier(MacSheetBackground())
     }

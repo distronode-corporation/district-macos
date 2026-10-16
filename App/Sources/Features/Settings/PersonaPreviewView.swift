@@ -35,7 +35,7 @@ struct PersonaPreviewView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        MacSheetChrome(title: SettingsCopy.previewTitle) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DistrictSpacing.section) {
                     SettingsCard(eyebrow: SettingsCopy.previewTitle) {
@@ -50,12 +50,9 @@ struct PersonaPreviewView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .accessibilityIdentifier(A11yID.PersonaPreview.root)
-            .navigationTitle(SettingsCopy.previewTitle)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(SettingsCopy.close) { dismiss() }
-                }
-            }
+        } buttons: {
+            Button(SettingsCopy.close) { dismiss() }
+                .keyboardShortcut(.cancelAction)
         }
         .onDisappear {
             // ⛔ THE ONE TEARDOWN THAT COVERS THE EXIT NOBODY CHOSE. A swipe-down, a

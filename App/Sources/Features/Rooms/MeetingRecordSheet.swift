@@ -33,7 +33,7 @@ struct MeetingRecordSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        MacSheetChrome(title: RoomsCopy.recordTitle) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DistrictSpacing.row) {
                     content(for: state)
@@ -41,15 +41,13 @@ struct MeetingRecordSheet: View {
                 .padding(DistrictSpacing.gutter)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle(RoomsCopy.recordTitle)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(RoomsCopy.recordClose, action: onClose)
-                }
-            }
+        } buttons: {
+            Button(RoomsCopy.recordClose, action: onClose)
+                .keyboardShortcut(.defaultAction)
+                .macSheetDefaultButton()
         }
         // ⚠️ A SIZE OF ITS OWN, because a Mac sheet has none (PORTING.md). The close button
-        // is the confirmation action, so Return closes it; Esc does too, as a sheet.
+        // is the default action, so Return closes it.
         // ⛔ NO TALLER THAN ``MacSheetFit/maxHeight``: at its old 560 the sheet's bar put
         // the close button past the bottom of the smallest window.
         .frame(

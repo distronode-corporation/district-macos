@@ -29,7 +29,7 @@ struct DeskComposeSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        MacSheetChrome(title: DeskCopy.composeTitle) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DistrictSpacing.section) {
                     Text(DeskCopy.composeSubtitle)
@@ -53,8 +53,8 @@ struct DeskComposeSheet: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier(A11yID.Desk.composeRoot)
-            .navigationTitle(DeskCopy.composeTitle)
-            .toolbar { toolbar }
+        } buttons: {
+            buttons
         }
     }
 
@@ -97,25 +97,23 @@ struct DeskComposeSheet: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button(DeskCopy.cancel) { dismiss() }
-                .disabled(model.creating)
-                .keyboardShortcut(.cancelAction)
-                .accessibilityIdentifier(A11yID.Desk.composeCancel)
-        }
-        ToolbarItem(placement: .confirmationAction) {
-            Button(DeskCopy.createAction) { Task { await submit() } }
-                // ⛔ DISABLED FOR THE WHOLE ROUND TRIP. The idempotency key is minted
-                // per submit and the server's claim is fail-open, so a second tap on a
-                // slow network can genuinely put two tickets in a human's queue.
-                // ⚠️ A DISABLED BUTTON DOES NOT STOP TWO TAPS DISPATCHED BEFORE A
-                // RE-RENDER; ``DeskModel/createTicket(_:)`` refuses the second itself.
-                .disabled(model.creating || !draft.isComplete)
-                .keyboardShortcut(.districtSubmit)
-                .accessibilityIdentifier(A11yID.Desk.composeSubmit)
-        }
+    /// Cancel then Create, in the sheet's own button row (``MacSheetChrome``).
+    @ViewBuilder
+    private var buttons: some View {
+        Button(DeskCopy.cancel) { dismiss() }
+            .disabled(model.creating)
+            .keyboardShortcut(.cancelAction)
+            .accessibilityIdentifier(A11yID.Desk.composeCancel)
+        Button(DeskCopy.createAction) { Task { await submit() } }
+            // ⛔ DISABLED FOR THE WHOLE ROUND TRIP. The idempotency key is minted
+            // per submit and the server's claim is fail-open, so a second tap on a
+            // slow network can genuinely put two tickets in a human's queue.
+            // ⚠️ A DISABLED BUTTON DOES NOT STOP TWO TAPS DISPATCHED BEFORE A
+            // RE-RENDER; ``DeskModel/createTicket(_:)`` refuses the second itself.
+            .disabled(model.creating || !draft.isComplete)
+            .keyboardShortcut(.districtSubmit)
+            .accessibilityIdentifier(A11yID.Desk.composeSubmit)
+            .macSheetDefaultButton()
     }
 
     /// ⚠️ THE SHEET CLOSES ONLY ON A CONFIRMED SUCCESS. A dismissed sheet takes the
