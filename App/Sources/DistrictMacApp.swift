@@ -91,7 +91,8 @@ struct DistrictMacApp: App {
             RootView(container: container, session: session, push: push, live: live)
                 // ⚠️ WIDE ENOUGH FOR A LIST SECTION'S THREE COLUMNS: the sidebar, a sortable
                 // table (Calls, Contacts) and the open row beside it (``ListColumnWidth``).
-                .frame(minWidth: ListColumnWidth.windowMin, minHeight: 560)
+                // ⛔ EVERY SHEET IS SIZED TO FIT THIS HEIGHT (``MacSheetFit``): change it there.
+                .frame(minWidth: ListColumnWidth.windowMin, minHeight: MacWindowSize.minHeight)
         }
         // ⚠️ A FIRST WINDOW WITH ROOM TO READ THE OPEN ROW, not the minimum: SwiftUI opened
         // the window at its 1000pt minimum, where the open call is the narrowest it may be.

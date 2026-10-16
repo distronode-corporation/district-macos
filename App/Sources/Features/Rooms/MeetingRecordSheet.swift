@@ -50,7 +50,16 @@ struct MeetingRecordSheet: View {
         }
         // ⚠️ A SIZE OF ITS OWN, because a Mac sheet has none (PORTING.md). The close button
         // is the confirmation action, so Return closes it; Esc does too, as a sheet.
-        .frame(minWidth: 520, idealWidth: 600, minHeight: 420, idealHeight: 560)
+        // ⛔ NO TALLER THAN ``MacSheetFit/maxHeight``: at its old 560 the sheet's bar put
+        // the close button past the bottom of the smallest window.
+        .frame(
+            minWidth: 520,
+            idealWidth: 600,
+            minHeight: 420,
+            idealHeight: MacSheetFit.height(560),
+            maxHeight: MacSheetFit.maxHeight
+        )
+        .macSheetBackground()
     }
 
     @ViewBuilder
