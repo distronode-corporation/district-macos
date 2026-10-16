@@ -92,6 +92,7 @@ not sent.
 
 ### Changed
 
+- Crash reporting runs on Sentry 9.30.1 (was 9.29.2), the same as District AI for iOS.
 - 3.0.2, the Apple batch after 3.0.1 (the 3.0.1 visual QA's MEDIUM and LOW findings, the
   queued contrast and type items, and the French notes from the 3.0.1 round):
   - Every tinted badge clears WCAG AA. A badge's label (and an avatar's initials, and a
