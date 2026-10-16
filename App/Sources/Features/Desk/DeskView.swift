@@ -225,7 +225,8 @@ struct DeskView: View {
             // count into one token, so the computed name reads "All3" without this.
             Text("\(label) \(AppWire.count(count))")
                 .font(DistrictType.label)
-                .foregroundStyle(active ? colors.district : colors.mutedForeground)
+                // ⚠️ The chip ink on its own tint (3.0.2): `district` there was 4.17:1 in light.
+                .foregroundStyle(active ? colors.districtChipInk : colors.mutedForeground)
                 .padding(.horizontal, DistrictSpacing.row)
                 .frame(minHeight: 44)
                 .background(
