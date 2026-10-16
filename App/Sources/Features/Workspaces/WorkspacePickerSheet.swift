@@ -23,26 +23,15 @@ struct WorkspacePickerSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // ⚠️ KEPT BESIDE `macSheetBackground()` BELOW: that paints the sheet, which
-                // is BEHIND this `NavigationStack`, and a stack can draw a container
-                // background of its own over it (see `ShellBackground.swift`). This fill
-                // is inside the stack, so the rows sit on the palette either way.
-                colors.background.ignoresSafeArea()
-                rows
-            }
-            .navigationTitle(WorkspacesCopy.workspaces)
+        MacSheetChrome(title: WorkspacesCopy.workspaces) {
+            rows
+        } buttons: {
             // ⚠️ A MAC SHEET HAS NO SWIPE TO DISMISS, so it carries the Cancel that
             // takes Esc; and no size of its own, so it states one.
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(WorkspacesCopy.cancel) { dismiss() }
-                }
-            }
+            Button(WorkspacesCopy.cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
         }
         .frame(minWidth: 420, idealWidth: 460, minHeight: 320, idealHeight: 420)
-        .macSheetBackground()
     }
 
     private var rows: some View {

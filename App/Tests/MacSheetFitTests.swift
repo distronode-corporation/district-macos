@@ -2,7 +2,8 @@
 import XCTest
 
 /// The 3.0.2 visual walk: a sheet taller than the smallest window, with its Done below the
-/// edge, and every sheet on the system's grey rather than the palette.
+/// edge, and every sheet on the system's grey rather than the palette, its title and
+/// button bars included (walk 2).
 final class MacSheetFitTests: XCTestCase {
     /// ⛔ A CAPPED SHEET AND ITS BAR FIT INSIDE THE SMALLEST WINDOW. Measured on build 20065:
     /// the Desk settings sheet, framed at 600pt, drew 661pt tall (61pt of bar) in a window
@@ -69,6 +70,45 @@ final class MacSheetFitTests: XCTestCase {
             }
         }
         XCTAssertGreaterThan(sheets, 30, "the scan found too few sheets to have read the app")
+    }
+
+    /// ⛔ NO SHEET DRAWS THE SYSTEM'S TITLE BAR OR BUTTON BAR (3.0.2 walk 2). The palette
+    /// background paints only the content area: a `NavigationStack`'s title and a toolbar's
+    /// Cancel and Done sit in bars of the system's grey (#1E1E1E in dark) on Desk settings,
+    /// New message and the workspace picker. A sheet's content closure, the members it
+    /// names and every app type they draw, to a fixed point, use neither; the title and
+    /// the buttons are ``MacSheetChrome``'s. The two placements that exist only to fill a
+    /// sheet's bars are refused anywhere in the app.
+    func testNoSheetDrawsTheSystemsTitleOrButtonBar() throws {
+        let sources = try SheetScan.sources()
+        let bodies = SheetScan.structBodies(sources)
+        var presented: Set<String> = []
+        for (name, code) in sources {
+            for site in SheetScan.sheetSites(in: code) {
+                let content = String(code[site.content])
+                let named = SheetScan.bareMembers(in: content).map { SheetScan.member($0, in: code) }
+                let line = code[..<site.call].filter { $0 == "\n" }.count + 1
+                for text in [content] + named {
+                    let bar = SheetScan.systemBar(in: text)
+                    XCTAssertNil(bar, "\(name):\(line): a sheet draws \(bar ?? "") (use MacSheetChrome)")
+                    presented.formUnion(SheetScan.calledTypes(text))
+                }
+            }
+        }
+        let drawn = SheetScan.reachable(from: presented, bodies: bodies)
+        let walked: Set = [
+            "ComposeSheet", "DeskComposeSheet", "DeskSettingsView", "MeetingRecordSheet",
+            "PersonaPreviewView", "WorkspacePickerSheet", "SchedulingWriteSheet", "MacSheetChrome",
+        ]
+        XCTAssertTrue(walked.isSubset(of: drawn), "the scan missed \(walked.subtracting(drawn).sorted())")
+        for sheetType in drawn.sorted() {
+            let bar = SheetScan.systemBar(in: bodies[sheetType] ?? "")
+            XCTAssertNil(bar, "\(sheetType) is drawn in a sheet and draws \(bar ?? "") (use MacSheetChrome)")
+        }
+        for (name, code) in sources {
+            let placement = SheetScan.firstMatch(SheetScan.sheetBarPlacement, in: SheetScan.uncommented(code))
+            XCTAssertNil(placement, "\(name): \(placement ?? "") fills a system sheet bar")
+        }
     }
 }
 
@@ -189,6 +229,56 @@ private enum SheetScan {
             let end = code.range(of: "\n}\n", range: rest)?.upperBound ?? code.endIndex
             return (String(code[name]), withoutSheets(String(code[start.lowerBound ..< end])))
         }
+    }
+
+    /// Every top-level `struct` by name to its body (presentations removed). Two private
+    /// types of one name in different files are read as one, which can only find more.
+    static func structBodies(_ sources: [String: String]) -> [String: String] {
+        var bodies: [String: String] = [:]
+        for code in sources.values {
+            for (name, body) in structs(in: code) {
+                bodies[name, default: ""] += body
+            }
+        }
+        return bodies
+    }
+
+    /// The app types `start` names and every app type those draw, to a fixed point.
+    static func reachable(from start: Set<String>, bodies: [String: String]) -> Set<String> {
+        var found = start.filter { bodies[$0] != nil }
+        var grew = true
+        while grew {
+            let more = Set(found.flatMap { calledTypes(bodies[$0] ?? "") }.filter { bodies[$0] != nil })
+                .subtracting(found)
+            found.formUnion(more)
+            grew = !more.isEmpty
+        }
+        return found
+    }
+
+    /// A `NavigationStack`, a `.toolbar` or a sheet-bar placement, in code.
+    static let systemBarPattern = #"\bNavigationStack\s*[({]|\.toolbar\s*[({]|"#
+        + #"placement:\s*\.(?:cancellationAction|confirmationAction)\b"#
+    static let sheetBarPlacement = #"placement:\s*\.(?:cancellationAction|confirmationAction)\b"#
+
+    /// What in `text` draws a system bar in a sheet, or nil. Comment lines are not code.
+    static func systemBar(in text: String) -> String? {
+        firstMatch(systemBarPattern, in: uncommented(text))
+    }
+
+    /// `text` without its `//` comment lines, so prose naming a `NavigationStack` is not one.
+    static func uncommented(_ text: String) -> String {
+        text.split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+    }
+
+    static func firstMatch(_ pattern: String, in text: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(match.range, in: text)
+        else { return nil }
+        return String(text[range])
     }
 
     /// The lower-case names a content closure is nothing but (`editor`, `addSheet`).

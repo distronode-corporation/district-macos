@@ -43,7 +43,7 @@ struct DeskSettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        MacSheetChrome(title: DeskCopy.settingsTitle) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DistrictSpacing.section) {
                     Text(DeskCopy.settingsIntro)
@@ -55,28 +55,26 @@ struct DeskSettingsView: View {
                 .padding(DistrictSpacing.gutter)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle(DeskCopy.settingsTitle)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(DeskCopy.done) {
-                        onDismiss()
-                        dismiss()
-                    }
-                }
+        } buttons: {
+            Button(DeskCopy.done) {
+                onDismiss()
+                dismiss()
             }
-            .task { await model.load() }
-            // ⚠️ `.task(id:)` RATHER THAN `.onChange`, so re-picking the SAME image
-            // still fires: a `PhotosPickerItem` that stays selected is equal to itself
-            // and an `onChange` would not run, leaving a failed upload unretryable
-            // without choosing a different file.
-            .task(id: picked) {
-                guard let item = picked else { return }
-                await read(item)
-                picked = nil
-            }
-            .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.image]) { result in
-                Task { await readFile(result) }
-            }
+            .keyboardShortcut(.defaultAction)
+            .macSheetDefaultButton()
+        }
+        .task { await model.load() }
+        // ⚠️ `.task(id:)` RATHER THAN `.onChange`, so re-picking the SAME image
+        // still fires: a `PhotosPickerItem` that stays selected is equal to itself
+        // and an `onChange` would not run, leaving a failed upload unretryable
+        // without choosing a different file.
+        .task(id: picked) {
+            guard let item = picked else { return }
+            await read(item)
+            picked = nil
+        }
+        .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.image]) { result in
+            Task { await readFile(result) }
         }
     }
 

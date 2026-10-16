@@ -14,8 +14,8 @@ import SwiftUI
 /// extension). Drawing both at once would offer SMS/Email segments with no addresses
 /// behind them.
 ///
-/// ⚠️ THE STRUCTURE IS ``DeskComposeSheet``'s: a `NavigationStack` with a toolbar
-/// Cancel and a confirm, the draft held in `@State` on the sheet so a dismissal takes
+/// ⚠️ THE STRUCTURE IS ``DeskComposeSheet``'s: a ``MacSheetChrome`` with a Cancel and a
+/// confirm in its button row, the draft held in `@State` on the sheet so a dismissal takes
 /// it and a reopen starts clean, and the submit disabled for the whole round trip. The
 /// gating and error handling are ``CreateContactSheet``'s: refused locally when the
 /// role would be refused server-side, and a 4xx sentence shown verbatim.
@@ -49,7 +49,7 @@ struct ComposeSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        MacSheetChrome(title: InboxCopy.newMessage) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DistrictSpacing.section) {
                     recipientSection
@@ -62,16 +62,16 @@ struct ComposeSheet: View {
                 .padding(DistrictSpacing.gutter)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle(InboxCopy.newMessage)
-            .toolbar { toolbar }
-            // ⛔ ``ComposeModel/prepare()``, NOT A BARE READ. The model is held at the
-            // inbox screen's scope so a presentation cannot rebuild it mid-flight, which
-            // means a cancelled compose would otherwise reopen holding the last
-            // recipient, channel and failure sentence. `prepare()` clears those and
-            // re-reads the contact window; the typed message lives in this sheet's own
-            // `@State` and goes with the dismissal.
-            .task { await model.prepare() }
+        } buttons: {
+            buttons
         }
+        // ⛔ ``ComposeModel/prepare()``, NOT A BARE READ. The model is held at the
+        // inbox screen's scope so a presentation cannot rebuild it mid-flight, which
+        // means a cancelled compose would otherwise reopen holding the last
+        // recipient, channel and failure sentence. `prepare()` clears those and
+        // re-reads the contact window; the typed message lives in this sheet's own
+        // `@State` and goes with the dismissal.
+        .task { await model.prepare() }
     }
 
     // MARK: - Who
@@ -306,22 +306,20 @@ struct ComposeSheet: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button(InboxCopy.cancel) { dismiss() }
-                .disabled(sending)
-                .keyboardShortcut(.cancelAction)
-        }
-        ToolbarItem(placement: .confirmationAction) {
-            Button(sending ? InboxCopy.sending : InboxCopy.send) { Task { await submit() } }
-                // ⛔ DISABLED FOR THE WHOLE ROUND TRIP, AND THAT GUARD IS ABOUT MONEY.
-                // A send is billable carrier segments or a Postmark send, capped at
-                // 30/min per workspace; a second tap must not become a second charge
-                // and a message the customer receives twice.
-                .disabled(!model.canSendNow(body: messageText, subject: subject))
-                .keyboardShortcut(.districtSubmit)
-        }
+    /// Cancel then Send, in the sheet's own button row (``MacSheetChrome``).
+    @ViewBuilder
+    private var buttons: some View {
+        Button(InboxCopy.cancel) { dismiss() }
+            .disabled(sending)
+            .keyboardShortcut(.cancelAction)
+        Button(sending ? InboxCopy.sending : InboxCopy.send) { Task { await submit() } }
+            // ⛔ DISABLED FOR THE WHOLE ROUND TRIP, AND THAT GUARD IS ABOUT MONEY.
+            // A send is billable carrier segments or a Postmark send, capped at
+            // 30/min per workspace; a second tap must not become a second charge
+            // and a message the customer receives twice.
+            .disabled(!model.canSendNow(body: messageText, subject: subject))
+            .keyboardShortcut(.districtSubmit)
+            .macSheetDefaultButton()
     }
 
     /// ⛔ THE SHEET CLOSES ON A SENT MESSAGE EVEN WHEN THE THREAD COULD NOT BE RESOLVED,
