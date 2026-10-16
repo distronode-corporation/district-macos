@@ -86,8 +86,8 @@ final class AccessibilityButtonRoleTests: XCTestCase {
     /// AXPress on the node, as an Accessibility client sends it. The count the button's
     /// action keeps is the proof that it was pressed.
     private func press(_ node: Node) {
-        if let element = node.object as? NSAccessibilityProtocol, let axPress = element.accessibilityPerformPress {
-            XCTAssertTrue(axPress(), node.label)
+        if let element = node.object as? NSAccessibilityProtocol {
+            XCTAssertTrue(element.accessibilityPerformPress(), node.label)
         } else if node.object.responds(to: NSSelectorFromString("accessibilityPerformPress")) {
             _ = node.object.perform(NSSelectorFromString("accessibilityPerformPress"))
         } else {
