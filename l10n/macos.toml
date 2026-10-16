@@ -3811,7 +3811,7 @@ en = "Search messages"
 fr = "Rechercher"
 ctx = "placeholder"
 screen = "inbox"
-state = "draft"
+state = "reviewed"
 fr_variant = "search placeholder: « Rechercher les messages » is clipped in the Mac toolbar search field (visual QA AP-025)"
 id = { swift = "InboxCopy.searchMessages" }
 note = "3.0.2 (visual QA AP-025): the Mac toolbar's search field clipped « Rechercher les messages »; the field sits in the Inbox, so the verb alone says it."
@@ -10304,7 +10304,7 @@ en = "Edit working hours"
 fr = "Modifier les heures"
 ctx = "button"
 screen = "scheduling.writes.availability"
-state = "draft"
+state = "reviewed"
 id = { swift = "SchedulingWriteCopy.hoursEdit" }
 note = "3.0.2: the button that opens the working-hours editor. A verb, so it no longer reads as a tab beside the section's title."
 
@@ -10650,7 +10650,7 @@ en = "Edit date overrides"
 fr = "Modifier les exceptions"
 ctx = "button"
 screen = "scheduling.writes.availability"
-state = "draft"
+state = "reviewed"
 id = { swift = "SchedulingWriteCopy.overridesEdit" }
 note = "3.0.2: the button that opens the date-overrides editor. A verb, so it no longer reads as a tab."
 
