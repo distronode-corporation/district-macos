@@ -67,13 +67,18 @@ struct MacSheetChrome<Content: View, Buttons: View>: View {
 ///
 /// ⚠️ A TOOLBAR'S `.confirmationAction` WAS DRAWN AS THE DEFAULT BUTTON BY macOS; outside a
 /// toolbar it is this style, the same as ``SchedulingWriteSheet``'s confirm.
+///
+/// ⛔ ``ButtonStyle/districtPrimary``, NEVER `.borderedProminent` UNDER THE ACCENT TINT (3.0.2
+/// walk 3). macOS draws a prominent button's fill and label itself: in dark mode it dimmed
+/// the `#67CDED` tint to `#4F7E9D` and wrote a near-white `#E5EDF2` on it, 3.69:1, under AA.
+/// The primary style draws the palette's own pair, ``DistrictColors/districtForeground`` on
+/// ``DistrictColors/district`` (`tokens.css` `--district-foreground` on `--district`, the
+/// iOS app's primary button and this app's sign-in door): 9.57:1 dark (`#0E1C1F` on
+/// `#67CDED`), 6.65:1 light (`#FFFFFF` on `#01657D`). `MacSheetFitTests` refuses
+/// `.borderedProminent` anywhere in the app, and a `.defaultAction` button with no style.
 struct MacSheetDefaultButton: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
-        content
-            .buttonStyle(.borderedProminent)
-            .tint(DistrictColors.resolve(colorScheme).district)
+        content.buttonStyle(.districtPrimary)
     }
 }
 

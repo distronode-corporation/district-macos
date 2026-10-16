@@ -446,7 +446,7 @@ struct ComposerBar: View {
         return Button(title) {
             Task { await model.send() }
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.districtPrimary)
         .keyboardShortcut(Self.sendShortcut)
         .help(Self.sendHelp(InboxCopy.send))
         .disabled(content.sending || !model.canSendNow)

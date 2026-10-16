@@ -61,6 +61,9 @@ struct MfaCodeSheet: View {
                     .disabled(isBusy)
                     .accessibilityIdentifier(A11yID.SignIn.mfaCancel)
                 Button(MfaCopy.verify, action: send)
+                    // ⚠️ A `.defaultAction` button with no style is drawn by macOS as the
+                    // accent-filled default, its label near-white on a dimmed tint (3.0.2 walk 3).
+                    .macSheetDefaultButton()
                     .keyboardShortcut(.defaultAction)
                     .disabled(code == nil || isBusy)
                     .accessibilityIdentifier(A11yID.SignIn.mfaVerify)

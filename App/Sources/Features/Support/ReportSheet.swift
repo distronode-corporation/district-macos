@@ -103,7 +103,7 @@ struct ReportSheet: View {
             Spacer(minLength: 0)
             if case .done = model.state {
                 Button(SupportCopy.done) { dismiss() }
-                    .buttonStyle(.borderedProminent)
+                    .macSheetDefaultButton()
                     .keyboardShortcut(.defaultAction)
                     .accessibilityIdentifier(A11yID.Report.done)
             } else {
@@ -114,7 +114,7 @@ struct ReportSheet: View {
                 Button(model.isSending ? SupportCopy.reporting : ReportCopy.submit) {
                     Task { await model.submit(note: noteText) }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.districtPrimary)
                 .disabled(model.isSending)
                 .accessibilityIdentifier(A11yID.Report.submit)
                 .keyboardShortcut(.districtSubmit)

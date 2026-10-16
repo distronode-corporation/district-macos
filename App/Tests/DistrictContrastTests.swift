@@ -90,6 +90,13 @@ final class DistrictContrastTests: XCTestCase {
         // justifies the choice: white on the dark `destructive` fill "fails outright".
         let whiteOnDark = Self.contrast(.white, DistrictColors.dark.destructive)
         XCTAssertLessThan(whiteOnDark, Self.aaLarge, "white on dark destructive should fail, as the comment says")
+
+        // ⚠️ THE SHEET'S DEFAULT BUTTON (``MacSheetDefaultButton``, 3.0.2 walk 3) states these two:
+        // the primary pair that replaced macOS's own 3.69:1 Done in dark.
+        let darkPrimary = Self.contrast(DistrictColors.dark.districtForeground, DistrictColors.dark.district)
+        XCTAssertEqual(darkPrimary, 9.57, accuracy: 0.05, "MacSheetDefaultButton claims 9.57:1 in dark")
+        let lightPrimary = Self.contrast(DistrictColors.light.districtForeground, DistrictColors.light.district)
+        XCTAssertEqual(lightPrimary, 6.65, accuracy: 0.05, "MacSheetDefaultButton claims 6.65:1 in light")
     }
 
     // MARK: - Tinted containers, which is where this palette is thin
