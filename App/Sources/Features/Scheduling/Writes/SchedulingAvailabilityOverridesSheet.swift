@@ -17,19 +17,20 @@ struct SchedulingAvailabilityOverridesSheet: View {
         .resolve(colorScheme)
     }
 
+    /// ⛔ ITS ROOT IS ``SchedulingWriteSheet``, AS EDIT WORKING HOURS' IS (3.0.2 walk 3). It was
+    /// a bare `ScrollView`, so the sheet opened on the system's grey (#1E1E1E dark, #ECECEC
+    /// light) at whatever size its rows asked for, while only its add sub-sheet was on the
+    /// palette. The shell sizes it and paints it; `MacSheetFitTests` reads the ROOT of every
+    /// presented sheet, not any view anywhere in the type.
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DistrictSpacing.row) {
-                header
-                list
-                messages
-                Button(SchedulingWriteCopy.cancel) {
-                    dismiss()
-                }
-                .buttonStyle(.districtGhost)
+        SchedulingWriteSheet(title: SchedulingWriteCopy.overridesTitle, subtitle: SchedulingWriteCopy.overridesHint) {
+            addButton
+            list
+            messages
+            Button(SchedulingWriteCopy.cancel) {
+                dismiss()
             }
-            .padding(DistrictSpacing.gutter)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(.districtGhost)
         }
         .accessibilityIdentifier(A11yID.SchedulingWrites.overridesRoot)
         .task {
@@ -55,23 +56,13 @@ struct SchedulingAvailabilityOverridesSheet: View {
         })
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-            HStack {
-                Text(SchedulingWriteCopy.overridesTitle)
-                    .font(DistrictType.title)
-                    .foregroundStyle(colors.foreground)
-                Spacer(minLength: 0)
-                Button(SchedulingWriteCopy.overrideAddButton) {
-                    model.beginAdd()
-                }
-                .buttonStyle(.districtSecondary)
-                .accessibilityIdentifier(A11yID.SchedulingWrites.overridesAdd)
-            }
-            Text(SchedulingWriteCopy.overridesHint)
-                .font(DistrictType.caption)
-                .foregroundStyle(colors.mutedForeground)
+    /// The title and the hint are the shell's heading and subtitle; the add button leads the list.
+    private var addButton: some View {
+        Button(SchedulingWriteCopy.overrideAddButton) {
+            model.beginAdd()
         }
+        .buttonStyle(.districtSecondary)
+        .accessibilityIdentifier(A11yID.SchedulingWrites.overridesAdd)
     }
 
     @ViewBuilder

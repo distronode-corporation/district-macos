@@ -22,19 +22,18 @@ struct SchedulingEventTypeQuestionsSheet: View {
         .resolve(colorScheme)
     }
 
+    /// ⛔ ITS ROOT IS ``SchedulingWriteSheet`` (3.0.2 walk 3), found by the tightened
+    /// `MacSheetFitTests` scan with Edit date overrides: a bare `ScrollView` root opened on the
+    /// system's grey, unsized, while only its editor sub-sheet was on the palette.
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DistrictSpacing.row) {
-                header
-                list
-                messages
-                Button(SchedulingWriteCopy.cancel) {
-                    dismiss()
-                }
-                .buttonStyle(.districtGhost)
+        SchedulingWriteSheet(title: SchedulingWriteCopy.questionsTitle) {
+            addButton
+            list
+            messages
+            Button(SchedulingWriteCopy.cancel) {
+                dismiss()
             }
-            .padding(DistrictSpacing.gutter)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(.districtGhost)
         }
         .accessibilityIdentifier(A11yID.SchedulingWrites.questionsRoot)
         .task {
@@ -53,18 +52,13 @@ struct SchedulingEventTypeQuestionsSheet: View {
         })
     }
 
-    private var header: some View {
-        HStack {
-            Text(SchedulingWriteCopy.questionsTitle)
-                .font(DistrictType.title)
-                .foregroundStyle(colors.foreground)
-            Spacer(minLength: 0)
-            Button(SchedulingWriteCopy.questionAddTitle) {
-                model.beginAdd()
-            }
-            .buttonStyle(.districtSecondary)
-            .accessibilityIdentifier(A11yID.SchedulingWrites.questionsAdd)
+    /// The title is the shell's heading; the add button leads the list.
+    private var addButton: some View {
+        Button(SchedulingWriteCopy.questionAddTitle) {
+            model.beginAdd()
         }
+        .buttonStyle(.districtSecondary)
+        .accessibilityIdentifier(A11yID.SchedulingWrites.questionsAdd)
     }
 
     @ViewBuilder

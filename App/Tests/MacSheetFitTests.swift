@@ -51,25 +51,105 @@ final class MacSheetFitTests: XCTestCase {
         XCTAssertGreaterThan(checked, 0, "the scan found no sheet frame at all")
     }
 
-    /// ⛔ EVERY `.sheet` CONTENT IS PAINTED WITH THE PALETTE. Its closure, the view type it
-    /// presents, or the member it names applies `macSheetSize` or `macSheetBackground()`,
-    /// directly or through a view that does (`SchedulingWriteSheet` for the scheduling writes).
+    /// ⛔ EVERY `.sheet` IS PAINTED WITH THE PALETTE AT ITS ROOT. The view a content closure
+    /// draws at its root (through the member it names, the type it presents and that type's
+    /// `body`, to the root) takes `macSheetSize` or `macSheetBackground()` chained on it, or
+    /// is a view whose root does (``SchedulingWriteSheet``, ``MacSheetChrome``).
+    ///
+    /// ⛔ THE ROOT, NOT ANY VIEW IN THE TYPE (3.0.2 walk 3). Until walk 3 a type counted as
+    /// painted when ANYTHING in its source painted, so Edit date overrides passed on its add
+    /// sub-sheet's ``SchedulingWriteSheet`` while its own `ScrollView` root opened on the
+    /// system's grey (#1E1E1E dark, #ECECEC light). The questions sheet was the same shape.
+    /// ``testASheetPaintedOnlyBelowItsRootIsRefused`` keeps that shape failing.
     func testEverySheetContentTakesThePaletteBackground() throws {
         let sources = try SheetScan.sources()
-        let painted = SheetScan.paintedTypes(sources)
-        XCTAssertTrue(painted.contains("SchedulingWriteSheet"), "the scheduling writes' shared sheet")
+        let bodies = SheetScan.structBodies(sources)
+        for shell in ["SchedulingWriteSheet", "MacSheetChrome"] {
+            XCTAssertTrue(SheetScan.typePaints(shell, bodies: bodies), "\(shell) paints its own root")
+        }
         var sheets = 0
         for (name, code) in sources {
             for site in SheetScan.sheetSites(in: code) {
                 sheets += 1
-                let content = String(code[site.content])
-                let named = SheetScan.bareMembers(in: content).map { SheetScan.member($0, in: code) }
-                let covered = ([content] + named).contains { SheetScan.paints($0, painted: painted) }
+                let content = SheetScan.closureBody(String(code[site.content]))
                 let line = code[..<site.call].filter { $0 == "\n" }.count + 1
-                XCTAssertTrue(covered, "\(name):\(line): a sheet without macSheetSize or macSheetBackground()")
+                XCTAssertTrue(
+                    SheetScan.rootPaints(content, owner: code, bodies: bodies),
+                    "\(name):\(line): the sheet's root takes neither macSheetSize nor macSheetBackground() "
+                        + "(draw it in SchedulingWriteSheet or MacSheetChrome)"
+                )
             }
         }
         XCTAssertGreaterThan(sheets, 30, "the scan found too few sheets to have read the app")
+    }
+
+    /// The shape Edit date overrides had on build 20067: a `ScrollView` root with nothing
+    /// chained on it, and the palette only in the sub-sheet it presents. Refused; and the
+    /// sheet as it is now passes.
+    func testASheetPaintedOnlyBelowItsRootIsRefused() throws {
+        var bodies = try SheetScan.structBodies(SheetScan.sources())
+        let walkThree = """
+        struct WalkThreeOverrides: View {
+            var body: some View {
+                ScrollView {
+                    VStack {
+                        list
+                    }
+                    .padding(DistrictSpacing.gutter)
+                }
+                .sheet(isPresented: adding) {
+                    addSheet
+                }
+            }
+
+            @ViewBuilder
+            private var addSheet: some View {
+                if let form = model.adding {
+                    SchedulingWriteSheet(title: "Add") {
+                        fields(form)
+                    }
+                }
+            }
+        }
+
+        """
+        bodies.merge(SheetScan.structBodies(["WalkThree.swift": walkThree])) { $1 }
+        XCTAssertFalse(
+            SheetScan.typePaints("WalkThreeOverrides", bodies: bodies),
+            "a sub-sheet does not paint its parent"
+        )
+        XCTAssertTrue(
+            SheetScan.rootPaints("addSheet", owner: walkThree, bodies: bodies),
+            "the sub-sheet itself is painted"
+        )
+        XCTAssertTrue(SheetScan.typePaints("SchedulingAvailabilityOverridesSheet", bodies: bodies))
+        XCTAssertTrue(SheetScan.typePaints("SchedulingEventTypeQuestionsSheet", bodies: bodies))
+    }
+
+    /// ⛔ NO BUTTON IS FILLED BY macOS ITSELF (3.0.2 walk 3). A `.borderedProminent` button, and
+    /// a `.defaultAction` button left in the system style, are filled with the accent tint and
+    /// labelled by macOS: in dark mode it dimmed `#67CDED` to `#4F7E9D` and wrote `#E5EDF2` on
+    /// it, 3.69:1 on the sheet's Done. Every filled button is ``ButtonStyle/districtPrimary``
+    /// (``MacSheetDefaultButton``), the palette's pair, which `DistrictContrastTests` measures
+    /// as "districtForeground on district".
+    func testNoButtonIsFilledByTheSystem() throws {
+        let sources = try SheetScan.sources()
+        XCTAssertTrue(
+            sources["MacSheetChrome.swift", default: ""].contains("content.buttonStyle(.districtPrimary)"),
+            "a sheet's default button is the palette's primary"
+        )
+        var defaults = 0
+        for (name, code) in sources {
+            let lines = SheetScan.uncommented(code).components(separatedBy: "\n")
+            XCTAssertFalse(lines.contains { $0.contains(".borderedProminent") }, "\(name): .borderedProminent")
+            for (index, line) in lines.enumerated() where line.contains(".keyboardShortcut(.defaultAction)") {
+                defaults += 1
+                let chain = SheetScan.modifierChain(around: index, in: lines)
+                let styled = chain.contains { $0.contains(".buttonStyle(") || $0.contains(".macSheetDefaultButton()") }
+                XCTAssertTrue(styled, "\(name): a .defaultAction button in the system style (macSheetDefaultButton)")
+            }
+        }
+        XCTAssertGreaterThanOrEqual(defaults, 5, "the scan found too few default buttons to have read the app")
     }
 
     /// ⛔ NO SHEET DRAWS THE SYSTEM'S TITLE BAR OR BUTTON BAR (3.0.2 walk 2). The palette
@@ -189,32 +269,6 @@ private enum SheetScan {
         return Set(matches.compactMap { Range($0.range(at: 1), in: text).map { String(text[$0]) } })
     }
 
-    static func paints(_ text: String, painted: Set<String>) -> Bool {
-        marks.contains { text.contains($0) } || !calledTypes(text).isDisjoint(with: painted)
-    }
-
-    /// Each top-level `struct` whose own body (its presentations aside) paints a sheet, and
-    /// each one that draws such a struct, to a fixed point.
-    static func paintedTypes(_ sources: [String: String]) -> Set<String> {
-        var calls: [String: Set<String>] = [:]
-        var painted: Set<String> = []
-        for code in sources.values {
-            for (name, body) in structs(in: code) {
-                calls[name] = calledTypes(body)
-                if marks.contains(where: { body.contains($0) }) {
-                    painted.insert(name)
-                }
-            }
-        }
-        var grew = true
-        while grew {
-            let more = calls.filter { name, called in !painted.contains(name) && !called.isDisjoint(with: painted) }
-            painted.formUnion(more.keys)
-            grew = !more.isEmpty
-        }
-        return painted
-    }
-
     /// Each top-level `struct` in `code` by name, to its closing brace, presentations removed.
     static func structs(in code: String) -> [(String, String)] {
         guard let header = try? NSRegularExpression(
@@ -254,6 +308,91 @@ private enum SheetScan {
             grew = !more.isEmpty
         }
         return found
+    }
+
+    /// The inside of the first `{ ... }` in `text`, without its comment lines or a leading
+    /// closure parameter list (`entry in`, `_ in`).
+    static func closureBody(_ text: String) -> String {
+        guard let braces = closure(in: text, from: text.startIndex) else { return "" }
+        let inside = text.index(after: braces.lowerBound) ..< text.index(before: braces.upperBound)
+        let inner = uncommented(String(text[inside]))
+        return inner.replacingOccurrences(of: #"^\s*\w+(?:\s*,\s*\w+)*\s+in\b"#, with: "", options: .regularExpression)
+    }
+
+    /// `text` without the `{ ... }` nested in it: its root view and the modifiers chained on
+    /// that root, and nothing drawn inside it.
+    static func outermost(_ text: String) -> String {
+        var kept = ""
+        var depth = 0
+        for character in text {
+            if character == "{" {
+                depth += 1
+            } else if character == "}" {
+                depth -= 1
+            } else if depth == 0 {
+                kept.append(character)
+            }
+        }
+        return kept
+    }
+
+    /// The `{ ... }` blocks directly inside `text`, in order (an `if`'s branches).
+    static func branches(_ text: String) -> [String] {
+        var found: [String] = []
+        var cursor = text.startIndex
+        while let block = closure(in: text, from: cursor) {
+            found.append(String(text[block]))
+            cursor = block.upperBound
+        }
+        return found
+    }
+
+    /// Whether the view `body` (a closure's inside) draws at its ROOT is on the palette: a
+    /// mark chained on the root itself, an app type whose own `body` root is, a member of
+    /// `owner` whose root is, or an `if` whose every branch is. A mark further in, or on a
+    /// sub-sheet, paints only that view, never the sheet.
+    static func rootPaints(_ body: String, owner: String, bodies: [String: String], seen: Set<String> = []) -> Bool {
+        if marks.contains(where: { outermost(body).contains($0) }) {
+            return true
+        }
+        guard let root = firstMatch(#"^\s*[A-Za-z_]\w*"#, in: body)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !seen.contains(root)
+        else { return false }
+        if root == "if" {
+            let arms = branches(body)
+            return !arms.isEmpty
+                && arms.allSatisfy { rootPaints(closureBody($0), owner: owner, bodies: bodies, seen: seen) }
+        }
+        if root.first?.isUppercase == true {
+            guard let code = bodies[root] else { return false }
+            let typeBody = closureBody(member("body", in: code))
+            return rootPaints(typeBody, owner: code, bodies: bodies, seen: seen.union([root]))
+        }
+        let declared = member(root, in: owner)
+        return !declared.isEmpty
+            && rootPaints(closureBody(declared), owner: owner, bodies: bodies, seen: seen.union([root]))
+    }
+
+    /// Whether the app type `name` is painted at its root wherever it is presented.
+    static func typePaints(_ name: String, bodies: [String: String]) -> Bool {
+        rootPaints("\(name)()", owner: "", bodies: bodies)
+    }
+
+    /// The modifier lines chained with `lines[index]`: the run of lines starting with `.`
+    /// above and below it.
+    static func modifierChain(around index: Int, in lines: [String]) -> [String] {
+        func isModifier(_ line: String) -> Bool {
+            line.trimmingCharacters(in: .whitespaces).hasPrefix(".")
+        }
+        var first = index
+        while first > 0, isModifier(lines[first - 1]) {
+            first -= 1
+        }
+        var last = index
+        while last + 1 < lines.count, isModifier(lines[last + 1]) {
+            last += 1
+        }
+        return Array(lines[first ... last])
     }
 
     /// A `NavigationStack`, a `.toolbar` or a sheet-bar placement, in code.

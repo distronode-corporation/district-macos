@@ -185,15 +185,18 @@ struct SchedulingWriteSheet<Content: View>: View {
     /// ⚠️ MAC: ONE ROW AT THE BOTTOM TRAILING EDGE, BELOW THE CONTENT, Cancel then the
     /// confirm, the confirm rightmost, as a Mac sheet lays them out. The two were stacked in
     /// the middle of the sheet over an empty half (3.0.1 visual QA, AP-017). A destructive
-    /// confirm takes the destructive ink and no shortcut.
+    /// confirm takes the destructive style and no shortcut.
     private func buttons(_ confirm: Confirm) -> some View {
         HStack(spacing: DistrictSpacing.tight) {
             Spacer(minLength: 0)
             Button(confirm.cancelLabel, action: confirm.onCancel)
                 .keyboardShortcut(.cancelAction)
             Button(confirm.confirmLabel, role: confirm.destructive ? .destructive : nil, action: confirm.onConfirm)
-                .buttonStyle(.borderedProminent)
-                .tint(confirm.destructive ? colors.destructive : colors.district)
+                // ⛔ THE APP'S OWN STYLE, NOT `.borderedProminent` (3.0.2 walk 3): macOS draws a
+                // prominent button's label itself, near-white on a dimmed tint (3.69:1 on the
+                // accent in dark). See ``MacSheetDefaultButton``. A destructive confirm takes the
+                // house destructive, the tinted outline every other destructive button draws.
+                .buttonStyle(DistrictButtonStyle(variant: confirm.destructive ? .destructive : .primary))
                 .disabled(!confirm.confirmEnabled || confirm.state.isWorking)
                 .accessibilityIdentifier(confirm.confirmIdentifier ?? "")
                 // ⛔ NO ⌘↩ ON A DESTRUCTIVE CONFIRM; see ``KeyboardShortcut/districtSubmit``.
