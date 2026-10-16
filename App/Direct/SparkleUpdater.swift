@@ -58,7 +58,8 @@ struct CheckForUpdatesCommand: View {
     @StateObject private var state = UpdaterState()
 
     var body: some View {
-        Button(AppSettingsCopy.checkForUpdates) {
+        // ⚠️ A symbol, as every item the app adds to a system menu has (``DistrictCommands``).
+        Button(AppSettingsCopy.checkForUpdates, systemImage: "arrow.triangle.2.circlepath") {
             DistrictUpdater.controller.checkForUpdates(nil)
         }
         .disabled(!state.canCheckForUpdates)

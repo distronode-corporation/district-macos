@@ -161,8 +161,12 @@ final class MarketplaceModel {
     /// CARRIES ONE. There is nothing here to gate but there is something to word:
     /// telling a viewer to "use the web dashboard" points them at a second refusal,
     /// so they are told who to ask instead. `Route.swift` states the same rule.
-    var readOnlyCaption: String {
-        canChangeNumbers ? MarketplaceCopy.readOnly : MarketplaceCopy.readOnlyViewer
+    ///
+    /// ⚠️ NIL FOR A ROLE THAT CAN CHANGE NUMBERS (3.0.2, AP-031). Its second line used to say
+    /// "Everything else about your numbers is on the other tabs." under a first line that
+    /// says everything else is HERE; ``MarketplaceCopy/purchaseElsewhere`` already says it.
+    var readOnlyCaption: String? {
+        canChangeNumbers ? nil : MarketplaceCopy.readOnlyViewer
     }
 
     var isSearching: Bool {

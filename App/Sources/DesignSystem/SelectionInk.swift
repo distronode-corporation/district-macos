@@ -53,7 +53,7 @@ enum SelectionInk {
         increasedContrast: Bool,
         prominence: BackgroundProminence
     ) -> Color {
-        onSelection(prominence) ? Color.white : tone.ink(colors, increasedContrast: increasedContrast)
+        onSelection(prominence) ? Color.white : tone.chipInk(colors, increasedContrast: increasedContrast)
     }
 }
 

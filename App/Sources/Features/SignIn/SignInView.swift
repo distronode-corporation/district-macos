@@ -45,6 +45,14 @@ struct SignInView: View {
                 Text(actionTitle)
             }
             .buttonStyle(SignInDoorStyle())
+            // ⚠️ A PLAIN-STRING NAME, FOR THE AX CLIENTS THAT READ AXDescription (3.0.2). A
+            // button labelled through a style (and one drawn as an icon plus text) carried
+            // its name only in AXAttributedDescription: VoiceOver read it, while an
+            // AppleScript `click button "Sign in"` (System Events reads `description`) found
+            // nothing. An explicit `accessibilityLabel` fills AXDescription too. Every
+            // icon-plus-text button in the app carries one (``View/buttonName(_:)``); the
+            // visible text is unchanged.
+            .accessibilityLabel(actionTitle)
             .keyboardShortcut(.defaultAction)
             .disabled(isBusy)
 

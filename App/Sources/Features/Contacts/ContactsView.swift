@@ -110,6 +110,7 @@ private struct ContactsScreen: View {
             list(rows: rows, appending: appending, appendFailure: appendFailure)
         case .empty:
             empty
+                .fillsListColumn()
         case let .failed(failure):
             FailureView(failure: failure, onRetry: reload)
         }

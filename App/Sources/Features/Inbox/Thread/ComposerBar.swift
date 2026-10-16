@@ -216,7 +216,7 @@ struct ComposerBar: View {
         if model.requiresSubject {
             VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
                 DistrictEyebrow(text: InboxCopy.subject)
-                TextField(InboxCopy.subject, text: subject)
+                TextField(InboxCopy.subject, text: subject, prompt: .noPlaceholder)
                     .disabled(content.sending)
                     .districtField()
             }
@@ -311,7 +311,7 @@ struct ComposerBar: View {
                                 .buttonStyle(.plain)
                                 .symbolRenderingMode(.palette)
                                 .foregroundStyle(.white, .black.opacity(0.6))
-                                .help(InboxCopy.removeAttachment)
+                                .buttonName(InboxCopy.removeAttachment)
                                 .padding(2)
                             }
                     }
@@ -367,10 +367,10 @@ struct ComposerBar: View {
                 }
             }
             .padding(DistrictSpacing.tight)
-            .background(colors.input, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
+            .background(colors.card, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
             .overlay {
                 RoundedRectangle(cornerRadius: DistrictRadius.control)
-                    .strokeBorder(colors.border, lineWidth: 1)
+                    .strokeBorder(colors.input, lineWidth: 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -383,7 +383,7 @@ struct ComposerBar: View {
             Task { await model.generateDraft() }
         }
         .labelStyle(.iconOnly)
-        .help(title)
+        .buttonName(title)
         .disabled(content.draftGenerating || content.sending)
     }
 
@@ -412,7 +412,7 @@ struct ComposerBar: View {
                 Label(label, systemImage: "photo")
                     .labelStyle(.iconOnly)
             }
-            .help(label)
+            .buttonName(label)
             .disabled(content.attaching || content.sending)
             // ⚠️ MAC ONLY. On a Mac an image is as often a file in the Finder as a photo
             // in the library, so the open panel sits beside the Photos picker. Its file
@@ -422,7 +422,7 @@ struct ComposerBar: View {
             let fileLabel = content.attaching ? InboxCopy.attaching : InboxCopy.attachFile
             Button(fileLabel, systemImage: "paperclip") { choosingFile = true }
                 .labelStyle(.iconOnly)
-                .help(fileLabel)
+                .buttonName(fileLabel)
                 .disabled(content.attaching || content.sending)
         }
     }

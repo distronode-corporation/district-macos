@@ -53,7 +53,7 @@ final class MacBillingReadOnlyTests: XCTestCase {
     /// The marketplace's read-only and purchase sentences, per role. None names a place or
     /// offers a purchase.
     func test_MAC_BILLING_4_theMarketplaceCaptionsStateTheLimitOnly() {
-        let captions = [MarketplaceCopy.purchaseElsewhere, MarketplaceCopy.readOnly, MarketplaceCopy.readOnlyViewer]
+        let captions = [MarketplaceCopy.purchaseElsewhere, MarketplaceCopy.readOnlyViewer]
         for caption in captions {
             let lowered = caption.lowercased()
             for word in ["upgrade", "buy", "on sale", "website", "browser", "distronode.com", "dashboard"] {

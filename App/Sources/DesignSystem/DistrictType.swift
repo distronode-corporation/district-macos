@@ -122,17 +122,14 @@ enum DistrictType {
 
     static let labelSmall = DistrictFont(size: 11, weight: .semibold, style: .caption2)
 
-    /// ⛔ THE SIGNATURE TYPOGRAPHIC MOVE OF THE BRAND, and the most copied string in
-    /// the web codebase: `font-mono text-[10px] uppercase tracking-[0.18em]
-    /// text-muted-foreground`. Used for every section and field label.
-    ///
-    /// ⚠️ UPPERCASING AND TRACKING ARE THE CALLER'S JOB, because neither is part of
-    /// a `Font`. Use ``DistrictEyebrow`` rather than this constant directly, or the
-    /// label renders at 10pt with none of what makes it recognisable.
-    static let eyebrow = DistrictFont(size: 10, weight: .regular, design: .monospaced, style: .caption2)
-
-    /// The web's `tracking-[0.18em]` at the eyebrow's 10pt size.
-    static let eyebrowTracking: CGFloat = 1.8
+    /// ⛔ THE SECTION AND FIELD LABEL, IN SENTENCE CASE (3.0.2). Until 3.0.2 it was the web's
+    /// old micro-label, `font-mono text-[10px] uppercase tracking-[0.18em]`. The design
+    /// system (DESIGN.md) now says never all-caps, never letterspaced, sentence case
+    /// everywhere, with labels in the interface sans; the visual QA logged the tracked mono
+    /// capitals as AP-011. So it is the system face at the caption size and the register
+    /// label's regular weight, in `mutedForeground` (see ``DistrictEyebrow``), drawn as
+    /// written: no uppercasing and no tracking.
+    static let eyebrow = DistrictFont(size: 12, weight: .regular, style: .caption)
 
     /// The large number on a metric card. Big digits need tight tracking or they
     /// look loose.
@@ -157,11 +154,11 @@ enum DistrictType {
     ]
 }
 
-/// The wide-tracked uppercase micro-label the whole product is labelled with.
+/// The section and field label: ``DistrictType/eyebrow`` in `mutedForeground`, drawn
+/// exactly as written (sentence case in both catalogs).
 ///
-/// ⚠️ A VIEW RATHER THAN A FONT CONSTANT, because the uppercasing and the tracking
-/// are two thirds of the effect and neither lives in a `Font`. See
-/// ``DistrictType/eyebrow``.
+/// ⚠️ THE NAME OUTLIVES THE LOOK. It was a wide-tracked uppercase mono label until 3.0.2
+/// (AP-011); the name stays so the call sites and their catalog keys do not move.
 struct DistrictEyebrow: View {
     let text: String
 
@@ -171,22 +168,9 @@ struct DistrictEyebrow: View {
         .resolve(colorScheme)
     }
 
-    /// ⚠️ TRACKING IS POINTS, SO IT SCALES OR THE LABEL COMES APART. At AX5 the
-    /// glyphs are roughly twice the size while a fixed 1.8pt gap stays put, which
-    /// reads as letters crowding rather than as the wide-tracked label the brand is
-    /// built on. Anchored to `.caption2`, the same style the eyebrow font uses.
-    @ScaledMetric(relativeTo: .caption2) private var tracking: CGFloat = DistrictType.eyebrowTracking
-
     var body: some View {
-        Text(text.uppercased())
+        Text(text)
             .font(DistrictType.eyebrow)
-            .tracking(tracking)
             .foregroundStyle(colors.mutedForeground)
-            // ⛔ ANNOUNCED IN ITS ORIGINAL CASE, NOT THE ONE ON SCREEN. The uppercasing
-            // here is typographic, the brand's wide-tracked label, but VoiceOver
-            // treats a short all-caps string as an initialism and spells it: "Reply"
-            // rendered as REPLY is read "R, E, P, L, Y". Passing the unmodified text
-            // as the label keeps the look and the word.
-            .accessibilityLabel(text)
     }
 }

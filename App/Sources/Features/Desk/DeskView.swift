@@ -105,6 +105,8 @@ struct DeskView: View {
                 Button(DeskCopy.newTicketAction, systemImage: "square.and.pencil") {
                     composing = model.startTicket()
                 }
+                // ⚠️ A plain AXDescription for AX clients, see ``SignInView``'s Sign in.
+                .accessibilityLabel(DeskCopy.newTicketAction)
                 .accessibilityIdentifier(A11yID.Desk.newTicket)
             }
         }

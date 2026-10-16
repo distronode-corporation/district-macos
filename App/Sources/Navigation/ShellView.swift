@@ -148,6 +148,8 @@ struct ShellView: View {
                 Button(NavigationCopy.refresh, systemImage: "arrow.clockwise") {
                     Task { await commands.refresh() }
                 }
+                // ⚠️ A plain AXDescription for AX clients, see ``SignInView``'s Sign in.
+                .accessibilityLabel(NavigationCopy.refresh)
                 .disabled(!commands.canRefresh)
                 .help(NavigationCopy.refreshHelp)
             }
@@ -250,7 +252,7 @@ struct ShellView: View {
         return Button(title, systemImage: "sidebar.left") {
             withAnimation { sidebarShown.toggle() }
         }
-        .help(title)
+        .buttonName(title)
     }
 
     // ── List sections: the list, and the open row beside it ──────────────────

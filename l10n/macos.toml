@@ -3808,11 +3808,12 @@ id = { swift = "InboxCopy.reply" }
 
 [inbox.search_messages]
 en = "Search messages"
-fr = "Rechercher les messages"
+fr = "Rechercher"
 ctx = "placeholder"
 screen = "inbox"
-state = "reviewed"
+state = "draft"
 id = { swift = "InboxCopy.searchMessages" }
+note = "3.0.2 (visual QA AP-025): the Mac toolbar's search field clipped « Rechercher les messages »; the field sits in the Inbox, so the verb alone says it."
 
 [inbox.search_too_short]
 en = "Search needs at least {minimum} characters."
@@ -4711,16 +4712,6 @@ tier = "T1"
 state = "reviewed"
 id = { swift = "MarketplaceCopy.purchaseElsewhere" }
 note = "⛔ PROSE, NAMING NO DESTINATION, WITH NOTHING TO TAP. See the ⛔ at the top of this file: Guideline 3.1.1 covers steering as well as the purchase itself, so the sentence states the boundary and the second half says what IS here, which is the part that stops it reading as a half-built screen."
-
-[marketplace.read_only]
-en = "Everything else about your numbers is on the other tabs."
-fr = "Tout le reste concernant vos numéros se trouve dans les autres onglets."
-ctx = "body"
-screen = "marketplace"
-tier = "T1"
-state = "reviewed"
-id = { swift = "MarketplaceCopy.readOnly" }
-note = "⛔ ONLY THE PURCHASE IS OUT OF REACH. Releasing and reconfiguring are in the app, on their own tab, behind confirmations, and ``purchaseElsewhere`` is the line that says the purchase is not.\n⛔ WHAT IT STILL DOES IS MAKE A BOUNDARY LEGIBLE WITHOUT LINKING IT OR NAMING ANY DESTINATION. App Store Review Guideline 3.1.1 covers steering as well as the purchase, and naming the place in prose IS the steering, so this sentence points inward at the other tabs, the same call ``BillingCopy/readOnly`` makes for its own guideline."
 
 [marketplace.read_only_viewer]
 en = "Changing a number needs an agency or client role. Ask someone on this workspace who has one."
@@ -10307,6 +10298,15 @@ screen = "scheduling.writes.availability"
 state = "reviewed"
 id = { swift = "SchedulingWriteCopy.hoursCopyToWeekdays" }
 
+[scheduling_write.hours_edit]
+en = "Edit working hours"
+fr = "Modifier les heures"
+ctx = "label"
+screen = "scheduling.writes.availability"
+state = "draft"
+id = { swift = "SchedulingWriteCopy.hoursEdit" }
+note = "3.0.2: the button that opens the working-hours editor. A verb, so it no longer reads as a tab beside the section's title."
+
 [scheduling_write.hours_never_bookable]
 en = "Not bookable on any day yet."
 fr = "Aucune journée réservable pour l'instant."
@@ -10643,6 +10643,15 @@ screen = "scheduling.writes.availability"
 tier = "T2"
 state = "reviewed"
 id = { swift = "SchedulingWriteCopy.overrideUnavailable" }
+
+[scheduling_write.overrides_edit]
+en = "Edit date overrides"
+fr = "Modifier les exceptions"
+ctx = "label"
+screen = "scheduling.writes.availability"
+state = "draft"
+id = { swift = "SchedulingWriteCopy.overridesEdit" }
+note = "3.0.2: the button that opens the date-overrides editor. A verb, so it no longer reads as a tab."
 
 [scheduling_write.overrides_empty]
 en = "No overrides ahead. Add one for a day off or different hours."

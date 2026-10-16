@@ -184,6 +184,8 @@ struct KnowledgeView: View {
         Button(SettingsCopy.knowledgeFileAction, systemImage: "doc.text") { importingFile = true }
             .buttonStyle(.districtSecondary)
             .disabled(!model.canReadFile)
+            // ⚠️ A plain AXDescription for AX clients, see ``SignInView``'s Sign in.
+            .accessibilityLabel(SettingsCopy.knowledgeFileAction)
             .accessibilityIdentifier(A11yID.Knowledge.readFile)
             // ⚠️ THE SINGLE-FILE OVERLOAD, whose result is one URL. Passing
             // `allowsMultipleSelection` picks the other overload, which hands back `[URL]`.

@@ -31,8 +31,8 @@ import SwiftUI
 /// ⛔ SO NOTHING IS NAMED AND NOTHING IS LINKED, WHICH IS TRUE OF THE WHOLE APP.
 /// ``ShellView/lapsed(inactiveCount:)`` states the subscription is not active and stops;
 /// ``BillingCopy/readOnly`` says the change is not available in this app; ``SchedulingCopy``'s
-/// `notEligible` states the refusal and offers nothing; ``MarketplaceCopy/readOnly`` is
-/// this screen's sentence. ``ShellView``'s own browser hand-off is a different thing: it
+/// `notEligible` states the refusal and offers nothing; ``MarketplaceCopy/purchaseElsewhere``
+/// is this screen's sentence. ``ShellView``'s own browser hand-off is a different thing: it
 /// hands BACK a claimed URL the app cannot draw rather than pointing at a purchase.
 ///
 /// ⛔ THE TWO MARKETPLACE READS STILL ADMIT `viewer` AND ARE NOT ROLE-GATED; THE PROVISIONING
@@ -268,17 +268,20 @@ struct MarketplaceView: View {
 
     // MARK: - The read-only boundary
 
-    /// ⛔ THE WHOLE OF THE BOUNDARY, AND IT IS TWO SENTENCES RATHER THAN A CONTROL. There is
+    /// ⛔ THE WHOLE OF THE BOUNDARY, AND IT IS SENTENCES RATHER THAN A CONTROL. There is
     /// deliberately nothing beneath it: no button, no link and no caption offering to open a
-    /// browser. See the ⛔ at the top of this file. ⚠️ The second sentence narrows the
-    /// first: everything about a number EXCEPT buying one is in the app, so the screen
+    /// browser. See the ⛔ at the top of this file. ⚠️ The first sentence's second half
+    /// narrows it: everything about a number EXCEPT buying one is in the app, so the screen
     /// as a whole is not read-only.
     private var readOnlyCaption: some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
             Text(MarketplaceCopy.purchaseElsewhere)
-            // ⚠️ THE ROLE STILL ONLY DECIDES WORDING ON THIS LINE, because the two marketplace
-            // READS admit `viewer`. The provisioning tabs gate their own controls.
-            Text(model.readOnlyCaption)
+            // ⚠️ A VIEWER ONLY: who can make a change (``MarketplaceModel/readOnlyCaption``).
+            // The two marketplace READS admit `viewer`; the provisioning tabs gate their own
+            // controls.
+            if let caption = model.readOnlyCaption {
+                Text(caption)
+            }
         }
         .font(DistrictType.caption)
         .foregroundStyle(colors.mutedForeground)
