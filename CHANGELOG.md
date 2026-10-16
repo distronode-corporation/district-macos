@@ -168,6 +168,18 @@ not sent.
   The sign-in screen's and the placeholder's symbols are hidden from VoiceOver, which read
   their names aloud.
 
+### Fixed
+
+- APNs delivery to the Mac can be diagnosed from the Mac itself. No APNs alert has ever
+  reached the QA iMac, with the app running or quit: APNs answered 200 to every one
+  (production, `com.distronode.district`), and apsd logged none arriving (2026-10-15 and
+  10-16, 3.0.0 and 3.0.1). The app's push lifecycle is now logged under subsystem
+  `com.distronode.district`, category `push`, at the default level, so `log show` keeps it.
+  The log covers the authorization answer, the APNs registration, the token's length (never
+  the token), the service's answer to the register, APNs and authorization failures (domain
+  and code), the unregister on sign-out, and each push the running app receives (its `type`
+  only). The cause of the non-delivery is not fixed here; it is still being traced.
+
 ### Release process
 
 - The Mac App Store can have its own What's New for a version:

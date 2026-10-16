@@ -147,6 +147,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// (``IncomingCallModel/ringCancelled(_:)``). ⚠️ A quit app is not woken for it, so an alert
     /// already delivered to a quit Mac stays until the app runs.
     func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+        // ⛔ THE PAYLOAD'S `type` ONLY (`incoming_call`, `call_ring_cancelled`, `message`): it
+        // names nobody. The ids beside it stay out of the log.
+        let type = String((userInfo["type"] as? String ?? "none").prefix(40))
+        PushLog.logger.notice("remote notification received, type \(type, privacy: .public)")
         if let cancel = RingCancel.parse(userInfo: userInfo) {
             calls?.incoming.ringCancelled(cancel)
             return

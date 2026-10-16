@@ -3,7 +3,18 @@ import DistrictData
 import DistrictModel
 import Foundation
 import Observation
+import OSLog
 import UserNotifications
+
+/// The push lifecycle's log, read on the Mac with
+/// `log stream --predicate 'subsystem == "com.distronode.district" AND category == "push"'`.
+///
+/// ⛔ PUBLIC ONLY FOR VALUES THAT NAME NOBODY: an outcome, a status code, a token's LENGTH, an
+/// error's domain and code, a payload's `type`. Never the device token, an account, a
+/// workspace or a call id.
+enum PushLog {
+    static let logger = Logger(subsystem: "com.distronode.district", category: "push")
+}
 
 /// Where notification permission stands on this Mac.
 enum PushAuthorization: Equatable, Sendable {
@@ -93,13 +104,20 @@ final class PushRegistrar {
 
     /// APNs issued (or re-issued) this Mac's token. Sent as `{token, platform:"macos"}`.
     func deviceTokenReceived(_ token: String) {
+        PushLog.logger.notice("APNs issued a token (\(token.count, privacy: .public) hex characters)")
         let repository = container.pushTokens
         Task {
-            self.registration = await Self.status(for: repository.register(token: token))
+            let status = await Self.status(for: repository.register(token: token))
+            self.registration = status
+            PushLog.logger.notice("the service register answered: \(String(describing: status), privacy: .public)")
         }
     }
 
     func remoteRegistrationFailed(_ error: any Error) {
+        let nsError = error as NSError
+        PushLog.logger.error(
+            "APNs refused a token: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)"
+        )
         lastRegistrationFailure = String(describing: error)
         registration = .apnsRefused
     }
@@ -131,6 +149,7 @@ final class PushRegistrar {
         container.pushTokens.forgetRegistration()
         registration = .notAttempted
         hasAskedThisSession = false
+        PushLog.logger.notice("signed out: unregistering from APNs until the next sign-in")
         system.unregister()
         // ⛔ AND THE BADGE GOES WITH THE MEMORY: a number left on the Dock icon is a count
         // of the previous account's unread messages. Here because this runs on EVERY
@@ -158,11 +177,17 @@ final class PushRegistrar {
         do {
             let granted = try await system.requestAuthorization()
             authorization = granted ? .authorized : .denied
+            PushLog.logger.notice("notification authorization granted: \(granted, privacy: .public)")
             guard granted else { return }
         } catch {
             authorization = .unavailable(String(describing: error))
+            let nsError = error as NSError
+            PushLog.logger.error(
+                "authorization failed: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)"
+            )
             return
         }
+        PushLog.logger.notice("registering with APNs")
         system.register()
     }
 }
