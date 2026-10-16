@@ -31,6 +31,11 @@ not sent.
   longer ends anything: the call stays connected and shows muted, and Unmute tries again.
   3.0.0 joined the same way. Tested at the engine seam (`CallRoom`,
   `LiveKitCallEngineJoinTests`).
+- The end screen no longer shows LiveKit's own text. A caller hanging up read "Call ended ·
+  Room deleted" (the SDK's English error description, passed through as the end reason), and
+  a failed join could show the SDK's message the same way. `InCallCopy.word(for:)` now always
+  says the catalog's sentence for both (`wordRemoteEnded`, `wordFailed`, English and French);
+  the SDK's text goes to the log (`Logger`, category `Call`). No new strings.
 
 ### Added
 
