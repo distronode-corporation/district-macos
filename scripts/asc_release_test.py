@@ -558,6 +558,47 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual(notes.translations, {})
         self.assertIn("English is never sent", self.refused(lambda: notes.for_locale("fr-CA")))
 
+    def store(self, locale: str, text: str, version: str = "1.3") -> None:
+        (self.root / locale).mkdir(exist_ok=True)
+        (self.root / locale / f"{version}-mas.txt").write_text(text, encoding="utf-8")
+
+    def test_store_notes_replace_every_language_english_included(self) -> None:
+        self.store("en-US", "Store notes.\n")
+        self.store("fr-CA", "Notes du store.\n")
+        notes = self.notes()
+        self.assertEqual(notes.for_locale("en-US"), "Store notes.")
+        self.assertEqual(notes.for_locale("en-GB"), "Store notes.")
+        self.assertEqual(notes.for_locale("fr-CA"), "Notes du store.")
+        self.assertIn("-mas.txt", notes.source)
+
+    def test_store_notes_without_english_are_refused(self) -> None:
+        self.store("fr-CA", "Notes du store.")
+        message = self.refused(self.notes)
+        self.assertIn("en-US/1.3-mas.txt", message)
+
+    def test_english_store_notes_without_another_language_are_refused(self) -> None:
+        self.store("en-US", "Store notes.")
+        message = self.refused(self.notes)
+        self.assertIn("fr-CA/1.3-mas.txt", message)
+
+    def test_store_notes_are_checked_like_any_notes(self) -> None:
+        self.store("en-US", "Store notes.")
+        self.store("fr-CA", "x" * (asc_release.WHATS_NEW_LIMIT + 1))
+        self.assertIn("App Store Connect accepts", self.refused(self.notes))
+
+    def test_store_notes_are_still_refused_without_a_changelog_section(self) -> None:
+        self.store("en-US", "Store notes.", "9.9")
+        self.store("fr-CA", "Notes du store.", "9.9")
+        self.assertIn("has no '## [9.9]' section", self.refused(lambda: self.notes("9.9")))
+
+    def test_an_english_directory_is_never_asked_for_plain_notes(self) -> None:
+        # en-US/ holds store notes for another version only; 1.3 takes the CHANGELOG as before.
+        self.store("en-US", "Store notes.", "1.2")
+        notes = self.notes()
+        self.assertEqual(notes.for_locale("en-US"), asc_release.whats_new(self.changelog, "1.3"))
+        self.assertEqual(notes.for_locale("fr-CA"), "Les notes en fran\u00e7ais.")
+        self.assertNotIn("en-US", notes.translations)
+
     def test_the_committed_files_are_well_formed(self) -> None:
         # Every committed language file is non-empty and within the limit, whatever version.
         root = asc_release.NOTES_ROOT

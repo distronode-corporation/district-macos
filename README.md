@@ -199,7 +199,11 @@ What's New is the version's `CHANGELOG.md` section for English and
 `release-notes/<locale>/<version>.txt` (for example `release-notes/fr-CA/2.0.txt`, plain text
 exactly as the store shows it) for every other language, as on district-android. A
 localization in a language with no notes stops the submission; English is never sent in its
-place.
+place. When the store's readers come from an older version than that section assumes (Mac
+3.0.0 was never on the Mac App Store, so its readers go from 2.0.1 to 3.0.1),
+`release-notes/<locale>/<version>-mas.txt`, English in `release-notes/en-US/`, replaces every
+language's notes for the store only; it is all languages or none, and the GitHub Release keeps
+the CHANGELOG section.
 
 ## Contributing, security and conduct
 
