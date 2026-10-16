@@ -43,7 +43,8 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
 
     private let continuation: AsyncStream<CallEngineEvent>.Continuation
 
-    private let devices: AudioDevices
+    /// What runs before the join: the saved microphone and speaker (``AudioDevices``).
+    private let prepareAudio: @Sendable () async -> Void
 
     /// ⚠️ HELD SO THE SDK'S WEAK DELEGATE REFERENCE HAS AN OWNER. `Room` does not
     /// retain its delegate; a bridge that lived only as an argument to `Room.init`
@@ -51,59 +52,83 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
     /// error anywhere to say so.
     private let bridge: RoomEventBridge
 
-    private let room: Room
+    private let room: any CallRoom
 
-    /// Whether the join (and the microphone it publishes) is still on its way.
+    /// Whether the join (and the microphone started after it) is still on its way.
     ///
     /// ⛔ ONE MICROPHONE TRACK PER CALL: see ``setMuted(_:)`` and `DistrictCall.CallJoinGate`.
     private let joinGate = CallJoinGate()
 
-    init(devices: AudioDevices) {
+    convenience init(devices: AudioDevices) {
+        self.init(
+            prepareAudio: { await devices.applySavedChoice() },
+            makeRoom: { LiveKitCallRoom(delegate: $0) }
+        )
+    }
+
+    /// ⚠️ THE SEAM FOR TESTS: `makeRoom` is handed the bridge the room must report to.
+    init(
+        prepareAudio: @escaping @Sendable () async -> Void,
+        makeRoom: (RoomEventBridge) -> any CallRoom
+    ) {
         let (stream, continuation) = AsyncStream<CallEngineEvent>.makeStream()
         events = stream
         self.continuation = continuation
-        self.devices = devices
+        self.prepareAudio = prepareAudio
 
         let bridge = RoomEventBridge(continuation: continuation)
         self.bridge = bridge
-        // ⚠️ NO `roomOptions`. `adaptiveStream` and `dynacast` are video-only knobs and
-        // ⛔ the softphone publishes no video at all, in either direction; the audio
-        // capture and publish defaults are what a phone call wants.
-        room = Room(delegate: bridge)
+        room = makeRoom(bridge)
     }
 
-    /// Join the room.
+    /// Join the room, then start the microphone.
     ///
     /// ⛔ THE CHOSEN MICROPHONE AND SPEAKER ARE APPLIED BEFORE `connect`, so the first
     /// second of the call is captured from, and played to, the device the person picked
     /// rather than the system default. See ``AudioDevices/applySavedChoice()``.
     ///
-    /// ⚠️ IT EMITS ``CallEngineEvent/failed(message:)`` AND THEN RETHROWS, which is
-    /// what ``CallEngine/connect(url:token:)`` asks for: the connection state is the
-    /// user-facing outcome and the owner swallows the error. The SDK may ALSO report
-    /// `didFailToConnectWithError`, so a failed join can yield `.failed` twice; both
-    /// reducers make the first one terminal and absorb the second.
+    /// ⛔ THE JOIN FIRST, THEN THE MICROPHONE, ONCE. The join publishes nothing
+    /// (``LiveKitCallRoom``), so a slow Core Audio start can no longer hold the peer
+    /// connections back until the transport times out (3.0.1, 2026-10-16: the session
+    /// started and never became active). ⛔ IT IS THE CALL'S ONE MICROPHONE TRACK, and the
+    /// join gate opens only after it (``setMuted(_:)``), so the reducers' unmute on
+    /// `.connected` is still dropped rather than publishing a second one.
+    ///
+    /// ⚠️ IT EMITS ``CallEngineEvent/failed(message:)`` AND THEN RETHROWS when the JOIN
+    /// fails, which is what ``CallEngine/connect(url:token:)`` asks for: the connection
+    /// state is the user-facing outcome and the owner swallows the error. The SDK may ALSO
+    /// report `didFailToConnectWithError`, so a failed join can yield `.failed` twice; both
+    /// reducers make the first one terminal and absorb the second. A microphone that fails
+    /// AFTER the join does not end the call, see ``startMicrophone()``.
     func connect(url: String, token: String) async throws {
-        await devices.applySavedChoice()
+        await prepareAudio()
         await joinGate.begin()
         do {
-            // ⚠️ `enableMicrophone: true` PUBLISHES THE MIC CONCURRENTLY WITH THE JOIN
-            // rather than after it, which is what stops the first second of a call
-            // being silent. It matches ``CallMediaState/microphoneEnabled`` defaulting
-            // to true: a softphone that joined muted would put the operator on a call
-            // the callee cannot hear. ⛔ IT IS THE CALL'S ONE MICROPHONE TRACK, and
-            // `connect` returns only once it is published, which is when the join gate
-            // opens (``setMuted(_:)``).
-            try await room.connect(
-                url: url,
-                token: token,
-                connectOptions: ConnectOptions(enableMicrophone: true)
-            )
-            await joinGate.finish(joined: true)
+            try await room.connect(url: url, token: token)
         } catch {
             await joinGate.finish(joined: false)
             continuation.yield(.failed(message: error.localizedDescription))
             throw error
+        }
+        await startMicrophone()
+        await joinGate.finish(joined: true)
+    }
+
+    /// Publish the call's one microphone track, on a room already joined.
+    ///
+    /// ⛔ A MICROPHONE THAT CANNOT START LEAVES THE CALL CONNECTED AND SHOWN MUTED. The
+    /// caller is on the line and can still be heard; ending the call would drop them, and
+    /// `.failed` would word it "could not be connected", which is not what happened. The
+    /// engine reports ``CallEngineEvent/microphoneChanged(enabled:)`` `false`, so the screen
+    /// says muted (the truth: nobody hears this side), and the Unmute press reaches the SDK
+    /// once the gate opens, which tries the microphone again. ⚠️ Yielded only after the
+    /// room's `.connected` (``ConnectedLatch``): a reducer still answering drops it.
+    private func startMicrophone() async {
+        do {
+            try await room.setMicrophone(enabled: true)
+        } catch {
+            await bridge.connectedReported()
+            continuation.yield(.microphoneChanged(enabled: false))
         }
     }
 
@@ -125,18 +150,18 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
     /// truth and the one direction that matters: the alternative invites somebody to
     /// speak on a line nobody can hear.
     ///
-    /// ⛔ NOTHING REACHES THE SDK WHILE THE JOIN IS STILL PUBLISHING THE MICROPHONE, and an
-    /// unmute in that window is dropped (`CallJoinGate.admitsMute(_:)`). The SDK reports the
-    /// room connected BEFORE it publishes the join's microphone, both reducers answer
-    /// `.connected` with an unmute, and `setMicrophone(enabled: true)` in that gap found no
-    /// publication and published a SECOND track: 3.0.0 published two on every answered call
+    /// ⛔ NOTHING REACHES THE SDK WHILE ``connect(url:token:)`` IS STILL STARTING THE
+    /// MICROPHONE, and an unmute in that window is dropped (`CallJoinGate.admitsMute(_:)`).
+    /// The room reports connected BEFORE the microphone is published, both reducers answer
+    /// `.connected` with an unmute, and `setMicrophone(enabled: true)` in that gap would find
+    /// no publication and publish a SECOND track: 3.0.0 published two on every answered call
     /// (2026-10-15, 14:07:23Z), and the join's own publish then timed out waiting for its
     /// first audio frame ("Timed out"), which ended the call on screen 0:00 in.
     func setMuted(_ muted: Bool) async {
         guard await joinGate.admitsMute(muted) else { return }
         let enabled = !muted
         do {
-            try await room.localParticipant.setMicrophone(enabled: enabled)
+            try await room.setMicrophone(enabled: enabled)
             continuation.yield(.microphoneChanged(enabled: enabled))
         } catch {
             // ⛔ DELIBERATELY SILENT. See above: the state already says the microphone
@@ -169,11 +194,29 @@ final class LiveKitCallEngine: CallEngine, @unchecked Sendable {
 /// nothing here needs an actor hop and nothing here may grow one: a hop would reorder
 /// events, and the reducers on the other side of the seam are order-sensitive by
 /// design.
-private final class RoomEventBridge: NSObject, RoomDelegate, @unchecked Sendable {
+///
+/// ⚠️ NOT `private`: it is the argument of ``LiveKitCallEngine``'s room factory, the seam
+/// the join-order tests use.
+final class RoomEventBridge: NSObject, RoomDelegate, @unchecked Sendable {
     private let continuation: AsyncStream<CallEngineEvent>.Continuation
+
+    /// Opens once the first `.connected` is on the stream; see ``ConnectedLatch``.
+    private let connected = ConnectedLatch()
 
     init(continuation: AsyncStream<CallEngineEvent>.Continuation) {
         self.continuation = continuation
+    }
+
+    /// Put `.connected` on the stream, then open the latch: in that order, so whatever waits
+    /// on the latch is yielded after it.
+    func reportConnected() {
+        continuation.yield(.connected)
+        connected.open()
+    }
+
+    /// Return once ``reportConnected()`` has run.
+    func connectedReported() async {
+        await connected.wait()
     }
 
     /// ⛔ `.disconnected` IS DELIBERATELY NOT MAPPED HERE. `didDisconnectWithError` is
@@ -193,7 +236,7 @@ private final class RoomEventBridge: NSObject, RoomDelegate, @unchecked Sendable
     ) {
         switch connectionState {
         case .connected:
-            continuation.yield(.connected)
+            reportConnected()
         case .reconnecting:
             continuation.yield(.reconnecting)
         default:
