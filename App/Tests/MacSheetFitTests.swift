@@ -1,7 +1,8 @@
 @testable import DistrictMac
 import XCTest
 
-/// The 3.0.2 visual walk: a sheet taller than the smallest window, with its Done below the edge.
+/// The 3.0.2 visual walk: a sheet taller than the smallest window, with its Done below the
+/// edge, and every sheet on the system's grey rather than the palette.
 final class MacSheetFitTests: XCTestCase {
     /// ⛔ A CAPPED SHEET AND ITS BAR FIT INSIDE THE SMALLEST WINDOW. Measured on build 20065:
     /// the Desk settings sheet, framed at 600pt, drew 661pt tall (61pt of bar) in a window
@@ -23,22 +24,16 @@ final class MacSheetFitTests: XCTestCase {
     /// CONSTANT. A sheet sized with a raw `.frame` (not ``View/macSheetSize(width:height:)``)
     /// is not capped by it, so its literal `idealHeight` and `minHeight` are checked here.
     func testNoSheetFrameLiteralRunsPastTheCap() throws {
-        let sources = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // App/Tests
-            .deletingLastPathComponent() // App
-            .appendingPathComponent("Sources")
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: sources.path), "sources are not beside this test")
-        let app = try String(contentsOf: sources.appendingPathComponent("DistrictMacApp.swift"), encoding: .utf8)
-        XCTAssertTrue(app.contains("minHeight: MacWindowSize.minHeight)"), "the window's minimum is MacWindowSize's")
+        let sources = try SheetScan.sources()
+        XCTAssertTrue(
+            sources["DistrictMacApp.swift", default: ""].contains("minHeight: MacWindowSize.minHeight)"),
+            "the window's minimum is MacWindowSize's"
+        )
 
         let literal = try NSRegularExpression(pattern: #"(?:idealHeight|minHeight): (\d+)\b"#)
         var checked = 0
-        let files = FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)
-        while let file = files?.nextObject() as? URL {
-            guard file.pathExtension == "swift" else { continue }
-            let code = try String(contentsOf: file, encoding: .utf8)
-            // Only sheets: a file that presents nothing and is presented as nothing is out of scope.
-            guard code.contains("Sheet") else { continue }
+        // Only sheets: a file that presents nothing and is presented as nothing is out of scope.
+        for (name, code) in sources where code.contains("Sheet") {
             let range = NSRange(code.startIndex..., in: code)
             for match in literal.matches(in: code, range: range) {
                 guard let value = Range(match.range(at: 1), in: code).flatMap({ Double(code[$0]) }) else { continue }
@@ -48,10 +43,168 @@ final class MacSheetFitTests: XCTestCase {
                 XCTAssertLessThanOrEqual(
                     CGFloat(value),
                     MacSheetFit.maxHeight,
-                    "\(file.lastPathComponent): a sheet height of \(Int(value))pt runs past the smallest window"
+                    "\(name): a sheet height of \(Int(value))pt runs past the smallest window"
                 )
             }
         }
         XCTAssertGreaterThan(checked, 0, "the scan found no sheet frame at all")
+    }
+
+    /// ⛔ EVERY `.sheet` CONTENT IS PAINTED WITH THE PALETTE. Its closure, the view type it
+    /// presents, or the member it names applies `macSheetSize` or `macSheetBackground()`,
+    /// directly or through a view that does (`SchedulingWriteSheet` for the scheduling writes).
+    func testEverySheetContentTakesThePaletteBackground() throws {
+        let sources = try SheetScan.sources()
+        let painted = SheetScan.paintedTypes(sources)
+        XCTAssertTrue(painted.contains("SchedulingWriteSheet"), "the scheduling writes' shared sheet")
+        var sheets = 0
+        for (name, code) in sources {
+            for site in SheetScan.sheetSites(in: code) {
+                sheets += 1
+                let content = String(code[site.content])
+                let named = SheetScan.bareMembers(in: content).map { SheetScan.member($0, in: code) }
+                let covered = ([content] + named).contains { SheetScan.paints($0, painted: painted) }
+                let line = code[..<site.call].filter { $0 == "\n" }.count + 1
+                XCTAssertTrue(covered, "\(name):\(line): a sheet without macSheetSize or macSheetBackground()")
+            }
+        }
+        XCTAssertGreaterThan(sheets, 30, "the scan found too few sheets to have read the app")
+    }
+}
+
+/// A source scan of the app's sheets, for ``MacSheetFitTests``.
+private enum SheetScan {
+    struct Site {
+        /// Where `.sheet(` starts.
+        let call: String.Index
+        /// The content closure, braces included.
+        let content: Range<String.Index>
+    }
+
+    static let marks = [".macSheetSize(", ".macSheetBackground()"]
+
+    /// Every `.swift` file under `App/Sources`, by file name.
+    static func sources() throws -> [String: String] {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // App/Tests
+            .deletingLastPathComponent() // App
+            .appendingPathComponent("Sources")
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: root.path), "sources are not beside this test")
+        var found: [String: String] = [:]
+        let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        while let file = files?.nextObject() as? URL {
+            guard file.pathExtension == "swift" else { continue }
+            found[file.lastPathComponent] = try String(contentsOf: file, encoding: .utf8)
+        }
+        return found
+    }
+
+    /// The balanced `{ ... }` that opens at or after `start`.
+    static func closure(in code: String, from start: String.Index) -> Range<String.Index>? {
+        guard let open = code[start...].firstIndex(of: "{") else { return nil }
+        var depth = 0
+        var index = open
+        while index < code.endIndex {
+            if code[index] == "{" {
+                depth += 1
+            } else if code[index] == "}" {
+                depth -= 1
+                if depth == 0 {
+                    return open ..< code.index(after: index)
+                }
+            }
+            index = code.index(after: index)
+        }
+        return nil
+    }
+
+    static func sheetSites(in code: String) -> [Site] {
+        var sites: [Site] = []
+        var cursor = code.startIndex
+        while let call = code.range(of: ".sheet(", range: cursor ..< code.endIndex) {
+            guard let content = closure(in: code, from: call.upperBound) else { break }
+            sites.append(Site(call: call.lowerBound, content: content))
+            cursor = content.upperBound
+        }
+        return sites
+    }
+
+    /// `code` without its `.sheet` presentations, so a screen that PRESENTS a painted sheet
+    /// is not counted as a painted sheet itself.
+    static func withoutSheets(_ code: String) -> String {
+        var kept = ""
+        var cursor = code.startIndex
+        for site in sheetSites(in: code) {
+            kept.append(contentsOf: code[cursor ..< site.call])
+            cursor = site.content.upperBound
+        }
+        kept.append(contentsOf: code[cursor...])
+        return kept
+    }
+
+    /// The upper-case names called in `text`: `Name(`.
+    static func calledTypes(_ text: String) -> Set<String> {
+        guard let call = try? NSRegularExpression(pattern: #"\b([A-Z]\w*)\("#) else { return [] }
+        let matches = call.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        return Set(matches.compactMap { Range($0.range(at: 1), in: text).map { String(text[$0]) } })
+    }
+
+    static func paints(_ text: String, painted: Set<String>) -> Bool {
+        marks.contains { text.contains($0) } || !calledTypes(text).isDisjoint(with: painted)
+    }
+
+    /// Each top-level `struct` whose own body (its presentations aside) paints a sheet, and
+    /// each one that draws such a struct, to a fixed point.
+    static func paintedTypes(_ sources: [String: String]) -> Set<String> {
+        var calls: [String: Set<String>] = [:]
+        var painted: Set<String> = []
+        for code in sources.values {
+            for (name, body) in structs(in: code) {
+                calls[name] = calledTypes(body)
+                if marks.contains(where: { body.contains($0) }) {
+                    painted.insert(name)
+                }
+            }
+        }
+        var grew = true
+        while grew {
+            let more = calls.filter { name, called in !painted.contains(name) && !called.isDisjoint(with: painted) }
+            painted.formUnion(more.keys)
+            grew = !more.isEmpty
+        }
+        return painted
+    }
+
+    /// Each top-level `struct` in `code` by name, to its closing brace, presentations removed.
+    static func structs(in code: String) -> [(String, String)] {
+        guard let header = try? NSRegularExpression(
+            pattern: #"^(?:private |fileprivate )?struct (\w+)\b"#,
+            options: .anchorsMatchLines
+        ) else { return [] }
+        return header.matches(in: code, range: NSRange(code.startIndex..., in: code)).compactMap { match in
+            guard let start = Range(match.range, in: code), let name = Range(match.range(at: 1), in: code) else {
+                return nil
+            }
+            let rest = start.lowerBound ..< code.endIndex
+            let end = code.range(of: "\n}\n", range: rest)?.upperBound ?? code.endIndex
+            return (String(code[name]), withoutSheets(String(code[start.lowerBound ..< end])))
+        }
+    }
+
+    /// The lower-case names a content closure is nothing but (`editor`, `addSheet`).
+    static func bareMembers(in content: String) -> [String] {
+        content.dropFirst().dropLast()
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.range(of: #"^[a-z]\w*$"#, options: .regularExpression) != nil }
+    }
+
+    /// A type member's declaration, to the end of its body.
+    static func member(_ name: String, in code: String) -> String {
+        let pattern = #"\n    (?:private )?(?:var|func) "# + name + #"\b"#
+        guard let start = code.range(of: pattern, options: .regularExpression) else { return "" }
+        let rest = start.upperBound ..< code.endIndex
+        let end = code.range(of: "\n    }\n", range: rest)?.upperBound ?? code.endIndex
+        return String(code[start.lowerBound ..< end])
     }
 }

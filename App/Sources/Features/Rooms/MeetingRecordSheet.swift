@@ -59,6 +59,7 @@ struct MeetingRecordSheet: View {
             idealHeight: MacSheetFit.height(560),
             maxHeight: MacSheetFit.maxHeight
         )
+        .macSheetBackground()
     }
 
     @ViewBuilder

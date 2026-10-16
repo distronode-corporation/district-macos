@@ -151,10 +151,10 @@ struct SchedulingWriteSheet<Content: View>: View {
                     .padding(DistrictSpacing.gutter)
             }
         }
-        .background(colors.background)
         // ⚠️ MAC: A SHEET HAS NO SIZE OF ITS OWN, so every scheduling write sheet opens at
         // this one, set here where all of them are drawn rather than at 29 call sites. The
-        // content scrolls inside it.
+        // content scrolls inside it. The palette background is the sheet's own, painted by
+        // `macSheetSize` (``View/macSheetBackground()``), so this view paints none.
         .macSheetSize(width: 520, height: 600)
     }
 

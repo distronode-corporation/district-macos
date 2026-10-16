@@ -25,6 +25,10 @@ struct WorkspacePickerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                // ⚠️ KEPT BESIDE `macSheetBackground()` BELOW: that paints the sheet, which
+                // is BEHIND this `NavigationStack`, and a stack can draw a container
+                // background of its own over it (see `ShellBackground.swift`). This fill
+                // is inside the stack, so the rows sit on the palette either way.
                 colors.background.ignoresSafeArea()
                 rows
             }
@@ -38,6 +42,7 @@ struct WorkspacePickerSheet: View {
             }
         }
         .frame(minWidth: 420, idealWidth: 460, minHeight: 320, idealHeight: 420)
+        .macSheetBackground()
     }
 
     private var rows: some View {

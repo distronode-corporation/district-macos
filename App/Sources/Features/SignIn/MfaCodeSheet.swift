@@ -68,6 +68,7 @@ struct MfaCodeSheet: View {
         }
         .padding(24)
         .frame(width: 380)
+        .macSheetBackground()
         .onAppear { focused = true }
         .accessibilityIdentifier(A11yID.SignIn.mfaSheet)
     }

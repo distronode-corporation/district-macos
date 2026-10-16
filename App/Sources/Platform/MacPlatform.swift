@@ -91,6 +91,9 @@ extension View {
     /// ⛔ THE HEIGHT IS CAPPED BY ``MacSheetFit``, AND A MAXIMUM IS SET AS WELL AS A
     /// MINIMUM, so neither a tall request nor tall content can push the sheet, or its
     /// Done, past the bottom of the smallest window.
+    ///
+    /// ⛔ AND IT PAINTS THE SHEET (``View/macSheetBackground()``), so a sized sheet cannot
+    /// be a sheet without the palette.
     func macSheetSize(width: CGFloat, height: CGFloat) -> some View {
         let fitted = MacSheetFit.height(height)
         return frame(
@@ -100,5 +103,27 @@ extension View {
             idealHeight: fitted,
             maxHeight: fitted
         )
+        .macSheetBackground()
+    }
+
+    /// The palette's page colour under a sheet, the colour the app's content is drawn on.
+    ///
+    /// ⛔ EVERY SHEET TAKES IT, through ``macSheetSize(width:height:)`` or, for the few that
+    /// size themselves, directly at their root. Without it a Mac sheet shows the system's
+    /// own sheet colour (#1E1E1E in dark), a different grey from the `#0E1C1F` page the
+    /// sheet sits over (3.0.2 visual walk). `MacSheetFitTests` fails a sheet that has neither.
+    func macSheetBackground() -> some View {
+        modifier(MacSheetBackground())
+    }
+}
+
+/// ⚠️ THE PALETTE IS READ FROM `colorScheme` (``DistrictColors/resolve(_:)``), so the sheet
+/// follows light and dark like every other surface; never a fixed colour here.
+/// `presentationBackground` is macOS 13.3 and later; the deployment target is 14.0.
+private struct MacSheetBackground: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content.presentationBackground(DistrictColors.resolve(colorScheme).background)
     }
 }
