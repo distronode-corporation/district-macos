@@ -205,6 +205,13 @@ place. When the store's readers come from an older version than that section ass
 language's notes for the store only; it is all languages or none, and the GitHub Release keeps
 the CHANGELOG section.
 
+`store-listing/<locale>.json` (en-US and fr-CA) is the reviewed Mac App Store listing: name,
+subtitle, description, keywords, promotional text, and the support and marketing URLs, in
+district-ios's format. It is entered in App Store Connect by hand for the Mac App Store,
+copied from these files and never retyped; no script uses them yet. The subtitle is one
+app-level field shared with iPhone and iPad, so fr-CA's subtitles are district-ios's, and
+the one that applies translates the live English subtitle.
+
 ## Contributing, security and conduct
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): the local gate and the rules CI enforces.
