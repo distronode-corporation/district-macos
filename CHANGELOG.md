@@ -110,6 +110,9 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
+- DistrictCore 7.0.1 (district-core-swift d7bf46d, tag 7.0.1), pinned by its tag. 3.0.1 was
+  built and reviewed against the 7.0.1 pull request's head, 1972dc9, by revision; the tag's
+  tree is the same tree, so nothing in the app changes.
 - DistrictCore 7.0.0 (district-core-swift 1292c25), the release of the three betas below
   with the reviewed v3.0 French in the core's catalog: in French, a cancelled-bookings
   view reads « Annulés » and the scheduling team roles « Administrateur » and « Membre ».
