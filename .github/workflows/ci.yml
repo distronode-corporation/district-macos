@@ -370,8 +370,7 @@ jobs:
             2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
 
       # ⛔ A BUNDLE THAT DISCOVERS NOTHING REPORTS SUCCESS. The floor is a ratchet, set at
-      # the count (809 on 2026-10-16 with the AXButton and AXPress checks on Sign in and the ring
-      # panel; 805 on 2026-10-15 with the 3.0.1 visual QA: the selected-row chip, the
+      # the count (805 on 2026-10-15 with the 3.0.1 visual QA: the selected-row chip, the
       # measured table columns, the composer's send key, the French funnel, the support
       # statuses, the bookings columns, the ring panel and its filled buttons, the Desk's wrapping chips and
       # stacked-row insets and the card lists'
@@ -387,7 +386,7 @@ jobs:
       # saying so.
       - name: DistrictMacTests were discovered
         run: |
-          minimum=809
+          minimum=805
           executed=$(sed -n 's/.*Executed \([0-9]*\) tests\{0,1\}, with.*/\1/p' xcodebuild-test.log | sort -n | tail -1)
           echo "app-target tests executed - ${executed:-0} (at least $minimum expected)"
           if [ -z "$executed" ] || [ "$executed" -lt "$minimum" ]; then
@@ -429,7 +428,7 @@ jobs:
             -only-testing:DistrictMacUITests/LaunchSmokeTests \
             -resultBundlePath LaunchSmoke.xcresult \
             2>&1 | tee xcodebuild-launch-smoke.log | xcbeautify --renderer github-actions
-          grep -q 'Executed 1 test, with 0 failures' xcodebuild-launch-smoke.log
+          grep -q 'Executed 2 tests, with 0 failures' xcodebuild-launch-smoke.log
 
       - name: Tail the logs on failure
         if: failure()

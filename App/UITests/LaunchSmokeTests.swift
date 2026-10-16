@@ -1,3 +1,4 @@
+import ApplicationServices
 import XCTest
 
 /// Launches the app the way the screenshot run does, on a DUMMY session, and asserts it
@@ -37,6 +38,31 @@ final class LaunchSmokeTests: XCTestCase {
 
     /// The five `/api/auth/native/token` keys plus `deviceId`, every value made up. The access
     /// token is good for an hour and the refresh token for a day, in epoch milliseconds.
+    /// ⛔ SIGN IN IS AN AXBUTTON THAT AXPRESS PRESSES, read and pressed through the C
+    /// Accessibility API from this process, as VoiceOver and an automation script do
+    /// (``AXProbe``). 3.0.1 draws it with a style of its own (`SignInDoorStyle`) where
+    /// 3.0.0 used `.borderedProminent`. Signed out: armed with no session, an empty
+    /// in-memory store. The press starts the sign-in, which reaches no server until a
+    /// person continues it, and the app is terminated.
+    @MainActor
+    func test_signInIsAnAXButtonThatAXPressPresses() {
+        let app = XCUIApplication()
+        app.launchArguments = [AppLaunch.argument]
+        app.launchEnvironment[AppLaunch.windowVariable] = AppLaunch.windowPoints
+        app.launch()
+        defer { app.terminate() }
+
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 60), "the app opened no window")
+        XCTAssertTrue(AXIsProcessTrusted(), "this test runner is not trusted for Accessibility")
+        guard let found = AXProbe.waitForButton("Sign in", timeout: 30) else {
+            XCTFail("no AXButton 'Sign in': " + (AXProbe.pid().map(AXProbe.report(pid:)) ?? "no app"))
+            return
+        }
+        let (pid, button) = found
+        XCTAssertTrue(AXProbe.actions(button).contains(kAXPressAction), "\(AXProbe.actions(button)) in \(pid)")
+        XCTAssertEqual(AXUIElementPerformAction(button, kAXPressAction as CFString), .success)
+    }
+
     private static func dummySession() -> String {
         let now = Int64(Date().timeIntervalSince1970 * 1000)
         let payload: [String: Any] = [
