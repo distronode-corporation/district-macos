@@ -203,13 +203,14 @@ struct DeskView: View {
     /// ⚠️ THE CHIPS COUNT THE WHOLE QUEUE, WHICH IS WHY THE READ IS UNFILTERED. A
     /// server-side filter would mean one request per chip and the counts could
     /// disagree with each other between responses.
+    ///
+    /// ⚠️ THEY WRAP ONTO A SECOND LINE (``FlowLayout``), NEVER A SIDEWAYS SCROLLER, which
+    /// hid « Réglé 1 » at the column's edge in French (3.0.1 visual QA).
     private var filters: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DistrictSpacing.tight) {
-                chip(nil, DeskCopy.allFilter)
-                ForEach(DeskTicketStatus.allCases, id: \.rawValue) { status in
-                    chip(status, Self.label(for: status))
-                }
+        FlowLayout(spacing: DistrictSpacing.tight, lineSpacing: DistrictSpacing.tight) {
+            chip(nil, DeskCopy.allFilter)
+            ForEach(DeskTicketStatus.allCases, id: \.rawValue) { status in
+                chip(status, Self.label(for: status))
             }
         }
     }
@@ -340,14 +341,14 @@ struct DeskTicketRow: View {
             VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
                 Text(ticket.displayReference)
                     .font(DistrictType.caption)
-                    .foregroundStyle(colors.mutedForeground)
+                    .rowInk(colors.mutedForeground, .secondary)
                 Text(ticket.subject)
                     .font(DistrictType.titleSmall)
-                    .foregroundStyle(colors.foreground)
+                    .rowInk(colors.foreground, .primary)
                     .lineLimit(2)
                 Text(DeskTicketRow.requesterLine(ticket))
                     .font(DistrictType.caption)
-                    .foregroundStyle(colors.mutedForeground)
+                    .rowInk(colors.mutedForeground, .secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: DistrictSpacing.tight)
@@ -356,7 +357,7 @@ struct DeskTicketRow: View {
                 if ticket.fromCall {
                     Text(DeskCopy.fromCall)
                         .font(DistrictType.caption)
-                        .foregroundStyle(colors.mutedForeground)
+                        .rowInk(colors.mutedForeground, .secondary)
                 }
             }
         }
@@ -381,6 +382,8 @@ struct DeskStatusBadge: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    /// ⛔ White on a selected row, as ``DistrictBadge`` (``SelectionInk``).
+    @Environment(\.backgroundProminence) private var prominence
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
@@ -391,12 +394,18 @@ struct DeskStatusBadge: View {
         let increased = colorSchemeContrast == .increased
         return Text(DeskView.label(forWire: status))
             .font(DistrictType.label)
-            .foregroundStyle(tone.ink(colors, increasedContrast: increased))
+            .foregroundStyle(SelectionInk.chipInk(tone, colors, increasedContrast: increased, prominence: prominence))
             .padding(.horizontal, DistrictSpacing.tight)
             .padding(.vertical, DistrictSpacing.hairline)
             .background(
-                tone.fill(colors, increasedContrast: increased),
+                SelectionInk.chipFill(tone, colors, increasedContrast: increased, prominence: prominence),
                 in: RoundedRectangle(cornerRadius: DistrictRadius.badge)
             )
+            .overlay {
+                if let outline = SelectionInk.chipOutline(prominence) {
+                    RoundedRectangle(cornerRadius: DistrictRadius.badge)
+                        .strokeBorder(outline, lineWidth: 1)
+                }
+            }
     }
 }

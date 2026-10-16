@@ -10,6 +10,9 @@ import UserNotifications
 protocol RingPresenting: AnyObject {
     func startRinging(workspaceId: String, callId: String)
     func stopRinging()
+    /// Take away every delivered alert naming `callId`, the server's APNs ring alert included,
+    /// whether or not this app rang for it (3.0.1, the ring cancel).
+    func withdrawAlerts(callId: String)
 }
 
 /// The ring on a Mac: the sound, the notification and the Dock. The panel is
@@ -104,6 +107,10 @@ final class RingPresenter: RingPresenting {
         // runtime's executor check would trap on the first ring (the same SIGILL that
         // crashed every web sign-in in build 20012). A failed post is not acted on anyway.
         center.add(request, withCompletionHandler: nil)
+    }
+
+    func withdrawAlerts(callId: String) {
+        removeLeftovers(of: callId)
     }
 
     private func removeLeftovers(of callId: String) {

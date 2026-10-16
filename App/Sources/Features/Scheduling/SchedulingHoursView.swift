@@ -173,7 +173,13 @@ struct SchedulingHoursView: View {
             case let .failed(failure):
                 FailureView(failure: failure, onRetry: reload)
             case let .ready(week):
-                days(week)
+                // ⛔ THE SEVEN COLUMNS ONLY WHEN EACH DAY FITS ON ITS LINE, else the iPad's
+                // day list. In a 1000pt window the columns broke « Non réservabl / e »
+                // inside the word (3.0.1 visual QA, AP-009).
+                ViewThatFits(in: .horizontal) {
+                    days(week)
+                    dayList(week)
+                }
             }
         }
     }
@@ -200,6 +206,33 @@ struct SchedulingHoursView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// The week as the iPad draws it: one `day: hours` line per day, for a pane too narrow
+    /// for seven columns.
+    private func dayList(_ week: [[SchedulingHoursRange]]) -> some View {
+        Grid(
+            alignment: .topLeading,
+            horizontalSpacing: DistrictSpacing.row,
+            verticalSpacing: DistrictSpacing.hairline
+        ) {
+            ForEach(Array(week.enumerated()), id: \.offset) { index, ranges in
+                let name = SchedulingHoursFormat.weekDayNames[index]
+                GridRow {
+                    Text(name)
+                        .font(DistrictType.bodySmall)
+                        .foregroundStyle(colors.mutedForeground)
+                    Text(SchedulingCopy.dayHours(ranges))
+                        .font(DistrictType.bodySmall)
+                        .foregroundStyle(ranges.isEmpty ? colors.mutedForeground : colors.foreground)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(name), \(SchedulingCopy.dayHours(ranges))")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func dayColumn(_ name: String, _ ranges: [SchedulingHoursRange]) -> some View {
         VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
             Text(name)
@@ -209,12 +242,14 @@ struct SchedulingHoursView: View {
                 Text(SchedulingCopy.dayHours([]))
                     .font(DistrictType.bodySmall)
                     .foregroundStyle(colors.mutedForeground)
+                    .lineLimit(1)
             } else {
                 ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
                     Text(SchedulingCopy.dayHours([range]))
                         .font(DistrictType.bodySmall)
                         .foregroundStyle(colors.foreground)
                         .monospacedDigit()
+                        .lineLimit(1)
                 }
             }
         }

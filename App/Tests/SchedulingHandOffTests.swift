@@ -108,6 +108,26 @@ final class SchedulingHandOffTests: XCTestCase {
         XCTAssertFalse(text.contains("nonce"))
     }
 
+    /// ⛔ NO CALLBACK IS A NOTICE TO PRESS AGAIN, AND NOTHING WAS MINTED (7.0.1): the
+    /// flow never falls back to an unbound mint. A second press, a closed browser and a
+    /// mint leave nothing on the screen.
+    @MainActor
+    func test_IOS_SCH_28_noCallbackAsksForAnotherPress() throws {
+        XCTAssertEqual(
+            SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.noCallback),
+            "Opening the page took too long. Try again."
+        )
+        XCTAssertEqual(
+            SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.failed(.invalidNonce)),
+            SchedulingCopy.handOffFailed
+        )
+        XCTAssertNil(SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.alreadyPending))
+        XCTAssertNil(SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.abandoned))
+        let url = try XCTUnwrap(URL(string: "https://www.distronode.com/dashboard/handoff?code=c"))
+        let minted = SchedulingHandoff(url: url, expiresIn: 60)
+        XCTAssertNil(SchedulingModel.handOffNotice(for: SchedulingHandoffOutcome.minted(minted)))
+    }
+
     /// The pre-nonce mapping is unchanged: 409 is "not ready", the rest is `FailureText`.
     @MainActor
     func test_IOS_SCH_27_otherFailuresKeepTheirMapping() {

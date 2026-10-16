@@ -110,6 +110,9 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
+- DistrictCore 7.0.1 (district-core-swift d7bf46d, tag 7.0.1), pinned by its tag. 3.0.1 was
+  built and reviewed against the 7.0.1 pull request's head, 1972dc9, by revision; the tag's
+  tree is the same tree, so nothing in the app changes.
 - DistrictCore 7.0.0 (district-core-swift 1292c25), the release of the three betas below
   with the reviewed v3.0 French in the core's catalog: in French, a cancelled-bookings
   view reads « Annulés » and the scheduling team roles « Administrateur » and « Membre ».
@@ -183,6 +186,20 @@ not sent.
   Release with its Sparkle signature, checksums and provenance attestation, and adds it
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
+
+## [3.0.1]
+
+- When a call is answered on another device, this Mac stops ringing and says so.
+- Answering a call shows the call screen and keeps it while you are connected, instead of
+  "Call ended".
+- Answering a call no longer starts your microphone twice.
+- With District AI quit, incoming calls ring this Mac again after you sign out and sign in,
+  or sign in with another account.
+- Quitting District AI no longer signs you out the next time you open it.
+- Once you are signed out, this Mac stops receiving that account's notifications.
+- The open call or contact beside the list is wider and easier to read, and the labels on a
+  selected row stay readable.
+- A more compact reply box in conversations: Command-Return sends the message.
 
 ## [3.0.0]
 

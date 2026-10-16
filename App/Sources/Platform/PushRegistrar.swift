@@ -32,6 +32,17 @@ enum PushRegistrationStatus: Equatable, Sendable {
 ///
 /// ⛔ IT NEVER THROWS INTO SIGN-IN OR SIGN-OUT. Push is a courtesy channel; a failed
 /// registration must not fail the thing it was attached to.
+///
+/// ⛔ EVERY SIGNED-IN SESSION REGISTERS, AND EVERY ONE SENDS ITS REGISTER. The quit app's
+/// ring is the server's APNs alert, so a Mac with no live alert row is a Mac that does not
+/// ring once the app is quit. 3.0.0 asked once per LAUNCH (`hasAskedThisLaunch`), from the
+/// window's appearance: a second account signed in on the same launch never called
+/// `registerForRemoteNotifications`, while the sign-out before it had deleted the
+/// installation's rows, so that account had no alert row at all (2026-10-15). Now the ask
+/// is once per signed-in session (``forget()`` re-arms it), it is started by
+/// ``SessionModel`` and not by a window, and the remembered token is forgotten first, so
+/// the register is sent on every launch and every sign-in even when the token is the one
+/// the server last affirmed: a row the server retired or deleted since is put back.
 @MainActor
 @Observable
 final class PushRegistrar {
@@ -50,16 +61,33 @@ final class PushRegistrar {
     var pendingTapPayload: [String: String]?
 
     private let container: AppContainer
-    private var hasAskedThisLaunch = false
+    private let system: PushSystem
 
-    init(container: AppContainer) {
+    /// Whether this signed-in session has asked for permission and an APNs token.
+    ///
+    /// ⚠️ PER SESSION, NOT PER LAUNCH: ``forget()`` clears it on every transition into
+    /// signed-out, which is what makes the next sign-in, on this launch or a later one,
+    /// register again. It still stops a second ask within one session (the gate reaching
+    /// signed-in again after "Try again").
+    private var hasAskedThisSession = false
+
+    /// - Parameter system: the OS's notification calls. ⚠️ The live one everywhere but a
+    ///   test, which records them instead of asking macOS.
+    init(container: AppContainer, system: PushSystem = .live) {
         self.container = container
+        self.system = system
     }
 
-    /// Ask for permission once per launch after a sign-in, then register with APNs.
+    /// Ask for permission once per signed-in session, then register with APNs.
+    ///
+    /// ⛔ THE REMEMBERED TOKEN IS FORGOTTEN FIRST, so the token APNs hands back is sent to
+    /// the server even when it is byte-identical to the last one affirmed: APNs reissues the
+    /// same token for this app on this Mac whoever is signed in, and the server's row may
+    /// have been deleted (a sign-out) or retired (a failed send) since it was affirmed.
     func enableAfterSignIn() {
-        guard !hasAskedThisLaunch else { return }
-        hasAskedThisLaunch = true
+        guard !hasAskedThisSession else { return }
+        hasAskedThisSession = true
+        container.pushTokens.forgetRegistration()
         Task { await requestAuthorizationThenRegister() }
     }
 
@@ -91,9 +119,19 @@ final class PushRegistrar {
     /// ⛔ ON EVERY TRANSITION INTO SIGNED-OUT, not only the sign-out button: the server's
     /// row is keyed on the installation, so a remembered token surviving into another
     /// account's session would skip the register that moves the row to that account.
+    ///
+    /// ⛔ AND THIS MAC STOPS TAKING REMOTE NOTIFICATIONS UNTIL THE NEXT SIGN-IN. A session
+    /// the SERVER ended (or one whose rotated token never reached the keychain) leaves no
+    /// credential to unregister with, so the account's alert row stays live and its
+    /// messages and calls would keep arriving on a Mac showing the sign-in screen.
+    /// `unregisterForRemoteNotifications` is the one withdrawal that needs no session: APNs
+    /// refuses the token from then on, and the server retires the row on its next send.
+    /// The next sign-in registers again (``enableAfterSignIn()``).
     func forget() {
         container.pushTokens.forgetRegistration()
         registration = .notAttempted
+        hasAskedThisSession = false
+        system.unregister()
         // ⛔ AND THE BADGE GOES WITH THE MEMORY: a number left on the Dock icon is a count
         // of the previous account's unread messages. Here because this runs on EVERY
         // transition into signed-out, including the one the server ends.
@@ -118,14 +156,32 @@ final class PushRegistrar {
 
     private func requestAuthorizationThenRegister() async {
         do {
-            let granted = try await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .badge, .sound])
+            let granted = try await system.requestAuthorization()
             authorization = granted ? .authorized : .denied
             guard granted else { return }
         } catch {
             authorization = .unavailable(String(describing: error))
             return
         }
-        NSApplication.shared.registerForRemoteNotifications()
+        system.register()
     }
+}
+
+/// The OS's half of push: the permission prompt, and APNs registration.
+///
+/// ⚠️ CLOSURES RATHER THAN THE CALLS, SO A TEST ASKS NOTHING OF macOS. The test host is this
+/// app, and a real `requestAuthorization` there is a system prompt nobody answers.
+struct PushSystem: Sendable {
+    let requestAuthorization: @MainActor @Sendable () async throws -> Bool
+    let register: @MainActor @Sendable () -> Void
+    let unregister: @MainActor @Sendable () -> Void
+
+    /// `UNUserNotificationCenter` and `NSApplication`.
+    static let live = PushSystem(
+        requestAuthorization: {
+            try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+        },
+        register: { NSApplication.shared.registerForRemoteNotifications() },
+        unregister: { NSApplication.shared.unregisterForRemoteNotifications() }
+    )
 }

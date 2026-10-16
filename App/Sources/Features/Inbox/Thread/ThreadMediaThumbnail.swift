@@ -13,6 +13,15 @@ import SwiftUI
 /// outcomes: the operator waits for something that is not coming.
 struct ThreadMediaThumbnail: View {
     let url: String
+    /// The thumbnail's width: 96pt in the conversation, ``stagedSide`` in the composer.
+    var side: CGFloat = 96
+
+    /// A staged attachment in the composer: small, as Mail and Messages stage one.
+    static let stagedSide: CGFloat = 56
+
+    /// ⚠️ BELOW THIS A SENTENCE DOES NOT FIT, so the two text states draw a symbol and keep
+    /// the sentence as its spoken label and its tooltip.
+    private static let captionFloor: CGFloat = 80
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -40,17 +49,25 @@ struct ThreadMediaThumbnail: View {
         // unavailable")` / `("Loading image")`, and at an accessibility size that
         // sentence is taller than 96pt and was clipped to nothing. The WIDTH stays
         // fixed so the thumbnail column keeps its rhythm.
-        .frame(width: 96)
-        .frame(minHeight: 96)
+        .frame(width: side)
+        .frame(minHeight: side)
         .background(colors.muted)
         .clipShape(RoundedRectangle(cornerRadius: DistrictRadius.control))
     }
 
+    @ViewBuilder
     private func caption(_ text: String) -> some View {
-        Text(text)
-            .font(DistrictType.caption)
-            .foregroundStyle(colors.mutedForeground)
-            .multilineTextAlignment(.center)
-            .padding(DistrictSpacing.hairline)
+        if side < Self.captionFloor {
+            Image(systemName: text == InboxCopy.loadingImage ? "photo" : "exclamationmark.triangle")
+                .foregroundStyle(colors.mutedForeground)
+                .help(text)
+                .accessibilityLabel(text)
+        } else {
+            Text(text)
+                .font(DistrictType.caption)
+                .foregroundStyle(colors.mutedForeground)
+                .multilineTextAlignment(.center)
+                .padding(DistrictSpacing.hairline)
+        }
     }
 }

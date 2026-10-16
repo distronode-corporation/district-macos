@@ -19,11 +19,20 @@ extension View {
     /// ⛔ THE GAP GOES ABOVE A ROW, NEVER BELOW, BECAUSE THAT IS HOW A `VStack` SPACES:
     /// between neighbours, and not after the last. The last row adds the stack's bottom
     /// padding itself, which is the only row that knows it is last.
+    ///
+    /// ⛔ THE GAPS ARE PADDING INSIDE THE ROW, NOT ITS LIST INSETS (``StackedRow/insets``).
     func stackedListRow(top: CGFloat, bottom: CGFloat = 0) -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
-            .listRowInsets(
-                EdgeInsets(top: top, leading: DistrictSpacing.gutter, bottom: bottom, trailing: DistrictSpacing.gutter)
-            )
+            .padding(.top, top)
+            .padding(.bottom, bottom)
+            .listRowInsets(StackedRow.insets)
+            // ⛔ THE SYSTEM'S SELECTION BAND IS OFF; THE ROW DRAWS ITS OWN (``RowSelection``).
+            // ⛔ ZERO BY ZERO: an AppKit view sits above SwiftUI's drawing whatever its place in
+            // the stack, and at the row's size it took the row's accessibility hit test, so
+            // the row's button read as covered (capture run 38825632861, "not hittable").
+            .background(alignment: .topLeading) {
+                SystemRowHighlightOff().frame(width: 0, height: 0)
+            }
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
     }
@@ -45,6 +54,19 @@ extension View {
     }
 }
 
+/// The list insets of a stacked row: the page gutter at the sides, nothing above or below.
+///
+/// ⛔ A MAC `List` DROPS A ROW'S BOTTOM INSET AND REPEATS ITS TOP INSET BELOW THE ROW, so the
+/// gaps between rows cannot be insets. Measured from the frames of capture run 38795654701
+/// (Desk, fr-CA): every cell was its top inset, its content and its top inset again, and
+/// the last row's bottom inset was gone. The first ticket of a card spanning several rows
+/// then had 24pt of empty cell under it, which cut the card in two (3.0.1 visual QA).
+/// ``View/stackedListRow(top:bottom:)`` pads its content instead, which is laid out as
+/// written.
+enum StackedRow {
+    static let insets = EdgeInsets(top: 0, leading: DistrictSpacing.gutter, bottom: 0, trailing: DistrictSpacing.gutter)
+}
+
 /// One row's slice of a bordered card that spans several `List` rows.
 ///
 /// ⛔ EACH SLICE DRAWS THE WHOLE CARD'S SHAPE, EXTENDED PAST ITS OWN EDGES AND CLIPPED TO
@@ -61,22 +83,31 @@ struct CardSlice: ViewModifier {
     let first: Bool
     let last: Bool
 
-    /// ⚠️ DRAWN BY THE ROW RATHER THAN BY THE `List`. The row's own background is clear so
-    /// the page shows in the gutters, which leaves the system nothing to paint a selection
-    /// on; the card says it instead, in the same tint as a selected filter chip.
+    /// ⚠️ DRAWN BY THE ROW RATHER THAN BY THE `List`, whose own band is off
+    /// (``RowSelection``): in the key window the selected slice is the accent with white
+    /// ink, inside the card's outline and with its corners where it is the first or last
+    /// row; elsewhere the card in the palette's tint.
     var selected = false
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.controlActiveState) private var controlActive
 
     func body(content: Content) -> some View {
         let colors = DistrictColors.resolve(colorScheme)
         let shape = RoundedRectangle(cornerRadius: DistrictRadius.card)
+        let look = RowSelection.look(selected: selected, controlActive: controlActive)
         return content
+            .environment(\.backgroundProminence, look.prominence)
             .background {
                 ZStack {
-                    shape.fill(colors.card)
-                    if selected {
+                    switch look {
+                    case .none:
+                        shape.fill(colors.card)
+                    case .tint:
+                        shape.fill(colors.card)
                         shape.fill(colors.district.opacity(DistrictColors.containerAlpha))
+                    case .accent:
+                        shape.fill(RowSelection.accentFill)
                     }
                 }
                 .padding(.top, first ? 0 : -overhang)

@@ -5,6 +5,18 @@ import UniformTypeIdentifiers
 
 /// The reply box: text, attachments, the AI draft, and send.
 ///
+/// ⛔ THE FIELD, THEN ONE ROW OF CONTROLS, AS A MAC COMPOSER IS DRAWN. The 3.0.1
+/// visual QA found the box taking about 60% of the open thread, its four buttons in four
+/// styles stacked in a column (a grey box, plain text, « Ébaucher une réponse » wrapped on
+/// two lines, a filled Send). Now the attach and draft controls are borderless SF Symbol
+/// buttons that name themselves on hover and to VoiceOver, in one row under a full-width
+/// field that grows with the reply, and Send is the prominent button. A staged image is a
+/// small thumbnail with its own remove control.
+///
+/// ⛔ RETURN IS A NEW LINE AND ⌘↩ SENDS (``sendShortcut``). A send is billed, so a stray
+/// Return must not be one (decided 2026-10-15 for 3.0.1, over the default button that
+/// sent on Return); the chord is a deliberate second key, and Send's help tag names it.
+///
 /// ⛔ TWO OF THESE FOUR CONTROLS SPEND MONEY AND BOTH ARE DISABLED WHILE IN FLIGHT.
 /// A send is billable carrier segments capped at 30/min per workspace; an AI draft
 /// is a Vertex generation capped at 20/min. A double tap on either must not become
@@ -44,21 +56,24 @@ struct ComposerBar: View {
             failureStrip
             subjectField
             attachmentStrip
-            // ⛔ THE ACTIONS DROP BELOW THE FIELD AT AN ACCESSIBILITY TEXT SIZE.
-            // "Attach image" and "Draft reply" are the widest labels in the composer
-            // and they sit in a fixed column beside the reply box; at AX5 they take
-            // the width and the box the operator is trying to type in is squeezed to
-            // a few characters. Nothing here is truncated, so nothing looks broken,
-            // it is just unusable, which is the failure mode that survives a review.
-            let layout = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DistrictSpacing.tight))
-                : AnyLayout(HStackLayout(alignment: .bottom, spacing: DistrictSpacing.tight))
-            layout {
-                field
-                actions
+            field
+            // ⚠️ THE FIELD TAKES THE WHOLE WIDTH AND THE CONTROLS SIT IN ONE ROW UNDER IT, as
+            // Mail's composer does. Beside the field, even as icons, the four took
+            // two thirds of a 370pt open thread and the reply wrapped every two words (first
+            // after-capture, run 38781965734). The three icons are borderless; Send alone is
+            // bordered, and prominent, as the default button.
+            HStack(spacing: DistrictSpacing.row) {
+                attachControl
+                draftControl
+                Spacer(minLength: DistrictSpacing.tight)
+                sendControl
             }
+            .buttonStyle(.borderless)
+            .imageScale(.large)
+            .controlSize(.large)
         }
-        .padding(DistrictSpacing.gutter)
+        .padding(.horizontal, DistrictSpacing.gutter)
+        .padding(.vertical, DistrictSpacing.row)
         .background(colors.surface)
         .onChange(of: picked) { _, item in
             guard let item else { return }
@@ -117,9 +132,11 @@ struct ComposerBar: View {
     /// that drops staged images and writes the note about it; and a bare
     /// MainActor-isolated method as a `Binding` setter aborts the compiler in IRGen
     /// under Swift 6 (see the custom lint rule in `.swiftlint.yml`).
+    ///
+    /// ⚠️ ONE LINE: the picker's own label ("Send on"), the segments, then the address. An
+    /// eyebrow over it repeated the label word for word (« ENVOYER PAR » over « Envoyer par »).
     private var channelPicker: some View {
-        VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-            DistrictEyebrow(text: InboxCopy.sendOn)
+        HStack(spacing: DistrictSpacing.tight) {
             Picker(InboxCopy.sendOn, selection: selectedChannel) {
                 // ⚠️ ITERATED BY INDEX, NOT BY `enumerated()`. A `ForEach` over
                 // `Array(x.enumerated())` needs a closure taking one LABELLED TUPLE, and
@@ -131,6 +148,7 @@ struct ComposerBar: View {
                 }
             }
             .pickerStyle(.segmented)
+            .fixedSize()
             .disabled(content.sending)
             if let recipient = model.recipientName {
                 recipientLine(recipient)
@@ -275,57 +293,98 @@ struct ComposerBar: View {
     /// carries only URLs. Uploading at PICK time rather than at SEND time means an
     /// upload failure costs a retry of one image instead of failing a billable send
     /// that has already spent its rate-limit slot.
+    ///
+    /// ⚠️ SMALL, WITH THE REMOVE CONTROL ON THE THUMBNAIL, as Mail and Messages stage an
+    /// attachment: a 96pt thumbnail over a "Remove" button was the tallest thing in the box.
     @ViewBuilder
     private var attachmentStrip: some View {
         if !content.attachments.isEmpty {
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: DistrictSpacing.tight) {
                     ForEach(content.attachments, id: \.self) { url in
-                        VStack(spacing: DistrictSpacing.hairline) {
-                            ThreadMediaThumbnail(url: url)
-                            Button(InboxCopy.remove) { model.removeAttachment(url) }
-                                .buttonStyle(.districtGhost)
-                                .accessibilityLabel(InboxCopy.removeAttachment)
-                        }
+                        ThreadMediaThumbnail(url: url, side: ThreadMediaThumbnail.stagedSide)
+                            .overlay(alignment: .topTrailing) {
+                                Button(InboxCopy.removeAttachment, systemImage: "xmark.circle.fill") {
+                                    model.removeAttachment(url)
+                                }
+                                .labelStyle(.iconOnly)
+                                .buttonStyle(.plain)
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, .black.opacity(0.6))
+                                .help(InboxCopy.removeAttachment)
+                                .padding(2)
+                            }
                     }
                 }
+                // ⚠️ ROOM FOR THE REMOVE CONTROL'S EDGE, which a scroll view would clip.
+                .padding(.vertical, 2)
             }
             .scrollIndicators(.hidden)
         }
     }
 
-    /// ⚠️ `axis: .vertical` SO THE BOX GROWS WITH THE REPLY, capped so it cannot eat
-    /// the conversation it is a reply to.
+    /// ⛔ A `TextEditor`, NOT A VERTICAL `TextField`: on a Mac a `TextField` ends editing
+    /// on Return and takes a new line only with Option-Return, and Return here must be a new
+    /// line (``sendShortcut``).
     ///
-    /// ⚠️ THE WORD "Reply" APPEARS TWICE ON PURPOSE, AND THEY ARE NOT THE SAME LABEL.
-    /// The eyebrow is the visible one and stays put once there is text in the box; a
-    /// `TextField`'s title is what VoiceOver reads as the field's name, and dropping
-    /// it to avoid the visual repeat would leave the control announced as "text
-    /// field" and nothing else. Android gets one label doing both jobs because a
-    /// Material field floats it.
+    /// ⚠️ IT GROWS WITH THE REPLY, UP TO ``fieldMaxLines`` LINES, so it cannot eat the
+    /// conversation it is a reply to. A `TextEditor` takes whatever height it is offered,
+    /// so the box is as tall as a hidden `Text` of the same words in the same font, and the
+    /// editor fills it.
+    ///
+    /// ⚠️ "Reply" IS THE PLACEHOLDER AND THE NAME VoiceOver READS, as in Mail and Messages.
+    /// An eyebrow over the box said it a second time and cost a line.
     private var field: some View {
-        VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-            DistrictEyebrow(text: InboxCopy.reply)
-            TextField(InboxCopy.reply, text: text, axis: .vertical)
-                .lineLimit(1 ... 5)
-                .disabled(content.sending)
-                .districtField()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // ⚠️ AN OVERLAY ON THE SIZING TEXT: in a `ZStack` the editor would set the height.
+        Text(Self.sizingText(model.composerText))
+            .font(DistrictType.bodySmall)
+            .lineLimit(1 ... Self.fieldMaxLines)
+            // ⚠️ NARROWER THAN THE EDITOR'S LINE, so the box is never a line short of its
+            // text (at full width the last word scrolled out of sight, run 38792271530).
+            .padding(.leading, Self.editorInset)
+            .padding(.trailing, Self.editorInset + Self.sizingSlack)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .hidden()
+            .accessibilityHidden(true)
+            .overlay {
+                TextEditor(text: text)
+                    .font(DistrictType.bodySmall)
+                    .scrollContentBackground(.hidden)
+                    // ⚠️ No scroller: a legacy one took its width from the line.
+                    .scrollIndicators(.never)
+                    .foregroundStyle(colors.foreground)
+                    .disabled(content.sending)
+                    .accessibilityLabel(InboxCopy.reply)
+            }
+            .overlay(alignment: .topLeading) {
+                if model.composerText.isEmpty {
+                    Text(InboxCopy.reply)
+                        .font(DistrictType.bodySmall)
+                        .foregroundStyle(colors.mutedForeground)
+                        .padding(.horizontal, Self.editorInset)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(DistrictSpacing.tight)
+            .background(colors.input, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
+            .overlay {
+                RoundedRectangle(cornerRadius: DistrictRadius.control)
+                    .strokeBorder(colors.border, lineWidth: 1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var actions: some View {
-        VStack(alignment: .trailing, spacing: DistrictSpacing.hairline) {
-            attachControl
-            // ⛔ ONE EXPLICIT TAP, BILLED, NEVER AUTOMATIC AND NEVER ON OPEN. Each
-            // press is one Vertex generation against the workspace's 20/min.
-            Button(content.draftGenerating ? InboxCopy.drafting : InboxCopy.draftReply) {
-                Task { await model.generateDraft() }
-            }
-            .buttonStyle(.districtGhost)
-            .disabled(content.draftGenerating || content.sending)
-            sendControl
+    /// ⛔ ONE EXPLICIT CLICK, BILLED, NEVER AUTOMATIC AND NEVER ON OPEN. Each press is one
+    /// Vertex generation against the workspace's 20/min.
+    private var draftControl: some View {
+        let title = content.draftGenerating ? InboxCopy.drafting : InboxCopy.draftReply
+        return Button(title, systemImage: "sparkles") {
+            Task { await model.generateDraft() }
         }
+        .labelStyle(.iconOnly)
+        .help(title)
+        .disabled(content.draftGenerating || content.sending)
     }
 
     /// ⚠️ HIDDEN, NOT DISABLED, WHEN THE CHANNEL CANNOT CARRY AN ATTACHMENT. A
@@ -339,37 +398,31 @@ struct ComposerBar: View {
     @ViewBuilder
     private var attachControl: some View {
         if model.canAttach {
-            // ⛔ BOTH VALUES ARE READ OUT HERE, BEFORE THE CLOSURE, AND THE HOIST IS
+            // ⛔ THE LABEL IS READ OUT HERE, BEFORE THE CLOSURE, AND THE HOIST IS
             // LOAD-BEARING RATHER THAN STYLE. `PhotosPicker`'s label closure is
             // `@Sendable` and, unlike `.task`, which carries
             // `@_inheritActorContext`, it does NOT inherit this view's main-actor
-            // isolation, so anything main-actor-isolated read inside it is a Swift 6
-            // concurrency diagnostic. `colors` is a COMPUTED property, which is such
-            // a read; the compiler flags exactly that and nothing else.
-            // `Color` and `String` are both `Sendable`, so the captured values are
-            // fine. ⚠️ Do not inline either one back into the closure, and do not
-            // reach for `colorScheme` in there either.
-            let ink = colors.mutedForeground
+            // isolation, so anything main-actor-isolated read inside it (`content`,
+            // `colors`) is a Swift 6 concurrency diagnostic. `String` is `Sendable`, so
+            // the captured value is fine. ⚠️ Do not inline it back into the closure.
             let label = content.attaching ? InboxCopy.attaching : InboxCopy.attachImage
             PhotosPicker(selection: $picked, matching: .images, preferredItemEncoding: .compatible) {
-                // ⚠️ STYLED DIRECTLY RATHER THAN THROUGH `.buttonStyle`. A
-                // `PhotosPicker` is not documented to forward a custom button style
-                // to its label, and a control that silently loses its styling on one
-                // OS release is worse than one that never had it.
-                Text(label)
-                    .font(DistrictType.label)
-                    .foregroundStyle(ink)
-                    .padding(.horizontal, DistrictSpacing.row)
-                    .frame(minHeight: 44)
+                // ⚠️ THE SYSTEM'S OWN BORDERED BUTTON, so it needs no custom style forwarded:
+                // a `PhotosPicker` is not documented to pass one to its label.
+                Label(label, systemImage: "photo")
+                    .labelStyle(.iconOnly)
             }
+            .help(label)
             .disabled(content.attaching || content.sending)
             // ⚠️ MAC ONLY. On a Mac an image is as often a file in the Finder as a photo
             // in the library, so the open panel sits beside the Photos picker. Its file
             // goes through the same model call, so the type and size rules are the
             // same; unlike the picker it is not transcoded, so a HEIC file is refused by
             // the model with the iPad's sentence rather than converted.
-            Button(content.attaching ? InboxCopy.attaching : InboxCopy.attachFile) { choosingFile = true }
-                .buttonStyle(.districtGhost)
+            let fileLabel = content.attaching ? InboxCopy.attaching : InboxCopy.attachFile
+            Button(fileLabel, systemImage: "paperclip") { choosingFile = true }
+                .labelStyle(.iconOnly)
+                .help(fileLabel)
                 .disabled(content.attaching || content.sending)
         }
     }
@@ -385,11 +438,17 @@ struct ComposerBar: View {
     /// It substitutes "Message from District" and delivers, so nothing downstream can
     /// catch it; ``ThreadModel/canSendNow`` holds both rules so the button and the
     /// model can never disagree about them.
+    ///
+    /// ⛔ ⌘↩, NEVER A BARE RETURN (``sendShortcut``), and the help tag says so. The guards
+    /// above hold for the key as for the click.
     private var sendControl: some View {
-        Button(content.sending ? InboxCopy.sending : InboxCopy.send) {
+        let title = content.sending ? InboxCopy.sending : InboxCopy.send
+        return Button(title) {
             Task { await model.send() }
         }
-        .buttonStyle(.districtPrimary)
+        .buttonStyle(.borderedProminent)
+        .keyboardShortcut(Self.sendShortcut)
+        .help(Self.sendHelp(InboxCopy.send))
         .disabled(content.sending || !model.canSendNow)
         // ⛔ IT IS IN `UITestApp.forbiddenSurfaces`, AND THE REFUSAL IN
         // `UITestApp.tap(_:)` KEYS ON THIS IDENTIFIER. Without it that guard would
@@ -436,46 +495,6 @@ struct ComposerBar: View {
         Binding(
             get: { model.selectedReplyIndex },
             set: { model.selectReplyTarget($0) }
-        )
-    }
-
-    /// Read the picked item's bytes and hand them to the model.
-    ///
-    /// ⛔ THE BYTES CROSS INTO THE MODEL THROUGH ONE `@MainActor` CALL and nothing
-    /// else is carried across: `Data` is a value, the model owns every decision about
-    /// it, and the type and size are refused there before a byte is uploaded.
-    ///
-    /// ⚠️ A NIL OR THROWING LOAD IS "COULD NOT BE READ", WHICH IS NOT THE SAME AS A
-    /// REJECTED TYPE OR SIZE. Those three call for three different next actions from
-    /// the operator, and collapsing them would leave them re-picking the same file.
-    private func read(_ item: PhotosPickerItem) async {
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            model.refuseAttachment(ThreadModel.unreadableAttachment)
-            return
-        }
-        await model.attach(data, mimeType: item.preferredMIMEType(allowed: MediaUploadLimits.allowedMimeTypes))
-    }
-
-    /// Read a file chosen in the open panel and hand it to the model, as ``read(_:)`` does.
-    ///
-    /// ⛔ THE SECURITY-SCOPED ACCESS IS OPENED AND CLOSED AROUND THE ONE READ. The sandbox
-    /// grants this app the chosen file only (`files.user-selected.read-write`), and the
-    /// grant is through the URL's scope; reading outside it fails as "could not be read".
-    private func readFile(_ result: Result<URL, any Error>) async {
-        guard case let .success(url) = result else { return }
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer {
-            if scoped {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-        guard let data = try? Data(contentsOf: url) else {
-            model.refuseAttachment(ThreadModel.unreadableAttachment)
-            return
-        }
-        await model.attach(
-            data,
-            mimeType: AttachmentFile.mimeType(of: url, allowed: MediaUploadLimits.allowedMimeTypes)
         )
     }
 }

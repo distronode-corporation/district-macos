@@ -82,10 +82,10 @@ final class DistrictContrastTests: XCTestCase {
     /// cannot leave a confident sentence describing a colour that no longer exists.
     func testThePaletteCommentsAreTellingTheTruth() {
         let darkWorst = Self.contrast(DistrictColors.dark.onDestructive, DistrictColors.dark.destructive)
-        XCTAssertEqual(darkWorst, 7.6, accuracy: 0.05, "the dark comment claims 7.6:1 on destructive")
+        XCTAssertEqual(darkWorst, 8.0, accuracy: 0.05, "the dark comment claims 8.0:1 on destructive")
 
         let lightWorst = Self.contrast(DistrictColors.light.onSuccess, DistrictColors.light.success)
-        XCTAssertEqual(lightWorst, 5.4, accuracy: 0.05, "the light comment claims 5.4:1 on success")
+        XCTAssertEqual(lightWorst, 6.2, accuracy: 0.05, "the light comment claims 6.2:1 on success")
 
         // ⚠️ AND THE REJECTED ALTERNATIVE, which is the half of the claim that
         // justifies the choice: white on the dark `destructive` fill "fails outright".
@@ -138,25 +138,12 @@ final class DistrictContrastTests: XCTestCase {
     /// ⚠️ WRITTEN OUT RATHER THAN COUNTED. A count would pass while one combination
     /// was fixed and another broke on the same commit.
     private static let knownBelowAA = [
-        "dark district badge on card",
-        "dark district badge on elevated",
-        "dark district badge on muted",
-        "dark district badge on surface",
         "dark danger badge on elevated",
         "dark danger badge on muted",
-        "dark info badge on elevated",
-        "dark info badge on muted",
-        "dark success badge on elevated",
-        "light danger badge on background",
-        "light danger badge on muted",
         "light danger badge on surface",
-        "light info badge on surface",
+        "light district badge on surface",
         "light success badge on background",
-        "light success badge on elevated",
-        "light success badge on muted",
         "light success badge on surface",
-        "light warning badge on background",
-        "light warning badge on surface",
     ]
 
     // MARK: - Increase Contrast

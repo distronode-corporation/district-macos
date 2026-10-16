@@ -86,29 +86,35 @@ struct ContactsTable: View {
 
     var body: some View {
         let rows = ContactsTableRow.rows(contacts, sortedBy: sortOrder)
+        let widths = ContactsColumns.current
         Table(rows, selection: selectedId, sortOrder: $sortOrder) {
             TableColumn(ContactsCopy.name, value: \.name) { row in
                 nameCell(row)
                     .onAppear { reached(row, in: rows) }
             }
-            .width(min: 150, ideal: 150)
+            .width(min: widths.name, ideal: widths.name)
             TableColumn(ContactsCopy.phone, value: \.phone) { row in
                 if row.hasNoIdentifier {
                     Text(ContactsTableRow.noIdentifiers)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .help(ContactsTableRow.noIdentifiers)
                 } else {
                     Text(row.phone)
                         .monospacedDigit()
                         .lineLimit(1)
                 }
             }
-            .width(min: 110, ideal: 110)
+            .width(min: widths.phone, ideal: widths.phone)
+            // ⚠️ CUT IN THE MIDDLE, as the composer cuts an address: the domain is the half
+            // that says who it is. The whole address is on hover and in the open contact.
             TableColumn(ContactsCopy.email, value: \.email) { row in
                 Text(row.email)
                     .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(row.email)
             }
-            .width(min: 150, ideal: 150)
+            .width(min: widths.email, ideal: widths.email)
             // ⚠️ THE DAY, NOT THE MINUTE: the whole stamp needs 170pt, which this column cannot
             // have beside the other three in a list column at the 1000pt window minimum
             // (Sean's first build, 20019, cut it to "Aug 15, 2026 at"). The contact's own
@@ -118,34 +124,41 @@ struct ContactsTable: View {
                     .monospacedDigit()
                     .lineLimit(1)
             }
-            .width(min: 90, ideal: 90)
+            .width(min: widths.added, ideal: widths.added)
         }
         .contextMenu(forSelectionType: String.self) { ids in
             menu(for: ids)
         }
     }
 
-    /// The name, and the iPad row's two badges under it.
+    /// The name, and under it the iPad row's Blocked badge and a spinner while the dossier is
+    /// built.
     ///
     /// ⚠️ MAC: UNDER THE NAME, NOT BESIDE IT. Beside it, "Building dossier…" took the column
     /// and left "+1647..." of the name (Sean's first build, 20019); a row with a badge grows
     /// a line instead.
+    ///
+    /// ⚠️ AND THE DOSSIER IS A SPINNER WITH ITS WORDS ON HOVER, NOT THE iPad's BADGE. The badge
+    /// was wider than the column at the window minimum and lost its end (« Création de la
+    /// fiche… », 3.0.1 visual QA); a small spinner is how a Mac list says "still working",
+    /// and the words stay spoken.
     private func nameCell(_ row: ContactsTableRow) -> some View {
         let isBlocked = blocked.isBlocked(row.id, in: workspaceId)
         let building = DgiStatus.isInProgress(row.contact.dgiStatus)
         return VStack(alignment: .leading, spacing: 2) {
-            Text(row.name)
-                .lineLimit(1)
-                .accessibilityIdentifier(A11yID.Contacts.row(row.id))
-            if isBlocked || building {
-                HStack(spacing: DistrictSpacing.hairline) {
-                    if isBlocked {
-                        BlockedBadge(identifier: A11yID.Contacts.blockedRow(row.id))
-                    }
-                    if building {
-                        DistrictBadge(text: ContactsCopy.buildingDossier, tone: .district)
-                    }
+            HStack(spacing: DistrictSpacing.hairline) {
+                Text(row.name)
+                    .lineLimit(1)
+                    .accessibilityIdentifier(A11yID.Contacts.row(row.id))
+                if building {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .help(ContactsCopy.buildingDossier)
+                        .accessibilityLabel(ContactsCopy.buildingDossier)
                 }
+            }
+            if isBlocked {
+                BlockedBadge(identifier: A11yID.Contacts.blockedRow(row.id))
             }
         }
     }
@@ -180,5 +193,40 @@ struct ContactsTable: View {
     private func reached(_ row: ContactsTableRow, in rows: [ContactsTableRow]) {
         guard row.id == rows.last?.id else { return }
         onReachEnd()
+    }
+}
+
+/// The Contacts table's column widths in the language showing (``ColumnFit``), as
+/// ``CallLogColumns`` does for the call log.
+///
+/// ⚠️ THE NAME AND THE EMAIL TRUNCATE, as names and addresses may, so theirs are floors
+/// rather than the longest value; the phone and the day are measured.
+struct ContactsColumns: Equatable {
+    let name: CGFloat
+    let phone: CGFloat
+    let email: CGFloat
+    let added: CGFloat
+
+    static let nameText: CGFloat = 120
+    static let emailText: CGFloat = 100
+
+    static var current: ContactsColumns {
+        ContactsColumns(
+            name: max(nameText, ColumnFit.badge([ContactBlockCopy.badge]), ColumnFit.header(ContactsCopy.name)),
+            phone: max(ColumnFit.text(["+14165550199"], monospacedDigits: true), ColumnFit.header(ContactsCopy.phone)),
+            email: max(emailText, ColumnFit.header(ContactsCopy.email)),
+            added: max(
+                ColumnFit.text(CallLogColumns.dayStamps, monospacedDigits: true),
+                ColumnFit.header(ContactsCopy.added)
+            )
+        )
+    }
+
+    var all: [CGFloat] {
+        [name, phone, email, added]
+    }
+
+    var table: CGFloat {
+        ColumnFit.table(all)
     }
 }

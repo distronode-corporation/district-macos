@@ -44,7 +44,7 @@ struct MessageSearchRow: View {
             // it, so the row's height is bounded either way.
             Text(display.body)
                 .font(DistrictType.bodySmall)
-                .foregroundStyle(colors.mutedForeground)
+                .rowInk(colors.mutedForeground, .secondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -68,7 +68,7 @@ struct MessageSearchRow: View {
         return layout {
             Text(display.title)
                 .font(DistrictType.titleSmall)
-                .foregroundStyle(colors.foreground)
+                .rowInk(colors.foreground, .primary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .truncationMode(.tail)
             if !dynamicTypeSize.isAccessibilitySize {
@@ -76,7 +76,7 @@ struct MessageSearchRow: View {
             }
             Text(display.timestamp)
                 .font(DistrictType.caption)
-                .foregroundStyle(colors.mutedForeground)
+                .rowInk(colors.mutedForeground, .secondary)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
@@ -90,7 +90,7 @@ struct MessageSearchRow: View {
         if let subject = display.subject {
             Text(subject)
                 .font(DistrictType.label)
-                .foregroundStyle(colors.foreground)
+                .rowInk(colors.foreground, .primary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)

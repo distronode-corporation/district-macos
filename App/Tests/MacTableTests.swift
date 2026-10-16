@@ -44,7 +44,7 @@ final class MacTableTests: XCTestCase {
         XCTAssertEqual(row.caller, CallDisplay(transferred).callerLabel)
         XCTAssertEqual(row.caller, "No caller ID", "a withheld caller is not a name")
         XCTAssertEqual(row.direction, "Inbound")
-        XCTAssertEqual(row.status, "Transfer failed completed", "the transfer label sorts with the status")
+        XCTAssertEqual(row.status, "Transfer failed Completed", "the transfer label sorts with the status")
         XCTAssertEqual(row.seconds, 0)
         XCTAssertEqual(row.instant, .distantPast, "an unparseable stamp sorts last, it is not dropped")
         XCTAssertNil(row.display.durationLabel)

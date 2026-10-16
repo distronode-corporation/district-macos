@@ -130,20 +130,26 @@ struct SchedulingWriteSheet<Content: View>: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DistrictSpacing.row) {
-                header
-                content
-                if let confirm {
-                    SchedulingWriteOutcome(state: confirm.state)
-                    buttons(confirm)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DistrictSpacing.row) {
+                    header
+                    content
+                    if let confirm {
+                        SchedulingWriteOutcome(state: confirm.state)
+                    }
                 }
+                .padding(DistrictSpacing.gutter)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // ⚠️ MAC: a `Toggle` the iPad draws as a switch is a checkbox here by default,
+                // which beside a label reads as "select this" (PORTING.md).
+                .toggleStyle(.switch)
             }
-            .padding(DistrictSpacing.gutter)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // ⚠️ MAC: a `Toggle` the iPad draws as a switch is a checkbox here by default,
-            // which beside a label reads as "select this" (PORTING.md).
-            .toggleStyle(.switch)
+            if let confirm {
+                Divider()
+                buttons(confirm)
+                    .padding(DistrictSpacing.gutter)
+            }
         }
         .background(colors.background)
         // ⚠️ MAC: A SHEET HAS NO SIZE OF ITS OWN, so every scheduling write sheet opens at
@@ -176,22 +182,22 @@ struct SchedulingWriteSheet<Content: View>: View {
     /// becomes two requests; leaving the way out live is how somebody escapes a request
     /// that has stalled.
     ///
-    /// ⚠️ THE STYLE IS NAMED RATHER THAN INLINE IN A TERNARY. `.districtDestructive`
-    /// resolves through `ButtonStyle where Self == DistrictButtonStyle`, and a
-    /// leading-dot pair inside a ternary at a generic parameter is exactly where that
-    /// inference gets fragile.
+    /// ⚠️ MAC: ONE ROW AT THE BOTTOM TRAILING EDGE, BELOW THE CONTENT, Cancel then the
+    /// confirm, the confirm rightmost, as a Mac sheet lays them out. The two were stacked in
+    /// the middle of the sheet over an empty half (3.0.1 visual QA, AP-017). A destructive
+    /// confirm takes the destructive ink and no shortcut.
     private func buttons(_ confirm: Confirm) -> some View {
-        let style: DistrictButtonStyle = confirm.destructive ? .districtDestructive : .districtPrimary
-        return VStack(spacing: DistrictSpacing.tight) {
-            Button(confirm.confirmLabel, action: confirm.onConfirm)
-                .buttonStyle(style)
+        HStack(spacing: DistrictSpacing.tight) {
+            Spacer(minLength: 0)
+            Button(confirm.cancelLabel, action: confirm.onCancel)
+                .keyboardShortcut(.cancelAction)
+            Button(confirm.confirmLabel, role: confirm.destructive ? .destructive : nil, action: confirm.onConfirm)
+                .buttonStyle(.borderedProminent)
+                .tint(confirm.destructive ? colors.destructive : colors.district)
                 .disabled(!confirm.confirmEnabled || confirm.state.isWorking)
                 .accessibilityIdentifier(confirm.confirmIdentifier ?? "")
                 // ⛔ NO ⌘↩ ON A DESTRUCTIVE CONFIRM; see ``KeyboardShortcut/districtSubmit``.
                 .keyboardShortcut(confirm.destructive ? nil : .districtSubmit)
-            Button(confirm.cancelLabel, action: confirm.onCancel)
-                .buttonStyle(.districtSecondary)
-                .keyboardShortcut(.cancelAction)
         }
         .frame(maxWidth: .infinity)
     }

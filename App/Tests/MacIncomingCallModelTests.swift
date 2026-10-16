@@ -26,6 +26,8 @@ final class MacIncomingCallModelTests: XCTestCase {
         func stopRinging() {
             stops += 1
         }
+
+        func withdrawAlerts(callId _: String) {}
     }
 
     private var transport: RoutedTransport!

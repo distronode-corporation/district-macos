@@ -44,6 +44,10 @@ struct ReportSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
             content
             Spacer(minLength: 0)
+            // ⚠️ MAC: THE BUTTONS IN ONE ROW AT THE BOTTOM TRAILING EDGE, the default one
+            // rightmost and Cancel to its left, as a Mac sheet lays them out. They sat at the
+            // bottom left of the form over an empty half sheet (3.0.1 visual QA, AP-017).
+            buttonRow
         }
         .padding(DistrictSpacing.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -91,16 +95,26 @@ struct ReportSheet: View {
                     .districtField()
                     .accessibilityIdentifier(A11yID.Report.note)
             }
-            HStack(spacing: DistrictSpacing.tight) {
+        }
+    }
+
+    private var buttonRow: some View {
+        HStack(spacing: DistrictSpacing.tight) {
+            Spacer(minLength: 0)
+            if case .done = model.state {
+                Button(SupportCopy.done) { dismiss() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier(A11yID.Report.done)
+            } else {
                 Button(ReportCopy.cancel) { dismiss() }
-                    .buttonStyle(.districtGhost)
                     .disabled(model.isSending)
                     .accessibilityIdentifier(A11yID.Report.cancel)
                     .keyboardShortcut(.cancelAction)
                 Button(model.isSending ? SupportCopy.reporting : ReportCopy.submit) {
                     Task { await model.submit(note: noteText) }
                 }
-                .buttonStyle(.districtPrimary)
+                .buttonStyle(.borderedProminent)
                 .disabled(model.isSending)
                 .accessibilityIdentifier(A11yID.Report.submit)
                 .keyboardShortcut(.districtSubmit)
@@ -115,9 +129,6 @@ struct ReportSheet: View {
                 .foregroundStyle(colors.foreground)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier(A11yID.Report.confirmation)
-            Button(SupportCopy.done) { dismiss() }
-                .buttonStyle(.districtPrimary)
-                .accessibilityIdentifier(A11yID.Report.done)
         }
     }
 

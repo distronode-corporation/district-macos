@@ -1,4 +1,5 @@
 import AppKit
+import DistrictModel
 import Foundation
 import UserNotifications
 
@@ -33,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private weak var registrar: PushRegistrar?
     private var calls: Calls?
+    /// ⚠️ HELD FOR THE QUIT, which lets a token refresh on the wire reach the keychain.
+    private var session: SessionModel?
     private var earlyToken: String?
     private var earlyAction: RingAction?
     /// A click on a notification body that arrived before the registrar (the app launched
@@ -62,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             // ⛔ THE SESSION CHECK, AND WITH IT THE RINGING, STARTS HERE AND NOT IN A VIEW, so
             // a launch at login that restores no window still rings.
             let session = launch.session
+            self.session = session
             Task { await session.launch() }
         }
     }
@@ -79,10 +83,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// call's hang-up is a request to the server; a process that exited before sending it
     /// would leave the far end ringing an empty room and billing. ``DesktopLive/terminate()``
     /// is bounded, so a quit never hangs on a network that has gone.
+    ///
+    /// ⛔ THEN IT WAITS (BRIEFLY) FOR A TOKEN REFRESH ALREADY ON THE WIRE, so the rotated
+    /// refresh token is in the keychain before the process goes; without that the next
+    /// launch signs the person out (``SessionModel/finishForQuit(within:)``). After the
+    /// call, because the carrier hang-up may itself be what refreshed.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let live = calls?.live else { return .terminateNow }
+        let live = calls?.live
+        let session = session
+        guard live != nil || session != nil else { return .terminateNow }
         Task { @MainActor in
-            await live.terminate()
+            await live?.terminate()
+            await session?.finishForQuit()
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
@@ -128,7 +140,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// A push arrived while the app runs. ⚠️ If it is the APNs alert for the call already
     /// ringing here, macOS may have shown it without asking (the app not frontmost), so it
     /// is taken out of Notification Center. See ``RingNotifications``.
+    ///
+    /// ⛔ THE RING CANCEL (3.0.1) ARRIVES HERE TOO, as a background push
+    /// `{type: "call_ring_cancelled", workspaceId, callId, reason}`: the ring for that call
+    /// stops and its delivered alert goes, unless this Mac answered it
+    /// (``IncomingCallModel/ringCancelled(_:)``). ⚠️ A quit app is not woken for it, so an alert
+    /// already delivered to a quit Mac stays until the app runs.
     func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+        if let cancel = RingCancel.parse(userInfo: userInfo) {
+            calls?.incoming.ringCancelled(cancel)
+            return
+        }
         calls?.presenter.removeDuplicates()
     }
 

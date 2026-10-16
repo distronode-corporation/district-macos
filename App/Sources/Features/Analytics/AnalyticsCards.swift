@@ -218,16 +218,30 @@ struct AnalyticsFunnelCard: View {
                 ForEach(stages, id: \.name) { stage in
                     BarMark(
                         x: .value(AnalyticsCopy.calls, stage.count),
-                        y: .value(AnalyticsCopy.stage, AppWire.label(.funnelStage, stage.name))
+                        y: .value(AnalyticsCopy.stage, Self.label(stage.name))
                     )
                     .foregroundStyle(colors.district)
-                    .accessibilityLabel(AppWire.label(.funnelStage, stage.name))
+                    .accessibilityLabel(Self.label(stage.name))
                     .accessibilityValue(AnalyticsFormat.callCount(stage.count))
                 }
             }
-            .chartYScale(domain: stages.map(\.name))
+            .chartYScale(domain: Self.domain(stages.map(\.name)))
             .frame(height: AnalyticsChartHeight.funnel(stages.count))
         }
+    }
+
+    /// A stage's axis label: the vocabulary's word in the language showing.
+    static func label(_ name: String) -> String {
+        AppWire.label(.funnelStage, name)
+    }
+
+    /// ⛔ THE DOMAIN IS THE SAME LABELS THE BARS ARE PLOTTED AT, in the server's order. It was
+    /// the wire names while each bar's y was the label: in English the two are equal, so
+    /// it worked, and in French no bar matched the domain and the funnel drew no bars over
+    /// English axis labels (3.0.1 visual QA, AP-004).
+    static func domain(_ names: [String]) -> [String] {
+        var seen = Set<String>()
+        return names.map(label).filter { seen.insert($0).inserted }
     }
 }
 

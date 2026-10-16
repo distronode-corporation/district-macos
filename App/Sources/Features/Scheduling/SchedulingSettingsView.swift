@@ -184,23 +184,21 @@ struct SchedulingSettingsView: View {
         .task { await model.loadCurrentTab() }
     }
 
+    /// ⚠️ THE SYSTEM'S SEGMENTED CONTROL (3.0.1 visual QA, AP-016), through
+    /// ``SchedulingSettingsModel/selectTab(_:)``.
     private var tabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DistrictSpacing.tight) {
-                ForEach(
-                    Array(SchedulingSettingsTabs.ids.enumerated()),
-                    id: \.offset
-                ) { index, id in
-                    Button(SchedulingSettingsTabs.labels[index]) {
-                        Task { await model.selectTab(id) }
-                    }
-                    .buttonStyle(DistrictButtonStyle(
-                        variant: model.tab == id ? .primary : .secondary
-                    ))
-                    .accessibilityIdentifier(A11yID.Scheduling.settingsTab(id))
-                }
+        Picker(SchedulingCopy.sectionTitle(.settings), selection: Binding(
+            get: { model.tab },
+            set: { next in Task { await model.selectTab(next) } }
+        )) {
+            ForEach(Array(SchedulingSettingsTabs.ids.enumerated()), id: \.offset) { index, id in
+                Text(SchedulingSettingsTabs.labels[index]).tag(id)
             }
         }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .accessibilityIdentifier(A11yID.Scheduling.settingsTabBase)
     }
 
     @ViewBuilder

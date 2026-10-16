@@ -1,3 +1,4 @@
+import DistrictL10n
 import DistrictModel
 import SwiftUI
 
@@ -70,44 +71,51 @@ struct CallLogTable: View {
 
     @State private var sortOrder: [KeyPathComparator<CallLogRow>] = []
 
-    /// The Duration column: the list column's minimum (``ShellColumns``) still holds all
-    /// five columns with the French width.
-    private static var durationWidth: CGFloat {
-        AppL10n.copyLocale == .frCA ? 72 : 56
-    }
-
     var body: some View {
         let rows = CallLogRow.rows(calls, sortedBy: sortOrder)
+        let widths = CallLogColumns.current
         Table(rows, selection: selectedId, sortOrder: $sortOrder) {
+            // ⚠️ THE DIRECTION IS THE CALLER'S GLYPH, NOT A COLUMN OF ITS OWN, as in the Mac's
+            // Phone app. A fifth column cost 83pt of a list column that has to leave the open
+            // call readable at the 1000pt window minimum (``ListColumnWidth``), and the word is
+            // still spoken and shown on hover.
             TableColumn(CallsCopy.columnCaller, value: \.caller) { row in
-                Text(row.caller)
-                    .lineLimit(1)
-                    .accessibilityIdentifier(A11yID.Calls.row(row.id))
-                    .onAppear { reached(row, in: rows) }
+                HStack(spacing: CallLogColumns.glyphSpacing) {
+                    Image(systemName: row.display.outbound ? "phone.arrow.up.right" : "phone.arrow.down.left")
+                        .foregroundStyle(.secondary)
+                        .frame(width: CallLogColumns.glyphWidth)
+                        .help(row.direction)
+                        .accessibilityLabel(row.direction)
+                    Text(row.caller)
+                        .lineLimit(1)
+                        .accessibilityIdentifier(A11yID.Calls.row(row.id))
+                        .onAppear { reached(row, in: rows) }
+                }
             }
-            .width(min: 120, ideal: 120)
-            TableColumn(CallsCopy.columnDirection, value: \.direction) { row in
-                Text(row.direction)
-            }
-            .width(min: 66, ideal: 66)
+            .width(min: widths.caller, ideal: widths.caller)
+            // ⚠️ THE WHOLE STAMP WHEN THE COLUMN HAS THE ROOM, THE DAY WHEN IT DOES NOT, as the
+            // Finder's date columns do. At the window minimum the column is the day's width
+            // (``CallLogColumns``); the open call and the hover keep the minute.
             TableColumn(CallsCopy.columnWhen, value: \.instant) { row in
-                Text(row.display.time)
-                    .monospacedDigit()
+                ViewThatFits(in: .horizontal) {
+                    Text(row.display.time)
+                    Text(WireDate.displayDay(row.call.createdAt))
+                }
+                .monospacedDigit()
+                .lineLimit(1)
+                .help(row.display.time)
             }
-            // ⚠️ WIDE ENOUGH FOR THE WHOLE STAMP ("Sep 30, 2026 at 12:59 PM"), which a narrower
-            // column truncated to the hour at the default window width. The other columns
-            // give up the room, so the five fit the list column's minimum width
-            // (``ShellView``), with no horizontal scroll.
-            .width(min: 172, ideal: 172)
+            .width(min: widths.when, ideal: widths.when)
             TableColumn(CallsCopy.columnDuration, value: \.seconds) { row in
                 Text(row.display.durationLabel ?? "")
                     .monospacedDigit()
+                    .lineLimit(1)
             }
-            // ⚠️ WIDER IN FRENCH, whose length has units in words (« 12 min 34 s »); 56pt cut
-            // « 2 min 34 s » to « 2 min 3… ». English keeps its 56 (`2m 34s`).
-            .width(min: Self.durationWidth, ideal: Self.durationWidth)
+            .width(min: widths.duration, ideal: widths.duration)
             // ⚠️ MAC: A TRANSFER OUTCOME STACKS OVER THE STATUS rather than beside it, so the
             // column is one badge wide and a two-badge row grows a line instead of scrolling.
+            // ⛔ AND IT IS AS WIDE AS THE LONGEST BADGE IN THE LANGUAGE SHOWING: a fixed 92pt
+            // clipped « Sans réponse » and pushed the table into a sideways scroll.
             TableColumn(CallsCopy.columnStatus, value: \.status) { row in
                 VStack(alignment: .leading, spacing: 2) {
                     if let transfer = row.display.transferLabel {
@@ -116,7 +124,7 @@ struct CallLogTable: View {
                     DistrictBadge(text: row.display.statusLabel, tone: row.display.statusTone)
                 }
             }
-            .width(min: 92, ideal: 92)
+            .width(min: widths.status, ideal: widths.status)
         }
         .contextMenu(forSelectionType: String.self) { ids in
             menu(for: ids)
@@ -155,5 +163,77 @@ struct CallLogTable: View {
     private func reached(_ row: CallLogRow, in rows: [CallLogRow]) {
         guard row.id == rows.last?.id else { return }
         onReachEnd()
+    }
+}
+
+/// The Calls table's column widths in the language showing, measured (``ColumnFit``).
+///
+/// ⛔ EACH IS THE WIDEST THING ITS COLUMN CAN SHOW, OR ITS HEADER, WHICHEVER IS WIDER, and
+/// the list column's minimum is their sum (``ListColumnWidth``), so the table never scrolls
+/// sideways and never clips a badge. `ColumnFitTests` pins it in both languages.
+struct CallLogColumns: Equatable {
+    let caller: CGFloat
+    let when: CGFloat
+    let duration: CGFloat
+    let status: CGFloat
+
+    /// The caller's name gets what is left of a narrow list; it truncates, as a name may.
+    static let callerText: CGFloat = 96
+    static let glyphWidth: CGFloat = 18
+    static let glyphSpacing: CGFloat = 6
+
+    static var current: CallLogColumns {
+        CallLogColumns(
+            caller: max(callerText + glyphWidth + glyphSpacing, ColumnFit.header(CallsCopy.columnCaller)),
+            when: max(ColumnFit.text(dayStamps, monospacedDigits: true), ColumnFit.header(CallsCopy.columnWhen)),
+            duration: max(
+                ColumnFit.text(durations, monospacedDigits: true),
+                ColumnFit.header(CallsCopy.columnDuration)
+            ),
+            status: max(ColumnFit.badge(statusLabels), ColumnFit.header(CallsCopy.columnStatus))
+        )
+    }
+
+    var all: [CGFloat] {
+        [caller, when, duration, status]
+    }
+
+    /// The table's own minimum: the columns, their spacing and the row inset.
+    var table: CGFloat {
+        ColumnFit.table(all)
+    }
+
+    /// Every word the Status column can draw: each call status the vocabulary lists, the
+    /// generic word for one it does not (French reads an unlisted status as it), "Live", and
+    /// the two transfer outcomes stacked over them. ⚠️ An English screen keeps an unlisted
+    /// status as sent, which no width can promise to hold.
+    static var statusLabels: [String] {
+        let listed = [
+            "completed",
+            "in-progress",
+            "ringing",
+            "no-answer",
+            "failed",
+            "busy",
+            "canceled",
+            "abandoned",
+            "unknown",
+        ]
+        return listed.map { AppWire.label(.callStatus, $0) } + [
+            WireLabel.label(.callStatus, "\u{1}"),
+            CallsCopy.live,
+            CallsCopy.transferred,
+            CallsCopy.transferFailed,
+        ]
+    }
+
+    /// The day of a call in each month, two-digit, as the narrow When column draws it.
+    static var dayStamps: [String] {
+        (1 ... 12).map { WireDate.displayDay(String(format: "2026-%02d-28T12:00:00.000Z", $0)) }
+    }
+
+    /// The longest length a call log shows under an hour, in each language's own form.
+    static var durations: [String] {
+        [AppWire.duration(sent: "59m 59s", seconds: 3599)]
     }
 }
