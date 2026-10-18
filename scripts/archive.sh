@@ -46,7 +46,8 @@
 #   SENTRY_DSN      the app's DSN (optional; blank DISABLES Sentry in the build: no SDK
 #                   is started and nothing is reported)
 #   SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT
-#                   when the token is set, dSYMs are uploaded after the archive
+#                   when the token is set, dSYMs and their sources are uploaded after the
+#                   archive, and the release is given this commit
 set -euo pipefail
 
 # ⚠️ Must equal <key>teamID</key> in ExportOptions-AppStore.plist.
@@ -170,18 +171,47 @@ fi
 
 # ⛔ THE INGEST HOST AND THE API HOST ARE DIFFERENT THINGS: sentry-cli does not read
 # the DSN and defaults to the US silo, where an EU org does not exist, and a
-# mis-pointed upload does nothing while the build stays green. The token reaches
-# sentry-cli through its environment, never argv.
+# mis-pointed upload does nothing while the build stays green, so every sentry-cli call
+# goes through sentry_eu. The token reaches sentry-cli through its environment, never argv.
+# `--include-sources` uploads a source bundle beside each dSYM, so an issue shows the lines
+# around each frame and Seer can read them.
+#
+# Then the release this archive reports as gets this commit, which is what gives an issue
+# its suspect commits and "fixed in release"; Sentry fetches the range since the previous
+# release from GitHub. ⛔ THE NAME IS READ FROM THE ARCHIVED APP, NEVER REBUILT: the SDK
+# reports `<CFBundleIdentifier>@<CFBundleShortVersionString>+<CFBundleVersion>` (see
+# DistrictSentry.releaseName), and a name one character off is a second, empty release.
+# Both lanes archive the same commit and build number, so the second one finds the release
+# already there and sets the same commit again. ⚠️ NON-FATAL, unlike the dSYM upload: a
+# crash still symbolicates without it, so a failure is a warning and the export goes on.
+sentry_eu() { SENTRY_URL="https://de.sentry.io" sentry-cli "$@"; }
+sentry_release() {
+  local plist="$APP/Contents/Info.plist" identifier short build release sha
+  identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" || return 1
+  short="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" || return 1
+  build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" || return 1
+  [ -n "$identifier" ] && [ -n "$short" ] && [ -n "$build" ] || return 1
+  release="$identifier@$short+$build"
+  sha="$(git rev-parse HEAD)" || return 1
+  echo "Sentry release: $release (commit $sha)"
+  sentry_eu releases new --org "$SENTRY_ORG" --project "$SENTRY_PROJECT" "$release" &&
+    sentry_eu releases set-commits --org "$SENTRY_ORG" "$release" \
+      --commit "distronode-corporation/district-macos@$sha" --ignore-missing &&
+    sentry_eu releases finalize --org "$SENTRY_ORG" "$release"
+}
 if [ -z "${SENTRY_AUTH_TOKEN:-}" ]; then
   echo "SENTRY_AUTH_TOKEN is unset - skipped the dSYM upload; crashes from this build will not symbolicate."
 else
   [ -n "${SENTRY_ORG:-}" ] || die "SENTRY_AUTH_TOKEN is set but SENTRY_ORG is not; pass the EU org slug."
   [ -n "${SENTRY_PROJECT:-}" ] || die "SENTRY_AUTH_TOKEN is set but SENTRY_PROJECT is not."
   command -v sentry-cli >/dev/null 2>&1 || die "SENTRY_AUTH_TOKEN is set but sentry-cli is not on PATH."
-  SENTRY_URL="https://de.sentry.io" sentry-cli debug-files upload \
+  sentry_eu debug-files upload \
     --org "$SENTRY_ORG" \
     --project "$SENTRY_PROJECT" \
+    --include-sources \
     "$ARCHIVE_PATH/dSYMs"
+  sentry_release ||
+    echo "::warning::the Sentry release for this archive was not created or has no commits; crashes still symbolicate, but carry no suspect commits."
 fi
 
 rm -rf "$EXPORT_PATH"

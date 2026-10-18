@@ -158,7 +158,8 @@ jobs:
         with:
           generate: "false"
 
-      # Pinned by version and SHA-256, for the dSYM upload. Only once there is a project.
+      # Pinned by version and SHA-256, for the dSYM upload and the Sentry release. Only once
+      # there is a project.
       - name: Install sentry-cli
         if: env.SENTRY_PROJECT != ''
         run: |
