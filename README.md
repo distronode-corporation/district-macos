@@ -11,9 +11,10 @@ District AI workspace.
 [GitLab mirror](https://gitlab.com/distronode-corporation/district-macos) (read-only
 mirror; issues and pull requests live on GitHub), [CHANGELOG](CHANGELOG.md).
 
-**Status: 2.0.1 (build 20042) is the current release**, a signed, notarised download on
+**Status: 3.0.2 (build 20068) is the current release**, a signed, notarised download on
 [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and through Homebrew
-(`brew install distronode-corporation/tap/district-ai`). Not on the Mac App Store yet.
+(`brew install distronode-corporation/tap/district-ai`). It is also on the
+[Mac App Store](https://apps.apple.com/app/id6809297970?platform=mac), where a new version can arrive later while Apple reviews it.
 It has every section of the iPad app: it signs in, shows the Overview, the Inbox, Calls, Contacts and
 the workspace's sections (District HQ, Analytics, Billing, Phone numbers, Workflows, Desk,
 Support, Scheduling and Workspace settings), places calls from Dial, joins Rooms, and rings
@@ -50,9 +51,10 @@ Mac reads English.
   signed and notarised `.dmg`, which keeps itself up to date with
   [Sparkle](https://sparkle-project.org). The same build is in our Homebrew tap:
   `brew install distronode-corporation/tap/district-ai`.
-- **The Mac App Store.** Not on the Mac App Store yet. Once it is there, the Mac app
+- **The Mac App Store:** [District AI on the Mac App Store](https://apps.apple.com/app/id6809297970?platform=mac). The Mac app
   shares its App Store record with District AI for iPhone and iPad, so it is one
-  purchase across all three, and the App Store updates it.
+  purchase across all three, and the App Store updates it. A new version can reach the
+  store later than the direct download while Apple reviews it.
 
 **Install one, not both.** The two builds are the same app (one bundle identifier), so
 they share their settings, their saved session and the `districtai://` links; installed
@@ -170,8 +172,8 @@ repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the Op
 
 ## Releases
 
-2.0.1 (build 20042) is the current release, on [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and
-in the Homebrew tap. Not on the Mac App Store yet.
+3.0.2 (build 20068) is the current release, on [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and
+in the Homebrew tap. It is on the Mac App Store too, where a new version can arrive later while Apple reviews it.
 [`release.yml`](.github/workflows/release.yml) builds both builds of one commit
 on GitHub-hosted macOS runners, from `main` or a protected `v*` tag, with no signing key
 or store credential stored in this repository or in GitHub (each run borrows them from
