@@ -1,0 +1,3 @@
+- Call outcomes have clearer labels: "Callback requested", "Passed to a person" and "Information only".
+- When a meeting room or a persona preview ends on its own, District AI says so in plain words, never with a technical message.
+- In French, a workflow run says why a team notification did not go out (for example, no team member has the app on a device that can receive notifications), where it said « Autre ».

@@ -1,0 +1,3 @@
+- Les résultats d'appel ont des libellés plus clairs : « Rappel demandé », « Transmis à une personne » et « Information seulement ».
+- Quand une salle de réunion ou un aperçu de la persona prend fin de lui-même, District AI l'indique en termes simples, jamais par un message technique.
+- Un flux de travail indique pourquoi une notification à l'équipe n'est pas partie (par exemple, aucun membre de l'équipe n'a l'application sur un appareil qui peut recevoir des notifications), au lieu d'afficher « Autre ».

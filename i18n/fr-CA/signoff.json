@@ -1,7 +1,7 @@
 {
-  "signed_off_by": "v3 manager (Opus 5.5 xhigh), final French review, 2026-10-16",
-  "release": "v3.0.2",
-  "commit": "1c1cf55f917b9d0078007827b0f3539484f2b732",
+  "signed_off_by": "macOS 3.0.3 worker (Opus 5.5), 2026-10-22: no French added or reworded since the v3.0.2 sign-off (v3 manager, 2026-10-16); macos.toml only lost rooms.state_dropped_because and settings.preview_dropped_because (#74) and one note's English changed",
+  "release": "v3.0.3",
+  "commit": "95c56c6962eb7896727bee61362f46707546b40e",
   "catalogs": [
     {
       "path": "l10n/infoplist.toml",
@@ -9,7 +9,7 @@
     },
     {
       "path": "l10n/macos.toml",
-      "sha256": "270aaeb616173f6c12713a62a57777080a934df2e7e05291d2509140e217a90e"
+      "sha256": "06d9cfe5862e2cdbbcacebb33042b4a08b4e14e5deca18bae701c65c5fda59c8"
     },
     {
       "path": "l10n/push.toml",
