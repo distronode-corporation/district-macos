@@ -171,6 +171,13 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
+- DistrictCore 7.0.3 (district-core-swift 6b32120, tag 7.0.3), pinned by its tag: the i18n
+  contracts from monorepo ac4071d14. A call's Outcome reads the portal's disposition labels
+  (`callback` "Callback requested" « Rappel demandé », `escalated` "Passed to a person"
+  « Transmis à une personne », `info` "Information only", `booked` « Rendez-vous pris » in
+  French), and in French a workflow action's team-push and signing reasons (`no-devices`,
+  `no-message`, `push-lookup-failed`, `push-not-delivered`, `signing-unavailable`) read their
+  own label where they read « Autre ». swift-asn1 stays 1.7.3.
 - DistrictCore 7.0.2 (district-core-swift 5d03f80, tag 7.0.2), pinned by its tag: the i18n
   contracts from monorepo ecf098046 (in French, the number status `in-use` reads « Actif »,
   the research keys `estimatedValue`, `person` and `callerIntel` take the portal's headings

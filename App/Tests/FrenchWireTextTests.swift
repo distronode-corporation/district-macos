@@ -96,6 +96,28 @@ final class FrenchWireTextTests: XCTestCase {
         XCTAssertEqual(french { WorkflowActionReason.label("something-new") }, "Autre")
     }
 
+    /// DistrictCore 7.0.3: the team-push and signing codes have a label of their own, where
+    /// French read « Autre » before.
+    func testDistrictCore703ActionReasonsHaveTheirOwnFrenchLabel() {
+        XCTAssertEqual(
+            french { WorkflowActionReason.label("no-devices: nobody is signed in") },
+            "Aucun membre de l'équipe n'a l'application sur un appareil qui peut recevoir des notifications"
+        )
+        XCTAssertEqual(
+            french { WorkflowActionReason.label("push-not-delivered: 0 of 2") },
+            "Aucun appareil n'a accepté la notification"
+        )
+    }
+
+    /// DistrictCore 7.0.3: a call's Outcome card reads the portal's disposition labels.
+    func testDistrictCore703DispositionLabelsInBothLanguages() {
+        XCTAssertEqual(AppWire.label(.disposition, "callback"), "Callback requested")
+        XCTAssertEqual(french { AppWire.label(.disposition, "callback") }, "Rappel demandé")
+        XCTAssertEqual(AppWire.label(.disposition, "escalated"), "Passed to a person")
+        XCTAssertEqual(french { AppWire.label(.disposition, "escalated") }, "Transmis à une personne")
+        XCTAssertEqual(french { AppWire.label(.disposition, "booked") }, "Rendez-vous pris")
+    }
+
     // MARK: - Devices
 
     func testADevicePlatformIsTheProductName() {
