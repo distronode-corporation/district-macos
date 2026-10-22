@@ -143,6 +143,10 @@ final class MacDesktopLiveSessionTests: XCTestCase {
 
         XCTAssertEqual(ring.withdrawn, [LiveFixtures.callId])
         XCTAssertEqual(presence.unregisters, 0, "a stop sends nothing; the presence lapses on the server")
+        // ⚠️ THE CLOSE IS FIRED, NOT AWAITED: DistrictLive's runner closes the socket in a task
+        // of its own (`TelemetryConnectionRunner`, `.close`), so `stop()` can return first.
+        // Asserting at once failed CI on main (2026-10-16, run 38858412617) and on #69.
+        await waitUntil(state: "cancelCodes=\(task.cancelCodes)") { !self.task.cancelCodes.isEmpty }
         XCTAssertEqual(task.cancelCodes, [.normalClosure], "the socket is closed")
     }
 
@@ -152,6 +156,8 @@ final class MacDesktopLiveSessionTests: XCTestCase {
         await session.signOut()
 
         XCTAssertEqual(presence.unregisters, 1)
+        // ⚠️ The same fired close as test 03.
+        await waitUntil(state: "cancelCodes=\(task.cancelCodes)") { !self.task.cancelCodes.isEmpty }
         XCTAssertEqual(task.cancelCodes, [.normalClosure])
     }
 
