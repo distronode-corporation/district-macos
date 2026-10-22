@@ -18,6 +18,17 @@ not sent.
 
 ### Fixed
 
+- 3.0.3: a room or a persona preview that ends on its own no longer shows LiveKit's own
+  text. A meeting whose room was deleted read "You were disconnected from this room. (Room
+  deleted)", and the preview "The preview ended without being stopped here. Room deleted":
+  the SDK's English error description passed through as the reason, English on a French
+  screen too. A failed join showed the SDK's message the same way. The banner and the
+  preview now always say the catalog's sentence (`rooms.state_dropped`,
+  `rooms.state_failed`, `settings.preview_dropped`), and `RoomEngine` logs the SDK's text
+  (`Logger`, category `Rooms`), as the call screens have done since 3.0.1. The two
+  catalog entries that carried the reason (`rooms.state_dropped_because`,
+  `settings.preview_dropped_because`) are removed; no string is added. Tested in
+  `RoomEndWordingTests` and `PersonaPreviewStateTests`.
 - 3.0.2: APNs delivery to the Mac can be diagnosed from the Mac itself. No APNs alert has
   ever reached the QA iMac, with the app running or quit: APNs answered 200 to every one
   (production, `com.distronode.district`), and apsd logged none arriving (2026-10-15 and
