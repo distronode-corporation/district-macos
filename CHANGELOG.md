@@ -18,6 +18,11 @@ not sent.
 
 ### Fixed
 
+- 3.0.3 (tests only): `MacDesktopLiveSessionTests` 03 and 04 wait for the socket's close
+  instead of asserting it the moment `stop()` or `signOut()` returns. DistrictLive's runner
+  fires the close in a task of its own, so the assertion raced it and failed CI now and then
+  (main run 38858412617 on 2026-10-16, and the Sentry 9.30.1 pull request #69). The app's
+  behaviour is unchanged.
 - 3.0.3: a room or a persona preview that ends on its own no longer shows LiveKit's own
   text. A meeting whose room was deleted read "You were disconnected from this room. (Room
   deleted)", and the preview "The preview ended without being stopped here. Room deleted":
