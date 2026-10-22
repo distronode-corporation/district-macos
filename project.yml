@@ -68,7 +68,7 @@ packages:
   # spelling, not SwiftPM's `exact:`.
   Sentry:
     url: https://github.com/getsentry/sentry-cocoa
-    exactVersion: 9.29.2
+    exactVersion: 9.30.1
   LiveKit:
     url: https://github.com/livekit/client-sdk-swift
     exactVersion: 2.17.0
