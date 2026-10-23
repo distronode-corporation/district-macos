@@ -91,7 +91,8 @@ struct ComposeSheet: View {
                     // ⛔ A CLOSURE LITERAL, NEVER A BARE METHOD REFERENCE, see the
                     // custom rule in `.swiftlint.yml`.
                     text: Binding(get: { model.query }, set: { model.query = $0 }),
-                    enabled: !sending
+                    enabled: !sending,
+                    placeholder: InboxCopy.toPlaceholder
                 )
                 typedAddressRow
                 suggestions

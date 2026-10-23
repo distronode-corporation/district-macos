@@ -189,6 +189,9 @@ struct SettingsField: View {
     /// name or a number. `axis:` rather than a separate editor so the two share one
     /// component and one disabled state.
     var multiline = false
+    /// ⚠️ SHOWN INSIDE AN EMPTY FIELD, BELOW ITS DRAWN LABEL, so it never repeats the label:
+    /// it says what goes in (an example, or what an empty value means). nil draws none.
+    var placeholder: String?
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -205,15 +208,20 @@ struct SettingsField: View {
         }
     }
 
+    /// The placeholder in the palette's muted ink, which a prompt does not inherit.
+    private var prompt: Text {
+        placeholder.map { Text($0).foregroundStyle(colors.mutedForeground) } ?? .noPlaceholder
+    }
+
     @ViewBuilder
     private var box: some View {
         if multiline {
-            TextField(label, text: text, prompt: .noPlaceholder, axis: .vertical)
+            TextField(label, text: text, prompt: prompt, axis: .vertical)
                 .lineLimit(3 ... 8)
                 .disabled(!enabled)
                 .districtField()
         } else {
-            TextField(label, text: text, prompt: .noPlaceholder)
+            TextField(label, text: text, prompt: prompt)
                 .disabled(!enabled)
                 .districtField()
         }
