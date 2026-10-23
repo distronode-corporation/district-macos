@@ -24,6 +24,24 @@ final class MacMarketplaceTests: XCTestCase {
         }
     }
 
+    /// ⚠️ A VIEWER IS TOLD WHO CAN CHANGE NUMBERS ONCE PER SCREEN. Registrations and Carrier
+    /// say it in their own content (``MarketplaceCopy/viewerCannotProvision``), so the caption
+    /// under them says nothing; a viewer there read "needs an agency or client role. Ask
+    /// someone on this workspace who has one." twice.
+    func test_MAC_NUMBERS_3_theViewerRefusalIsSaidOncePerTab() async {
+        let (container, _) = await Self.container()
+        for role in [WorkspaceRole.agency, .client, .viewer, nil] {
+            let model = MarketplaceModel(container: container, workspaceId: "ws_1", role: role)
+            for tab in MarketplaceTab.allCases {
+                model.selectTab(tab)
+                let expected = model.canChangeNumbers || tab.statesTheViewerRefusal
+                    ? nil : MarketplaceCopy.readOnlyViewer
+                XCTAssertEqual(model.readOnlyCaption, expected, "\(String(describing: role)) on \(tab)")
+            }
+        }
+        XCTAssertEqual(MarketplaceTab.allCases.filter(\.statesTheViewerRefusal), [.registrations, .carrier])
+    }
+
     /// ⛔ THE OWNED LIST LOADS ON ENTRY AND NOTHING ELSE DOES: a search is a carrier query
     /// nobody asked for, and the filing list spends a carrier call per bundle.
     func test_MAC_NUMBERS_2_openingReadsTheOwnedListOnly() async {
