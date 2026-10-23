@@ -159,11 +159,13 @@ appcast() {
     --release-notes-url "https://github.com/$REPO/releases/tag/$TAG"
 }
 
-# The release notes: the version's CHANGELOG section (the App Store's notes, through the
-# same reader, which refuses a missing or empty section), then how to check the download.
+# The release notes: the version's CHANGELOG section (through the App Store's reader, which
+# refuses a missing or empty section), then how to check the download.
+# ⛔ `--direct`: without it the reader prefers release-notes/en-US/<version>-mas.txt, the Mac
+# App Store's own notes, which describe a different upgrade (scripts/release-publish.test.sh).
 notes() {
   find_dmg
-  python3 "$ROOT/scripts/asc_release.py" whats-new --version "$VERSION"
+  python3 "$ROOT/scripts/asc_release.py" whats-new --direct --version "$VERSION"
   echo
   echo "## Download"
   echo

@@ -10,6 +10,7 @@ profile, and submit a build for review.
     ... python3 scripts/asc_release.py profile --id ACWY99462R --out /path/x.provisionprofile
     ... python3 scripts/asc_release.py submit --version 1.0 --build 20005
     python3 scripts/asc_release.py whats-new [--locale fr-CA] --version 1.0    # no credentials needed
+    python3 scripts/asc_release.py whats-new --direct --version 1.0            # the GitHub Release's notes
 
 Used by scripts/release-preflight.sh (highest-build and train-open, before anything is
 built), .github/workflows/release.yml (wait-valid after the upload), scripts/direct-release.sh
@@ -175,6 +176,18 @@ def whats_new(changelog: Path, version: str) -> str:
 # direct download, which did ship 3.0.0.
 NOTES_ROOT = Path(__file__).resolve().parent.parent / "release-notes"
 STORE_SUFFIX = "-mas"
+
+
+def direct_notes(changelog: Path, version: str) -> str:
+    """The GitHub Release's notes for the direct download: the version's CHANGELOG section.
+
+    ⛔ NEVER THE MAC APP STORE'S `<version>-mas.txt`. Those are written for store readers
+    who skipped a version the direct download shipped (Mac 3.0.0), so on the GitHub
+    Release they describe the wrong upgrade: the 3.0.2 Release went out with the store's
+    "District AI is now in Canadian French" text, because `release-publish.sh notes`
+    asked ``ReleaseNotes`` for English and the store notes replace the CHANGELOG there.
+    """
+    return whats_new(changelog, version)
 
 
 def _is_english(locale: str) -> bool:
@@ -778,6 +791,11 @@ def main() -> None:
         p.add_argument("--changelog", default=str(Path(__file__).resolve().parent.parent / "CHANGELOG.md"))
         if name == "whats-new":
             p.add_argument("--locale", default="en-US", help="an App Store Connect locale, e.g. fr-CA")
+            p.add_argument(
+                "--direct",
+                action="store_true",
+                help="the direct download's notes (the GitHub Release): the CHANGELOG section, never -mas notes",
+            )
     p = sub.add_parser("profile")
     p.add_argument("--id", required=True, help="the App Store Connect profile id, e.g. ACWY99462R")
     p.add_argument("--out", required=True, help="where to write the profile")
@@ -788,6 +806,12 @@ def main() -> None:
             die(f"profile id '{args.id}' is malformed.")
         uuid, name = fetch_profile(Client(), args.id, Path(args.out))
         print(f"uuid={uuid}\nname={name}")
+        return
+    if args.command == "whats-new" and args.direct:
+        if not _is_english(args.locale):
+            die(f"--direct prints the CHANGELOG section, which is English; '{args.locale}' has none.")
+        print("whatsNew source: CHANGELOG.md (the direct download's notes)", file=sys.stderr)
+        print(direct_notes(Path(args.changelog), args.version))
         return
     if args.command == "whats-new":
         # Builds every language's notes, so this is also the pre-flight check of all of them.
