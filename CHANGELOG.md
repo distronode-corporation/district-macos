@@ -18,6 +18,12 @@ not sent.
 
 ### Fixed
 
+- The GitHub Release's notes are the direct download's again, not the Mac App Store's.
+  `release-publish.sh notes` read English through the store's reader, which prefers
+  `release-notes/en-US/<version>-mas.txt`, so the 3.0.2 Release opened with the store's "District
+  AI is now in Canadian French" (shipped to direct-download users in 3.0.0). It now asks
+  `asc_release.py whats-new --direct`, which prints the CHANGELOG section and nothing else.
+  Tested in `scripts/release-publish.test.sh` (new, run by CI) and `asc_release_test.py`.
 - 3.0.3 (tests only): `MacDesktopLiveSessionTests` 03 and 04 wait for the socket's close
   instead of asserting it the moment `stop()` or `signOut()` returns. DistrictLive's runner
   fires the close in a task of its own, so the assertion raced it and failed CI now and then

@@ -123,6 +123,11 @@ jobs:
       - name: Publish script tests (appcast.py)
         run: python3 scripts/appcast_test.py
 
+      # The GitHub Release body publish.yml writes: the direct download's notes, never the
+      # Mac App Store's -mas notes.
+      - name: Publish script tests (release-publish.sh notes)
+        run: bash scripts/release-publish.test.sh
+
       # The bundle check archive.sh, direct-package.sh and the app job run on every built app.
       - name: Bundle string-table check tests (check-bundle-l10n.sh)
         run: bash scripts/check-bundle-l10n.test.sh

@@ -599,6 +599,40 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual(notes.for_locale("fr-CA"), "Les notes en fran\u00e7ais.")
         self.assertNotIn("en-US", notes.translations)
 
+    def test_the_direct_downloads_notes_are_the_changelog_even_with_store_notes(self) -> None:
+        # The GitHub Release once carried the store's -mas text (3.0.2): --direct never reads it.
+        self.store("en-US", "Store notes.\n")
+        self.store("fr-CA", "Notes du store.\n")
+        self.assertEqual(self.notes().for_locale("en-US"), "Store notes.")
+        self.assertEqual(
+            asc_release.direct_notes(self.changelog, "1.3"), asc_release.whats_new(self.changelog, "1.3")
+        )
+        self.assertNotIn("Store notes", asc_release.direct_notes(self.changelog, "1.3"))
+
+    def cli(self, *args: str) -> subprocess.CompletedProcess:
+        script = Path(__file__).resolve().parent / "asc_release.py"
+        return subprocess.run(
+            [sys.executable, str(script), "whats-new", "--changelog", str(self.changelog), *args],
+            capture_output=True,
+            text=True,
+        )
+
+    def test_the_direct_flag_prints_the_changelog_section(self) -> None:
+        result = self.cli("--direct", "--version", "1.3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), asc_release.whats_new(self.changelog, "1.3"))
+        self.assertIn("direct download", result.stderr)
+
+    def test_the_direct_flag_refuses_another_language(self) -> None:
+        result = self.cli("--direct", "--locale", "fr-CA", "--version", "1.3")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fr-CA", result.stderr)
+
+    def test_the_direct_flag_still_refuses_a_missing_section(self) -> None:
+        result = self.cli("--direct", "--version", "9.9")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("9.9", result.stderr)
+
     def test_the_committed_files_are_well_formed(self) -> None:
         # Every committed language file is non-empty and within the limit, whatever version.
         root = asc_release.NOTES_ROOT
