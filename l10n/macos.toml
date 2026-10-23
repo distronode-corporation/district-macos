@@ -2102,6 +2102,15 @@ screen = "desk"
 state = "reviewed"
 id = { swift = "DeskCopy.brandNameLabel" }
 
+[desk.brand_name_placeholder]
+en = "Your workspace name"
+fr = "Le nom de votre espace de travail"
+ctx = "placeholder"
+screen = "desk"
+state = "reviewed"
+id = { swift = "DeskCopy.brandNamePlaceholder" }
+note = "Inside the empty \"The name your customers see\" field. An empty field uses the workspace name (desk.brand_name_help says so), so the placeholder names that default."
+
 [desk.cancel]
 en = "Cancel"
 fr = "Annuler"
@@ -3926,6 +3935,15 @@ ctx = "label"
 screen = "inbox"
 state = "reviewed"
 id = { swift = "InboxCopy.to" }
+
+[inbox.to_placeholder]
+en = "Name, number or email"
+fr = "Nom, numéro ou courriel"
+ctx = "placeholder"
+screen = "inbox"
+state = "reviewed"
+id = { swift = "InboxCopy.toPlaceholder" }
+note = "Inside the empty To field of New message. The field filters contacts by name, number or email, and a typed number or email is itself a recipient."
 
 [inbox.transcript]
 en = "Transcript"
@@ -11117,11 +11135,12 @@ note = "⛔ \"SENT TO\", NOT \"DELIVERED TO\". ``SchedulingTestEmailResult`` is 
 
 [scheduling_write.time_format_error]
 en = "Enter a time as HH:MM."
-fr = "Entrez une heure au format HH:MM."
+fr = "Entrez une heure, par exemple 9 h ou 13 h 30."
 ctx = "error"
 screen = "scheduling.writes.availability"
 tier = "T2"
 state = "reviewed"
+fr_variant = "The French field shows and accepts « 9 h 30 » (SchedulingTimeField), so the French names that form; the English field shows HH:MM."
 id = { swift = "SchedulingWriteCopy.timeFormatError" }
 
 [scheduling_write.time_order_error]

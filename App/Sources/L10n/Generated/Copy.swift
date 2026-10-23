@@ -813,6 +813,9 @@ extension DeskCopy {
     /// `desk.brand_name_label`
     internal static var brandNameLabel: String { AppL10n.copyLocale == .frCA ? "Le nom que vos clients voient" : "The name your customers see" }
 
+    /// `desk.brand_name_placeholder`
+    internal static var brandNamePlaceholder: String { AppL10n.copyLocale == .frCA ? "Le nom de votre espace de travail" : "Your workspace name" }
+
     /// `desk.cancel`
     internal static var cancel: String { AppL10n.copyLocale == .frCA ? "Annuler" : "Cancel" }
 
@@ -1520,6 +1523,9 @@ extension InboxCopy {
 
     /// `inbox.to`
     internal static var to: String { AppL10n.copyLocale == .frCA ? "À" : "To" }
+
+    /// `inbox.to_placeholder`
+    internal static var toPlaceholder: String { AppL10n.copyLocale == .frCA ? "Nom, numéro ou courriel" : "Name, number or email" }
 
     /// `inbox.transcript`
     internal static var transcript: String { AppL10n.copyLocale == .frCA ? "Transcription" : "Transcript" }
@@ -4189,7 +4195,7 @@ extension SchedulingWriteCopy {
     }
 
     /// `scheduling_write.time_format_error`
-    internal static var timeFormatError: String { AppL10n.copyLocale == .frCA ? "Entrez une heure au format HH:MM." : "Enter a time as HH:MM." }
+    internal static var timeFormatError: String { AppL10n.copyLocale == .frCA ? "Entrez une heure, par exemple 9 h ou 13 h 30." : "Enter a time as HH:MM." }
 
     /// `scheduling_write.time_order_error`
     internal static var timeOrderError: String { AppL10n.copyLocale == .frCA ? "La fin doit être après le début." : "The end has to be after the start." }

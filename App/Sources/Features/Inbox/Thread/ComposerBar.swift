@@ -370,7 +370,7 @@ struct ComposerBar: View {
             .background(colors.card, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
             .overlay {
                 RoundedRectangle(cornerRadius: DistrictRadius.control)
-                    .strokeBorder(colors.input, lineWidth: 1)
+                    .strokeBorder(colors.fieldEdge, lineWidth: 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
     }
