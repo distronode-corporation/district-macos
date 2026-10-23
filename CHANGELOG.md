@@ -194,7 +194,7 @@ not sent.
   « Transmis à une personne », `info` "Information only", `booked` « Rendez-vous pris » in
   French), and in French a workflow action's team-push and signing reasons (`no-devices`,
   `no-message`, `push-lookup-failed`, `push-not-delivered`, `signing-unavailable`) read their
-  own label where they read « Autre ». swift-asn1 stays 1.7.3.
+  own label where they read « Autre ». swift-asn1 stays 1.7.3.
 - DistrictCore 7.0.2 (district-core-swift 5d03f80, tag 7.0.2), pinned by its tag: the i18n
   contracts from monorepo ecf098046 (in French, the number status `in-use` reads « Actif »,
   the research keys `estimatedValue`, `person` and `callerIntel` take the portal's headings
@@ -286,6 +286,16 @@ not sent.
   Release with its Sparkle signature, checksums and provenance attestation, and adds it
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
+
+## [3.0.3] - 2026-10-22
+
+- Call outcomes have clearer labels: "Callback requested", "Passed to a person" and
+  "Information only".
+- When a meeting room or a persona preview ends on its own, District AI says so in plain
+  words, never with a technical message.
+- In French, a workflow run says why a team notification did not go out (for example, no
+  team member has the app on a device that can receive notifications), where it said
+  « Autre ».
 
 ## [3.0.2] - 2026-10-16
 
