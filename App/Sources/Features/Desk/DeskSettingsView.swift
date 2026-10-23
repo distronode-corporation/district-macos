@@ -166,7 +166,8 @@ struct DeskSettingsView: View {
                     get: { model.brandDraft ?? "" },
                     set: { model.editBrandDraft($0) }
                 ),
-                enabled: model.canEditDependents
+                enabled: model.canEditDependents,
+                placeholder: DeskCopy.brandNamePlaceholder
             )
             .onSubmit { Task { await model.commitBrandName() } }
             Text(DeskCopy.brandNameHelp)

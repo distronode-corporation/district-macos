@@ -43,8 +43,22 @@ private struct DistrictFieldModifier: ViewModifier {
             .background(colors.card, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
             .overlay {
                 RoundedRectangle(cornerRadius: DistrictRadius.control)
-                    .strokeBorder(colors.input, lineWidth: 1)
+                    .strokeBorder(colors.fieldEdge, lineWidth: 1)
             }
+    }
+}
+
+extension DistrictColors {
+    /// The 1px edge of a text field: ``mutedForeground``, the palette's quiet ink.
+    ///
+    /// ⛔ NOT ``input``, WHICH IS A FILL-WEIGHT TONE AND DISAPPEARS AS AN EDGE. On the card a
+    /// field sits on, `input` measured 1.40:1 in dark and 1.62:1 in light, so an empty field
+    /// (the Desk name, the new message's To) read as no field at all. WCAG 1.4.11 wants 3:1 for
+    /// the boundary of a control. `mutedForeground` is 6.07:1 (dark) and 7.41:1 (light) on
+    /// `card`, and clears 3:1 on every surface (`DistrictContrastTests`). `tokens.css`'s
+    /// `--route` was the quieter candidate but clears 3:1 on `card` only.
+    var fieldEdge: Color {
+        mutedForeground
     }
 }
 

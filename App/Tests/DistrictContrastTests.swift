@@ -59,6 +59,31 @@ final class DistrictContrastTests: XCTestCase {
         }
     }
 
+    // MARK: - Field edges
+
+    /// ⛔ A TEXT FIELD'S EDGE IS A CONTROL BOUNDARY, 3:1 (WCAG 1.4.11) ON EVERY SURFACE IT CAN
+    /// SIT ON. It was ``DistrictColors/input``: 1.40:1 on `card` in dark and 1.62:1 in light,
+    /// so the empty Desk name field read as no field at all. ``DistrictColors/fieldEdge`` is
+    /// what both strokes draw (``View/districtField()`` and the thread composer).
+    func testTheFieldEdgeClearsThreeToOneOnEverySurface() {
+        for (palette, name) in Self.palettes {
+            XCTAssertLessThan(Self.contrast(palette.input, palette.card), Self.aaLarge, "\(name): the old edge")
+            for (surface, surfaceName) in Self.surfaces(of: palette) {
+                let ratio = Self.contrast(palette.fieldEdge, surface)
+                XCTAssertGreaterThanOrEqual(
+                    ratio, Self.aaLarge,
+                    "\(name): fieldEdge on \(surfaceName) is \(Self.round(ratio)):1, below 3:1"
+                )
+            }
+        }
+    }
+
+    /// The figures the `fieldEdge` comment states, on the card the Desk name field sits on.
+    func testTheFieldEdgeOnTheCardIsAsDocumented() {
+        XCTAssertEqual(Self.round(Self.contrast(DistrictColors.dark.fieldEdge, DistrictColors.dark.card)), "6.07")
+        XCTAssertEqual(Self.round(Self.contrast(DistrictColors.light.fieldEdge, DistrictColors.light.card)), "7.41")
+    }
+
     // MARK: - Solid fills
 
     /// ⛔ THE `on*` PAIRS ARE THE BUTTON LABELS, and the palette's own comments claim
