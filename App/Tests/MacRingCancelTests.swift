@@ -10,7 +10,8 @@ import XCTest
 /// the reason, and leaves a call it answered alone.
 ///
 /// ⛔ THE WORDING IS THE REASON'S: answered elsewhere for `answered`, the caller hanging up
-/// only for `call_ended`, nobody answered otherwise.
+/// only for `call_ended`, declined for `declined` (DistrictCore 8.0.0), nobody answered
+/// otherwise. None of them sends anything.
 @MainActor
 final class MacRingCancelTests: XCTestCase {
     private final class FakePresenter: RingPresenting {
@@ -74,6 +75,10 @@ final class MacRingCancelTests: XCTestCase {
         transport.requests.count { $0.url.path.hasSuffix("/answer") }
     }
 
+    private var declineRequests: Int {
+        transport.requests.count { $0.url.path.hasSuffix("/decline") }
+    }
+
     /// ⛔ ANSWERED ON ANOTHER DEVICE, FROM THE SOCKET: the ring stops, sends nothing, and says so.
     func test_MAC_RINGCANCEL_01_answeredElsewhereStopsTheRingAndSaysSo() async {
         let model = await ringing()
@@ -101,6 +106,36 @@ final class MacRingCancelTests: XCTestCase {
             XCTAssertEqual(sentence(model), expected, "\(reason)")
             XCTAssertFalse(model.ringAnsweredElsewhere)
         }
+    }
+
+    /// ⛔ EVERY MEMBER DECLINED, THIS MAC'S PERSON ON ANOTHER DEVICE: the ring stops and reads
+    /// as the decline it was, never as a missed call, and this Mac reports no decline of its own.
+    func test_MAC_RINGCANCEL_06_declinedElsewhereReadsAsDeclinedAndSendsNothing() async {
+        let model = await ringing()
+
+        model.ringStopped(workspaceId: "ws_1", callId: "call_1", reason: .cancelled(.declined))
+        await waitUntil { model.state.phase.isEnded }
+        try? await Task.sleep(for: .milliseconds(150))
+
+        XCTAssertEqual(model.state.phase, .ended(.declined))
+        XCTAssertFalse(model.ringAnsweredElsewhere)
+        XCTAssertFalse(model.ringEndedByCall)
+        XCTAssertEqual(sentence(model), "Call ended · declined")
+        XCTAssertEqual(answerRequests, 0)
+        XCTAssertEqual(declineRequests, 0, "only a press on this Mac reports a decline")
+        XCTAssertTrue(transport.requests.allSatisfy { $0.method == .get }, "nothing was written")
+    }
+
+    /// ⛔ THE SAME FROM THE PUSH, WHICH ALSO TAKES THE CALL'S DELIVERED ALERTS AWAY.
+    func test_MAC_RINGCANCEL_07_theDeclinedPushWithdrawsItsAlerts() async {
+        let model = await ringing()
+
+        model.ringCancelled(RingCancel(workspaceId: "ws_1", callId: "call_1", reason: .declined))
+        await waitUntil { model.state.phase.isEnded }
+
+        XCTAssertEqual(presenter.withdrawn, ["call_1"])
+        XCTAssertEqual(sentence(model), "Call ended · declined")
+        XCTAssertEqual(declineRequests, 0)
     }
 
     /// ⛔ THE PUSH STOPS THE RING AND TAKES THE CALL'S DELIVERED ALERTS AWAY.

@@ -9,9 +9,10 @@ import XCTest
 ///
 /// iOS is rung by a VoIP push and CallKit; this model is rung by the telemetry gate and
 /// draws its own ring. What these pin is the Mac half: the gate's stop ends only a ring that
-/// is still ringing, a ring the call ended reads as the caller hanging up, a decline sends
-/// nothing, a ring the session withdraws leaves no summary, and the notification's Answer
-/// reaches the one answer route once. No case reaches LiveKit: every answer here is refused
+/// is still ringing, a ring the call ended reads as the caller hanging up, a person's decline
+/// is reported once (DistrictCore 8.0.0) while a ring nobody declined sends nothing, a ring the
+/// session withdraws leaves no summary, and the notification's Answer reaches the one answer
+/// route once. No case reaches LiveKit: every answer here is refused
 /// (409, the caller gone), which is the reducer's terminal path with no engine.
 @MainActor
 final class MacIncomingCallModelTests: XCTestCase {
@@ -36,10 +37,18 @@ final class MacIncomingCallModelTests: XCTestCase {
     private var microphone: FakeMicrophoneAccess!
     private var settled = 0
 
-    private func makeModel(microphone status: MicrophoneStatus = .granted, answer: Int = 409) -> IncomingCallModel {
+    private func makeModel(
+        microphone status: MicrophoneStatus = .granted,
+        answer: Int = 409,
+        decline: Int = 200
+    ) -> IncomingCallModel {
         transport = RoutedTransport { request in
             if request.url.path.hasSuffix("/answer") {
                 return HTTPResponse(statusCode: answer, body: Data(#"{"error":"Call ended"}"#.utf8))
+            }
+            if request.url.path.hasSuffix("/decline") {
+                let body = decline == 200 ? #"{"success":true}"# : #"{"success":false,"error":"Server error"}"#
+                return HTTPResponse(statusCode: decline, body: Data(body.utf8))
             }
             return HTTPResponse(statusCode: 404, body: Data(#"{"error":"Not found"}"#.utf8))
         }
@@ -70,6 +79,15 @@ final class MacIncomingCallModelTests: XCTestCase {
 
     private var answerRequests: [HTTPRequest] {
         transport.requests.filter { $0.url.path.hasSuffix("/answer") }
+    }
+
+    private var declineRequests: [HTTPRequest] {
+        transport.requests.filter { $0.url.path.hasSuffix("/decline") }
+    }
+
+    /// Long enough for a spawned request (or a wrongly retried one) to reach the transport.
+    private func settle() async {
+        try? await Task.sleep(for: .milliseconds(150))
     }
 
     // MARK: - The gate's stop
@@ -139,31 +157,73 @@ final class MacIncomingCallModelTests: XCTestCase {
 
     // MARK: - Decline and withdrawal
 
-    func test_MAC_INCOMING_05_aDeclineSendsNothingToTheServer() async {
+    /// ⛔ A PERSON'S DECLINE IS REPORTED, EXACTLY ONCE, TO THE CALL'S OWN DECLINE ROUTE.
+    func test_MAC_INCOMING_05_aDeclineIsReportedOnce() async throws {
         let model = makeModel()
         await ring(model)
 
         model.declinePressed()
-        await waitUntil { model.state.phase.isEnded }
+        model.declinePressed()
+        await waitUntil { model.state.phase.isEnded && !self.declineRequests.isEmpty }
+        await settle()
 
         XCTAssertEqual(model.state.phase, .ended(.declined))
         XCTAssertTrue(answerRequests.isEmpty)
-        XCTAssertTrue(
-            transport.requests.allSatisfy { $0.method == .get },
-            "only the caller lookup was read; nothing was written"
-        )
+        XCTAssertEqual(declineRequests.count, 1, "two presses, one decline")
+        let request = try XCTUnwrap(declineRequests.first)
+        XCTAssertEqual(request.method, .post)
+        XCTAssertEqual(request.url.path, "/api/district/calls/call_1/decline")
+        let body = try JSONSerialization.jsonObject(with: XCTUnwrap(request.body)) as? [String: String]
+        XCTAssertEqual(body, ["workspaceId": "ws_1"])
+        XCTAssertFalse(calls.hasLiveCall, "the claim is given back")
+        XCTAssertEqual(settled, 1)
     }
 
+    /// ⛔ NEVER AWAITED: the ring ends and the summary shows while the request is still out.
+    func test_MAC_INCOMING_05b_aDeclineNeverWaitsForItsRequest() async {
+        let model = makeModel()
+        let release = transport.hold(pathSuffix: "/decline")
+        await ring(model)
+
+        model.declinePressed()
+        await waitUntil { model.state.phase.isEnded && !self.declineRequests.isEmpty }
+
+        XCTAssertEqual(model.state.phase, .ended(.declined), "ended with the request still held")
+        XCTAssertGreaterThanOrEqual(presenter.stops, 1)
+        XCTAssertFalse(calls.hasLiveCall)
+        model.dismissEndedCall()
+        await waitUntil { !model.isPresented }
+        release()
+        await settle()
+        XCTAssertEqual(declineRequests.count, 1)
+    }
+
+    /// ⛔ NEVER RETRIED: a refused decline is not sent again, and the screen is unchanged.
+    func test_MAC_INCOMING_05c_aFailedDeclineIsNotRetried() async {
+        let model = makeModel(decline: 500)
+        await ring(model)
+
+        model.declinePressed()
+        await waitUntil { !self.declineRequests.isEmpty }
+        await settle()
+
+        XCTAssertEqual(declineRequests.count, 1)
+        XCTAssertEqual(model.state.phase, .ended(.declined))
+    }
+
+    /// ⛔ A WITHDRAWN RING SENDS NOTHING: nobody pressed Decline.
     func test_MAC_INCOMING_06_aWithdrawnRingLeavesNoSummary() async {
         let model = makeModel()
         await ring(model)
 
         model.ringWithdrawn(callId: "call_1")
         await waitUntil { !model.isPresented }
+        await settle()
 
         XCTAssertEqual(model.state.phase, .idle)
         XCTAssertGreaterThanOrEqual(presenter.stops, 1)
         XCTAssertFalse(calls.hasLiveCall)
+        XCTAssertTrue(declineRequests.isEmpty, "a withdrawal is not a decline")
     }
 
     func test_MAC_INCOMING_07_sleepOrQuitWithdrawsARing() async {
@@ -172,8 +232,38 @@ final class MacIncomingCallModelTests: XCTestCase {
 
         await calls.endEverything(.sleep)
         await waitUntil { !model.isPresented }
+        await settle()
 
         XCTAssertTrue(answerRequests.isEmpty)
+        XCTAssertTrue(declineRequests.isEmpty, "sleep and quit are not a decline")
+    }
+
+    /// ⛔ A RING ENDED BECAUSE NOBODY IS SIGNED IN SENDS NOTHING.
+    func test_MAC_INCOMING_07b_aRingEndedForNoSessionSendsNothing() async {
+        let model = makeModel()
+        await ring(model)
+
+        model.sessionChanged(.signedOut(""))
+        await waitUntil { model.state.phase.isEnded }
+        await settle()
+
+        XCTAssertEqual(model.state.phase, .ended(.declined), "the decline's local ending")
+        XCTAssertTrue(declineRequests.isEmpty, "a missing session is not a decline")
+        XCTAssertFalse(calls.hasLiveCall)
+    }
+
+    /// ⛔ A RING THAT TIMES OUT OR THE CALL ENDS SENDS NOTHING EITHER.
+    func test_MAC_INCOMING_07c_aRingNobodyDeclinedSendsNothing() async {
+        for reason in [DesktopRingEnd.timedOut, .callEnded, .cancelled(.declined)] {
+            let model = makeModel()
+            await ring(model)
+
+            model.ringStopped(workspaceId: "ws_1", callId: "call_1", reason: reason)
+            await waitUntil { model.state.phase.isEnded }
+            await settle()
+
+            XCTAssertTrue(declineRequests.isEmpty, "\(reason)")
+        }
     }
 
     // MARK: - One call at a time
@@ -222,17 +312,22 @@ final class MacIncomingCallModelTests: XCTestCase {
         XCTAssertEqual(model.state.phase, .ended(.callerCancelled))
     }
 
+    /// ⚠️ THE KNOWN RESIDUAL IS THE FIRST HALF: Decline on an alert for a call that is not
+    /// ringing here (a quit Mac's alert) sends nothing. The ringing call's is reported once.
     func test_MAC_INCOMING_11_declineFromTheNotificationOnlyTouchesTheRingingCall() async {
         let model = makeModel()
         await ring(model)
 
         model.notificationDeclined(callId: "call_other")
-        try? await Task.sleep(for: .milliseconds(100))
+        await settle()
         XCTAssertTrue(model.isRinging)
+        XCTAssertTrue(declineRequests.isEmpty, "a call not ringing here is not reported")
 
         model.notificationDeclined(callId: "call_1")
-        await waitUntil { model.state.phase.isEnded }
+        await waitUntil { model.state.phase.isEnded && !self.declineRequests.isEmpty }
+        await settle()
         XCTAssertEqual(model.state.phase, .ended(.declined))
+        XCTAssertEqual(declineRequests.map(\.url.path), ["/api/district/calls/call_1/decline"])
     }
 
     // MARK: - The microphone at Answer
