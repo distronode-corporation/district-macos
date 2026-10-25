@@ -1,0 +1,6 @@
+- Quand vous refusez un appel, District AI en informe tout de suite votre réceptionniste. Une fois que toutes les personnes appelées ont refusé, la réceptionniste prend un message pour l'appelant au lieu d'attendre la fin de la sonnerie.
+- Une fois que toutes les personnes appelées ont refusé un appel, il cesse aussi de sonner sur ce Mac et s'affiche comme refusé.
+- District Desk s'appelle désormais « Comptoir ».
+- Les champs de texte ont un contour plus net, et le nom du comptoir ainsi que le champ « À » d'un nouveau message indiquent ce qu'il faut y écrire.
+- Dans « Heures de disponibilité », les heures s'écrivent « 9 h » et « 13 h 30 » quand vous les modifiez.
+- « Numéros de téléphone » indique une seule fois, et non deux, qui peut modifier les numéros.

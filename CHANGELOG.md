@@ -114,7 +114,7 @@ not sent.
 
 ### Changed
 
-- A person's Decline is reported to the server (Sean's decision, 2026-10-24, GitLab
+- 3.1.0: a person's Decline is reported to the server (Sean's decision, 2026-10-24, GitLab
   #2 note 4083623386), so once everyone rung has declined the ring ends at once and the
   receptionist takes a message instead of waiting out the ring. DistrictCore 8.0.0
   (district-core-swift ab36d31, tag 8.0.0), pinned by its tag; swift-asn1 stays 1.7.3 (8.0.0's
@@ -313,6 +313,19 @@ not sent.
   Release with its Sparkle signature, checksums and provenance attestation, and adds it
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
+
+## [3.1.0]
+
+- When you decline a call, District AI tells your receptionist right away. Once everyone it
+  rang has declined, the receptionist takes a message for the caller instead of waiting
+  for the ring to run out.
+- Once everyone a call rang has declined it, it stops ringing on this Mac too and reads as
+  declined.
+- District Desk is now simply the Desk.
+- Text fields have a clearer edge, and the Desk name and the To field of a new message say
+  what goes in them.
+- In French, working hours read as « 9 h » and « 13 h 30 » when you edit them.
+- Phone numbers says once, not twice, who can change numbers.
 
 ## [3.0.3] - 2026-10-22
 
