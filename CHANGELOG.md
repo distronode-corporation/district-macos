@@ -316,16 +316,15 @@ not sent.
 
 ## [3.1.0]
 
-- When you decline a call, District AI tells your receptionist right away. Once everyone it
-  rang has declined, the receptionist takes a message for the caller instead of waiting
-  for the ring to run out.
-- Once everyone a call rang has declined it, it stops ringing on this Mac too and reads as
-  declined.
+- When you decline a call, this Mac tells the assistant right away: once everyone it rang
+  has declined, the assistant takes the caller's message instead of letting it ring on.
+- If you decline a call on another device and everyone else it rang declines it too, it
+  stops ringing on this Mac and shows "Call ended · declined".
 - District Desk is now simply the Desk.
-- Text fields have a clearer edge, and the Desk name and the To field of a new message say
-  what goes in them.
+- Text fields have a clearer edge. The Desk name field and the To field of a new message
+  now say what goes in them.
 - In French, working hours read as « 9 h » and « 13 h 30 » when you edit them.
-- Phone numbers says once, not twice, who can change numbers.
+- Phone numbers now tells a viewer once, not twice, who can change numbers.
 
 ## [3.0.3] - 2026-10-22
 
