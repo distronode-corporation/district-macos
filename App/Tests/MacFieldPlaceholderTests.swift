@@ -14,7 +14,7 @@ final class MacFieldPlaceholderTests: XCTestCase {
             XCTAssertEqual(InboxCopy.toPlaceholder, "Name, number or email")
         }
         L10nRuntime.withLocale(.frCA) {
-            XCTAssertEqual(DeskCopy.brandNamePlaceholder, "Le nom de votre espace de travail")
+            XCTAssertEqual(DeskCopy.brandNamePlaceholder, "Nom de votre espace de travail")
             XCTAssertEqual(InboxCopy.toPlaceholder, "Nom, numéro ou courriel")
         }
     }

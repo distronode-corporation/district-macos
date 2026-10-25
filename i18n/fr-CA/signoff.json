@@ -1,7 +1,7 @@
 {
-  "signed_off_by": "macOS 3.0.3 worker (Opus 5.5), 2026-10-22: no French added or reworded since the v3.0.2 sign-off (v3 manager, 2026-10-16); macos.toml only lost rooms.state_dropped_because and settings.preview_dropped_because (#74) and one note's English changed",
-  "release": "v3.0.3",
-  "commit": "95c56c6962eb7896727bee61362f46707546b40e",
+  "signed_off_by": "iMac manager distronode-com (Opus 5.5), Mac 3.1.0: the l10n/macos.toml changes since v3.0.3 (#79 to #82) and release-notes/fr-CA/3.1.0.txt reviewed by an Opus 5.5 xhigh fr-CA reviewer; its must-fix and suggestions applied as Sean approved them (\"Must-fix + all suggestions (Recommended)\"; the U+00A0 in the time-format error deferred to an all-platform change), 2026-10-25",
+  "release": "v3.1.0",
+  "commit": "fbf521eb3f5fe8c430c4299b0b5e80c016692ba2",
   "catalogs": [
     {
       "path": "l10n/infoplist.toml",
@@ -9,7 +9,7 @@
     },
     {
       "path": "l10n/macos.toml",
-      "sha256": "06d9cfe5862e2cdbbcacebb33042b4a08b4e14e5deca18bae701c65c5fda59c8"
+      "sha256": "c17c49d5da3d7ea09a36e661fa8c56b63b458c773fab9861f4f57dc5998781c0"
     },
     {
       "path": "l10n/push.toml",

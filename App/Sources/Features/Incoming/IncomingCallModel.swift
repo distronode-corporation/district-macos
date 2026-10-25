@@ -4,6 +4,9 @@ import DistrictLive
 import DistrictModel
 import Foundation
 import Observation
+import OSLog
+
+private let declineLog = Logger(subsystem: "com.distronode.district", category: "Call")
 
 /// One inbound call, from the ring to the hang-up.
 ///
@@ -147,6 +150,7 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
     /// is this model's own doing, echoed back, and changes nothing.
     func ringStopped(workspaceId: String, callId: String, reason: DesktopRingEnd) {
         guard state.phase == .ringing, state.callID?.rawValue == callId else { return }
+        var exit = IncomingCallEvent.ringTimedOut
         switch reason {
         case .cleared:
             return
@@ -159,8 +163,15 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         case .cancelled(.answered):
             ringEndedByCall = false
             ringAnsweredElsewhere = true
+        // ⛔ EVERY MEMBER RUNG DECLINED (8.0.0), this Mac's person included, elsewhere. Worded
+        // as the decline it was (this Mac's own Decline sentence), never as a missed call, and
+        // it sends nothing: `.withdrawnLocally` is the decline's exit WITHOUT its request.
+        case .cancelled(.declined):
+            ringEndedByCall = false
+            ringAnsweredElsewhere = false
+            exit = .withdrawnLocally
         }
-        Task { await apply(.ringTimedOut) }
+        Task { await apply(exit) }
     }
 
     /// The server ended the ring for a call (`call_ring_cancelled`), from the background push.
@@ -212,8 +223,11 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         }
     }
 
-    /// The notification's Decline button. ⚠️ Only for the call ringing here; declining
-    /// anything else has nothing to do, because a decline sends nothing to the server.
+    /// The notification's Decline button: a person's decline, reported like the panel's.
+    ///
+    /// ⚠️ KNOWN RESIDUAL: ONLY FOR THE CALL RINGING HERE. Decline on the server's alert for a
+    /// call this app never rang (it was quit, or its socket missed the ring) sends NOTHING:
+    /// the action has no workspace and nothing here holds the call, so the server times out.
     func notificationDeclined(callId: String) {
         guard state.phase == .ringing, state.callID?.rawValue == callId else { return }
         declinePressed()
@@ -242,8 +256,9 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         Task { await apply(.answerPressed) }
     }
 
-    /// ⛔ NOTHING IS SENT TO THE SERVER FOR A DECLINE: a decline and a Mac nobody was at
-    /// must be indistinguishable from outside.
+    /// ⛔ A PERSON'S DECLINE, AND THE ONLY PATH THAT MAY FEED `.declinePressed`: while ringing
+    /// the reducer answers it with ``IncomingCallCommand/requestDecline(workspace:call:)``.
+    /// A ring ended with nobody behind it feeds `.withdrawnLocally` (``withdraw()``).
     func declinePressed() {
         Task { await apply(.declinePressed) }
     }
@@ -276,7 +291,7 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         Task { await apply(.dismissed) }
     }
 
-    /// The Mac is sleeping or quitting, or the session is ending. A ring is declined and a
+    /// The Mac is sleeping or quitting, or the session is ending. A ring is withdrawn and a
     /// call is hung up; neither is attributed to the person.
     func endForSystem() async {
         switch state.phase {
@@ -340,16 +355,17 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
         return start
     }
 
-    /// ⚠️ THE DECLINE EXIT (it sends nothing to the server), then straight past the summary.
+    /// ⛔ THE DECLINE'S EXIT WITHOUT ITS REQUEST (nobody pressed anything, so nothing may tell
+    /// the server somebody did), then straight past the summary.
     private func withdraw() async {
-        await apply(.declinePressed)
+        await apply(.withdrawnLocally)
         await apply(.dismissed)
     }
 
     /// The gate resolved to "there is no session". End a ring that is waiting on it.
     private func endForNoSession() {
         guard ringID != nil, !state.phase.isEnded, state.phase != .idle else { return }
-        Task { await apply(state.phase == .ringing ? .declinePressed : .hangUpPressed) }
+        Task { await apply(state.phase == .ringing ? .withdrawnLocally : .hangUpPressed) }
     }
 
     // MARK: - The one sink
@@ -397,6 +413,14 @@ final class IncomingCallModel: LiveCallControls, LiveCallOwner, DesktopRingSink 
             // awaiting it inside this loop would re-enter ``apply(_:)`` mid-flight.
             answerTask = Task { @MainActor [weak self] in
                 await self?.requestAnswer(workspace: workspace, call: call)
+            }
+        // ⛔ ONCE, NEVER RETRIED, AWAITED OR CANCELLED: emitted last, after the ring is gone, and
+        // ``release()`` runs next and must not take it along. No answer changes the screen.
+        case let .requestDecline(workspace, call):
+            Task { [inbound] in
+                if case .failure = await inbound.decline(callId: call.rawValue, workspaceId: workspace.rawValue) {
+                    declineLog.notice("The decline was not delivered; the ring times out on the server.")
+                }
             }
         // ⚠️ NO-OPS ON A MAC: there is no system call record to keep in step. The call log
         // is the record, written by the carrier's webhooks.

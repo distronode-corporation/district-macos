@@ -114,6 +114,27 @@ not sent.
 
 ### Changed
 
+- 3.1.0: a person's Decline is reported to the server (Sean's decision, 2026-10-24, GitLab
+  #2 note 4083623386), so once everyone rung has declined the ring ends at once and the
+  receptionist takes a message instead of waiting out the ring. DistrictCore 8.0.0
+  (district-core-swift ab36d31, tag 8.0.0), pinned by its tag; swift-asn1 stays 1.7.3 (8.0.0's
+  `Package.resolved` records it). The ring panel's Decline and the notification's Decline,
+  for the call ringing here, feed `.declinePressed`, and the reducer answers it with
+  `.requestDecline`, which `IncomingCallModel` sends once to
+  `POST /api/district/calls/{id}/decline` (`InboundCallRepository.decline`): spawned, never
+  awaited, never retried and never cancelled by the call's release, so the ring ends on
+  screen whatever the answer, and a failure is only logged (`Logger`, category `Call`). A
+  ring nobody declined still sends nothing: sleep, quit, a setting switched off
+  (`withdraw()`) and a missing session (`endForNoSession()`) feed the new
+  `.withdrawnLocally`, the decline's local ending without its request, where they fed
+  `.declinePressed`. The server's ring cancel with the new reason `declined` (everyone rung
+  declined, this Mac's person on another device) stops the ring here through
+  `.withdrawnLocally` too, so it reads "Call ended · declined", the sentence this Mac shows
+  after its own Decline, never "nobody answered", and sends nothing; the push copy still
+  takes the call's delivered alerts away. ⚠️ Known residual: Decline on the server's alert
+  for a call this app never rang (the app was quit, or the socket missed the ring) sends
+  nothing; that ring ends by the server's timeout. No string is added. Tested in
+  `MacIncomingCallModelTests` and `MacRingCancelTests`.
 - Crash reporting runs on Sentry 9.30.1 (was 9.29.2), the same as District AI for iOS.
 - 3.0.2, the Apple batch after 3.0.1 (the 3.0.1 visual QA's MEDIUM and LOW findings, the
   queued contrast and type items, and the French notes from the 3.0.1 round):
@@ -292,6 +313,18 @@ not sent.
   Release with its Sparkle signature, checksums and provenance attestation, and adds it
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
+
+## [3.1.0]
+
+- When you decline a call, this Mac tells the assistant right away: once everyone it rang
+  has declined, the assistant takes the caller's message instead of letting it ring on.
+- If you decline a call on another device and everyone else it rang declines it too, it
+  stops ringing on this Mac and shows "Call ended · declined".
+- District Desk is now simply the Desk.
+- Text fields have a clearer edge. The Desk name field and the To field of a new message
+  now say what goes in them.
+- In French, working hours read as « 9 h » and « 13 h 30 » when you edit them.
+- Phone numbers now tells a viewer once, not twice, who can change numbers.
 
 ## [3.0.3] - 2026-10-22
 

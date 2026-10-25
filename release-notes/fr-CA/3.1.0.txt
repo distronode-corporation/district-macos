@@ -1,0 +1,6 @@
+- Quand vous refusez un appel, ce Mac en avise aussitôt l'assistante : dès que toutes les personnes appelées l'ont refusé, elle prend le message de l'appelant sans attendre la fin de la sonnerie.
+- Si vous refusez un appel sur un autre appareil et que toutes les autres personnes appelées l'ont aussi refusé, il cesse de sonner sur ce Mac et affiche « Appel terminé · refusé ».
+- District Desk s'appelle désormais « Comptoir ».
+- Les champs de texte ont un contour plus net. Le champ du nom du comptoir et le champ « À » d'un nouveau message indiquent maintenant ce qu'il faut y écrire.
+- Dans « Heures de disponibilité », les heures s'affichent et se saisissent sous la forme « 9 h » ou « 13 h 30 ».
+- Pour un membre ayant le rôle Lecteur, « Numéros de téléphone » n'indique plus qu'une seule fois qui peut modifier les numéros.

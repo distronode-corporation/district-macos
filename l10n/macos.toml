@@ -2104,7 +2104,7 @@ id = { swift = "DeskCopy.brandNameLabel" }
 
 [desk.brand_name_placeholder]
 en = "Your workspace name"
-fr = "Le nom de votre espace de travail"
+fr = "Nom de votre espace de travail"
 ctx = "placeholder"
 screen = "desk"
 state = "reviewed"
@@ -5845,7 +5845,7 @@ ctx = "menu"
 screen = "navigation"
 state = "reviewed"
 id = { swift = "NavigationCopy.newTicket" }
-note = "File menu command that opens District Desk's new-ticket form (a ticket raised for a customer who got in touch another way). Title case, as macOS menu items are."
+note = "File menu command that opens the Desk's new-ticket form (a ticket raised for a customer who got in touch another way). Title case, as macOS menu items are."
 
 [navigation.no_workspaces_yet]
 en = "No workspaces yet"
