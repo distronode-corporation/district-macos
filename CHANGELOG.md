@@ -18,6 +18,10 @@ not sent.
 
 ### Fixed
 
+- 3.1.0 (visual QA): Cancel and Save on Edit working hours, Edit date overrides and the three
+  event-type forms sit at the sheet's bottom trailing edge, the save rightmost, as on every
+  other sheet; they sat at the leading edge (`SchedulingWriteButtons`). Pinned by
+  `MacSheetFitTests.testTheSchedulingFormButtonsAreTrailing`.
 - The GitHub Release's notes are the direct download's again, not the Mac App Store's.
   `release-publish.sh notes` read English through the store's reader, which prefers
   `release-notes/en-US/<version>-mas.txt`, so the 3.0.2 Release opened with the store's "District

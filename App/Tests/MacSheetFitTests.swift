@@ -190,6 +190,16 @@ final class MacSheetFitTests: XCTestCase {
             XCTAssertNil(placement, "\(name): \(placement ?? "") fills a system sheet bar")
         }
     }
+
+    /// ⛔ A SCHEDULING FORM'S CANCEL AND SAVE SIT AT THE TRAILING EDGE (3.1.0 visual QA). Edit
+    /// working hours drew them at the leading edge under its last day, while its own confirm
+    /// bar and every ``MacSheetChrome`` sheet put the default button bottom right.
+    func testTheSchedulingFormButtonsAreTrailing() throws {
+        let body = try XCTUnwrap(SheetScan.structBodies(SheetScan.sources())["SchedulingWriteButtons"])
+        let code = SheetScan.uncommented(body)
+        XCTAssertTrue(code.contains(".frame(maxWidth: .infinity, alignment: .trailing)"), "the row is not trailing")
+        XCTAssertFalse(code.contains("alignment: .leading"), "the row is leading")
+    }
 }
 
 /// A source scan of the app's sheets, for ``MacSheetFitTests``.
