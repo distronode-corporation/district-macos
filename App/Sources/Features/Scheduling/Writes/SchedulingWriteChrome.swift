@@ -359,6 +359,10 @@ struct SchedulingWriteOutcome: View {
 }
 
 /// Cancel beside the one button that spends a request, for a form that draws its own.
+///
+/// ⚠️ MAC: AT THE TRAILING EDGE, the confirm rightmost, as the sheets' confirm bar
+/// (``SchedulingWriteSheet``) and every ``MacSheetChrome`` sheet place theirs. The row sat
+/// at the leading edge under Edit working hours and the other four forms (3.1.0 visual QA).
 struct SchedulingWriteButtons: View {
     let saveTitle: String
     let saving: Bool
@@ -384,7 +388,7 @@ struct SchedulingWriteButtons: View {
             .accessibilityIdentifier(saveIdentifier)
             .keyboardShortcut(.districtSubmit)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
