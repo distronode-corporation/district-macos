@@ -182,7 +182,7 @@ repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the Op
 
 ## Releases
 
-3.0.3 (build 20077) is the current release, on [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and
+The current release is on [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and
 in the Homebrew tap. It is on the Mac App Store too, where a new version can arrive later while Apple reviews it.
 [`release.yml`](.github/workflows/release.yml) builds both builds of one commit
 on GitHub-hosted macOS runners, from `main` or a protected `v*` tag, with no signing key
