@@ -1,7 +1,16 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/distronode-logo-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset=".github/assets/distronode-logo-light.png">
+  <img alt="Distronode" src=".github/assets/distronode-logo-light.png" width="220">
+</picture>
+
 # District AI for Mac
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/distronode-corporation/district-macos/badge)](https://scorecard.dev/viewer/?uri=github.com/distronode-corporation/district-macos)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15871/badge)](https://www.bestpractices.dev/projects/15871)
+[![Latest release](https://img.shields.io/github/v/release/distronode-corporation/district-macos?label=release)](https://github.com/distronode-corporation/district-macos/releases/latest)
+
+<a href="https://apps.apple.com/app/id6809297970?platform=mac"><img alt="Download on the Mac App Store" src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-mac-app-store/black/en-us" height="44"></a>
 
 The native macOS client for [District AI](https://www.distronode.com/district-ai), the AI
 receptionist service by Distronode. It matches the iPad app section for section: calls
@@ -12,7 +21,7 @@ District AI workspace.
 [GitLab mirror](https://gitlab.com/distronode-corporation/district-macos) (read-only
 mirror; issues and pull requests live on GitHub), [CHANGELOG](CHANGELOG.md).
 
-**Status: 3.0.3 (build 20077) is the current release**, a signed, notarised download on
+**Status:** the release badge above names the current release, a signed, notarised download on
 [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and through Homebrew
 (`brew install distronode-corporation/tap/district-ai`). It is also on the
 [Mac App Store](https://apps.apple.com/app/id6809297970?platform=mac), where a new version can arrive later while Apple reviews it.
@@ -233,3 +242,6 @@ Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 District AI, Distronode and the District AI and Distronode logos and app icons are
 trademarks of Distronode Corporation. They are not licensed under the Apache License 2.0:
 a build you distribute must use its own name, icon and bundle identifier.
+
+Apple, the Apple logo and Mac are trademarks of Apple Inc., registered in the U.S. and other
+countries. Mac App Store is a service mark of Apple Inc.
