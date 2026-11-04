@@ -16,6 +16,13 @@ not sent.
 
 ## [Unreleased]
 
+### Known limits
+
+- Dial: a whole number typed without its trunk prefix may lose a leading digit when that digit
+  equals the trunk prefix (Russia's `800 555 35 35` typed without its `8`). Only Belarus, the UK
+  and Lithuania check a prefix against libphonenumber's number patterns; modelling every
+  country's pattern is left out. The line under the field shows the whole number before Call.
+
 ### Changed
 
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
