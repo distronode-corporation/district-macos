@@ -40,6 +40,15 @@ not sent.
 
 ### Fixed
 
+- Dial (design A, #91): three fixes found after it merged, the same as district-ios #96.
+  `+7` typed one key at a time now reaches Kazakhstan for a `6` or `7` after it, as a pasted
+  `+7 701 …` does; it stayed on Russia, because the digits after `+7` arrived as a national
+  number read only in the country on the button. The country search is ranked: the ISO code
+  exactly, then a name that starts with the query, then a calling code, then a name that only
+  contains it, so `us` and Return pick the United States, not Australia. And a click on the
+  disabled Call button says a wrong length, as the entry above promises: a disabled button
+  never ran `placeCall()`, so its refusal branch was unreachable. `DialPlan` stays identical to
+  district-ios's; pinned by `DialPlanTests` (`test_MAC_DIALER_09` to `11`).
 - 3.1.0 (visual QA): Cancel and Save on Edit working hours, Edit date overrides and the three
   event-type forms sit at the sheet's bottom trailing edge, the save rightmost, as on every
   other sheet; they sat at the leading edge (`SchedulingWriteButtons`). Pinned by
