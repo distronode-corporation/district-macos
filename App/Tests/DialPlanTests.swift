@@ -382,3 +382,71 @@ final class DialPlanTests: XCTestCase {
         XCTAssertNil(DialerModel.homeCountry(fromNumbers: ["+18005550100"]))
     }
 }
+
+/// Typed one key at a time: the cases Seer found in district-core-rust #63's port of this
+/// plan, which this copy had too.
+///
+/// ⚠️ A CLASS OF ITS OWN so ``DialPlanTests`` stays inside swiftlint's type-body length.
+final class DialPlanTypingTests: XCTestCase {
+    /// ⛔ A CALLING CODE WITH NO DIGIT AFTER IT YET STAYS IN THE FIELD, so the next digit is
+    /// read after the code (Seer on district-core-rust #63). Typed key by key, Saint
+    /// Petersburg's +7 812 kept its 8 only this way: shown as an empty local number, the 8 was
+    /// read as Russia's trunk prefix and dropped.
+    func test_MAC_DIALER_12_aCodeWithNoDigitAfterItStaysInTheField() {
+        let codeOnly = DialPlan.read("+7", country: "CA")
+        XCTAssertEqual(codeOnly.national, "+7")
+        XCTAssertEqual(codeOnly.iso, "RU")
+        XCTAssertEqual(DialPlan.read("+44", country: "CA").national, "+44")
+        let typed = typeKeys("+78121234567", country: "CA")
+        XCTAssertEqual(typed.iso, "RU")
+        XCTAssertEqual(typed.e164, "+78121234567")
+        XCTAssertEqual(typed.national, DialPlan.read("+7 812 123 4567", country: "CA").national)
+        // A trunk 0 pasted after the code is still dropped, and the code stays.
+        XCTAssertEqual(DialPlan.read("+440", country: "CA").national, "+44")
+    }
+
+    /// ⛔ EVERY +7 NUMBER HAS TEN DIGITS AFTER THE CODE, so a Russian number typed with its
+    /// country code and no `+` is too long, never dialled as something else (Seer on
+    /// district-core-rust #63).
+    func test_MAC_DIALER_13_aPlusSevenNumberHasExactlyTenDigits() {
+        let typedWithItsCode = DialPlan.read("79161234567", country: "RU")
+        XCTAssertEqual(typedWithItsCode.status, .tooLong)
+        XCTAssertNil(typedWithItsCode.e164)
+        XCTAssertEqual(DialPlan.read("8 916 123 4567", country: "RU").e164, "+79161234567")
+        XCTAssertEqual(DialPlan.read("8 916 123 456", country: "RU").status, .typing)
+    }
+
+    /// ⛔ `+911` IS REFUSED BUT KEEPS ITS PLUS, because it is also the start of every Indian
+    /// number beginning +91 1 (Seer on district-core-rust #63). Typed key by key, the next digit
+    /// is read after the code.
+    func test_MAC_DIALER_14_plusNineOneOneKeepsItsPlusAndReachesIndia() {
+        let emergency = DialPlan.read("+911", country: "CA")
+        XCTAssertEqual(emergency.status, .emergency)
+        XCTAssertEqual(emergency.national, "+911", "its plus kept")
+        XCTAssertEqual(DialPlan.read("911", country: "CA").national, "911")
+        let india = typeKeys("+911234567890", country: "CA")
+        XCTAssertEqual(india.iso, "IN")
+        XCTAssertEqual(india.e164, "+911234567890")
+    }
+
+    /// Picking a country over a `+` with no digit after its code yet, or a code no country
+    /// uses, clears it, so the button shows the pick.
+    func test_MAC_DIALER_15_aPickOverAPlusKeepsOnlyTheDigitsAfterAKnownCode() {
+        XCTAssertEqual(DialPlan.entryForPick("+7", country: "RU"), "")
+        XCTAssertEqual(DialPlan.entryForPick("+9991234", country: nil), "")
+        XCTAssertEqual(DialPlan.entryForPick("(416) 555", country: "CA"), "416555")
+    }
+
+    /// The field after typing `keys` one at a time, the flag following each reading, read once
+    /// more: what the keypad shows.
+    private func typeKeys(_ keys: String, country start: String?) -> DialPlan.Reading {
+        var field = ""
+        var country = start
+        for key in keys {
+            let reading = DialPlan.read(field + String(key), country: country)
+            country = reading.iso ?? country
+            field = reading.national
+        }
+        return DialPlan.read(field, country: country)
+    }
+}
