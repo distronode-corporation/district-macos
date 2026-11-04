@@ -16,6 +16,14 @@ not sent.
 
 ## [Unreleased]
 
+### Changed
+
+- DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
+  district-ios already names. Additive only: two Live Activity endpoints this app does not call
+  and two api-error codes (`engine_unavailable`, `workflow_member_push_roles_invalid`) whose
+  sentences, in English and Canadian French, now come from the core's api-error table. No app source
+  changes; swift-asn1 stays 1.7.3 (8.1.0's `Package.resolved` records it).
+
 ### Fixed
 
 - 3.1.0 (visual QA): Cancel and Save on Edit working hours, Edit date overrides and the three
