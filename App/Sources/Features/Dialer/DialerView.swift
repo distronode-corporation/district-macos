@@ -62,20 +62,19 @@ struct DialerView: View {
 /// a call log, and a grid makes `+` awkward and pasting impossible. On a Mac the
 /// keyboard has every digit already, and it is the system field, so paste and selection
 /// work without anything being written here.
+///
+/// ⛔ DIALLER DESIGN A (district-ios PR #95): A COUNTRY BUTTON (FLAG AND CALLING CODE) IN
+/// FRONT OF THE FIELD. The number is typed the local way and formats as it is typed; a `+`
+/// number moves the flag. See ``DialPlan`` and the ⛔ at the top of `DialerEntry.swift`.
 private struct DialerKeypadView: View {
     let model: DialerModel
+
+    @State private var choosingCountry = false
 
     @Environment(\.colorScheme) private var colorScheme
 
     private var colors: DistrictColors {
         .resolve(colorScheme)
-    }
-
-    /// ⛔ EVERY EDIT GOES THROUGH ``DialerModel/onEntryChange(_:)``, which clears the
-    /// previous refusal. A binding straight to the property would leave a message about
-    /// a number the operator has already replaced.
-    private var entry: Binding<String> {
-        Binding(get: { model.entry }, set: { model.onEntryChange($0) })
     }
 
     var body: some View {
@@ -84,7 +83,10 @@ private struct DialerKeypadView: View {
                 Text(DialerCopy.number)
                     .font(DistrictType.labelSmall)
                     .foregroundStyle(colors.mutedForeground)
-                field
+                HStack(spacing: DistrictSpacing.tight) {
+                    countryButton
+                    field
+                }
                 destination
                 problem
                 hint
@@ -107,39 +109,103 @@ private struct DialerKeypadView: View {
         .task {
             await model.loadCallbacks()
         }
+        // ⚠️ ITS OWN TASK SO THE TWO READS RUN SIDE BY SIDE; neither waits on the other, and
+        // a failure of either leaves the keypad working.
+        .task {
+            await model.loadHomeCountry()
+        }
     }
 
     // MARK: - Pieces
 
+    /// The flag and calling code, or "Country" with a `+` when none is chosen. Opens the
+    /// searchable list in a popover under it.
+    ///
+    /// ⚠️ THE FLAG IS AN EMOJI, which macOS draws as a real flag; it is hidden from
+    /// VoiceOver, which reads the country's name and code instead.
+    private var countryButton: some View {
+        Button { choosingCountry = true } label: {
+            HStack(spacing: 4) {
+                Text(model.countries.current.map(DialPlan.flag) ?? "+")
+                    .accessibilityHidden(true)
+                Text(countryCode)
+                    .monospacedDigit()
+                Image(systemName: "chevron.down")
+                    .font(DistrictType.caption)
+                    .foregroundStyle(colors.mutedForeground)
+                    .accessibilityHidden(true)
+            }
+            .font(DistrictType.bodySmall)
+            .foregroundStyle(colors.foreground)
+            .padding(DistrictSpacing.tight)
+            .background(colors.card, in: RoundedRectangle(cornerRadius: DistrictRadius.control))
+            .overlay {
+                RoundedRectangle(cornerRadius: DistrictRadius.control)
+                    .strokeBorder(colors.fieldEdge, lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!model.canDial || model.placing)
+        .accessibilityLabel(countryLabel)
+        .accessibilityHint(DialerCopy.countryListHint)
+        .accessibilityIdentifier(A11yID.Dialer.country)
+        .popover(isPresented: $choosingCountry, arrowEdge: .bottom) {
+            DialerCountryPicker(home: model.countries.home, selected: model.countries.current) { iso in
+                model.pickCountry(iso)
+            }
+        }
+    }
+
+    private var countryCode: String {
+        guard let iso = model.countries.current, let code = DialPlan.callingCode(for: iso) else {
+            return DialerCopy.country
+        }
+        return "+" + code
+    }
+
+    private var countryLabel: String {
+        guard let iso = model.countries.current, let code = DialPlan.callingCode(for: iso) else {
+            return DialerCopy.country
+        }
+        return DialerModel.countryButton(DialPlan.name(iso), code)
+    }
+
     /// ⚠️ iOS's `.phonePad` keyboard and `.telephoneNumber` content type are dropped:
     /// neither exists on macOS, where the keyboard has every character already.
+    ///
+    /// ⛔ EVERY EDIT GOES THROUGH ``DialerModel/onEntryChange(_:)``, which clears the previous
+    /// refusal and formats the number; ``DialerNumberField`` says why it is an AppKit field.
     ///
     /// ⛔ DISABLED FOR A VIEWER RATHER THAN HIDDEN, WITH THE SENTENCE BELOW IT. The
     /// entry into this screen is already hidden for that role (see ``RouteGate``), so
     /// anyone here arrived from a restored back stack or a deep link, and a field that
     /// simply did nothing would read as a broken app.
     private var field: some View {
-        TextField(DialerCopy.number, text: entry)
-            .autocorrectionDisabled()
-            // ⛔ ALSO LOCKED WHILE `placing`. The keypad is still on screen while the
-            // microphone question is up, and an edit in that window would leave the field
-            // disagreeing with the number being dialled. ``DialerModel/placeCall()`` pins
-            // the value anyway; this is so the operator is not shown a number that is no
-            // longer the one being dialled.
-            .disabled(!model.canDial || model.placing)
-            .districtField()
-            .accessibilityIdentifier(A11yID.Dialer.entry)
+        // ⛔ ALSO LOCKED WHILE `placing`. The keypad is still on screen while the microphone
+        // question is up, and an edit in that window would leave the field disagreeing with
+        // the number being dialled. ``DialerModel/placeCall()`` pins the value anyway; this
+        // is so the operator is not shown a number that is no longer the one being dialled.
+        DialerNumberField(
+            placeholder: DialerCopy.number,
+            text: model.entry,
+            isEnabled: model.canDial && !model.placing,
+            ink: colors.foreground,
+            placeholderInk: colors.mutedForeground,
+            onEdit: { typed in
+                model.onEntryChange(typed)
+                return model.entry
+            },
+            onCommit: { model.checkLength() }
+        )
+        .districtField()
     }
 
-    /// Which country the number will ring.
+    /// Which country the number will ring, and the whole number that will be sent.
     ///
-    /// ⛔ THE LINE THIS SCREEN EXISTS TO SHOW, AND IT IS BESIDE THE FIELD RATHER THAN IN
-    /// IT. A leading `+41` reads "Switzerland" here, which is the one thing that catches
-    /// a call about to reach the wrong country and be billed for it. The value that
-    /// travels stays exactly what was typed: the server normalises its own copy and runs
-    /// the DNC check and the dial against THAT form, so a formatter that rewrote the field
-    /// would place a call the compliance check never saw. Rewriting text as someone types
-    /// also moves their cursor.
+    /// ⛔ THE LINE THIS SCREEN EXISTS TO SHOW. "Rings Switzerland · +41 …" is what catches
+    /// a call about to reach the wrong country and be billed for it, and the number in it
+    /// is exactly what the dial API receives (``DialPlan/Reading/e164``).
     ///
     /// ⚠️ FULL `foreground` RATHER THAN `mutedForeground`, unlike every other caption
     /// on this screen. It is the line the operator is being asked to READ before
@@ -150,7 +216,7 @@ private struct DialerKeypadView: View {
     /// app knows something is wrong when what it knows is that it does not know.
     @ViewBuilder
     private var destination: some View {
-        if model.canDial, let line = DialerModel.destinationLine(model.destination.region) {
+        if model.canDial, let line = DialerModel.destinationLine(model.destination) {
             Text(line)
                 .font(DistrictType.bodySmall)
                 .foregroundStyle(destinationInk)
@@ -159,23 +225,23 @@ private struct DialerKeypadView: View {
     }
 
     private var destinationInk: Color {
-        model.destination.region == .unrecognised ? colors.warning : colors.foreground
+        model.destination.iso == nil ? colors.warning : colors.foreground
     }
 
-    /// ⚠️ EMPTY WHEN THERE IS NOTHING TO SAY, which is the `.none` region, a number
-    /// with no country code yet. An empty hint is no hint rather than a pause.
+    /// ⚠️ EMPTY WHEN THERE IS NOTHING TO SAY: a number not complete yet. An empty hint is
+    /// no hint rather than a pause.
     private var destinationHint: String {
-        DialerModel.destinationLine(model.destination.region) ?? ""
+        DialerModel.destinationLine(model.destination) ?? ""
     }
 
     /// Why the Call button is off.
     ///
-    /// ⛔ A DISABLED BUTTON WITH NO REASON CONFUSES PEOPLE, AS THE EIGHT-DIGIT FLOOR
-    /// SHOWS. The commonest case by far is a number typed with no country code at
-    /// all, which cannot be dialled.
+    /// ⛔ A DISABLED BUTTON WITH NO REASON CONFUSES PEOPLE. The case that needs it most is
+    /// a workspace with no home country, where digits alone name no country. ⚠️ A wrong
+    /// length waits until the operator stops typing (``DialerModel/lengthChecked``).
     @ViewBuilder
     private var problem: some View {
-        if model.canDial, let line = DialerModel.entryProblem(model.destination.refusal) {
+        if model.canDial, let line = problemLine {
             Text(line)
                 .font(DistrictType.caption)
                 .foregroundStyle(colors.mutedForeground)
@@ -184,11 +250,15 @@ private struct DialerKeypadView: View {
         }
     }
 
+    private var problemLine: String? {
+        DialerModel.entryProblem(model.destination, lengthChecked: model.lengthChecked)
+    }
+
     /// ⛔ BESIDE THE FIELD, NEVER IN IT. See ``destination``.
     @ViewBuilder
     private var hint: some View {
         if model.canDial, model.entry.isEmpty {
-            Text(DialerModel.entryHint)
+            Text(DialerModel.entryHint(country: model.countries.current))
                 .font(DistrictType.caption)
                 .foregroundStyle(colors.mutedForeground)
         }
@@ -206,7 +276,7 @@ private struct DialerKeypadView: View {
                 // ⚠️ IDENTITY, NOT THE LABEL: it reads "Calling…" while placing.
                 .accessibilityIdentifier(A11yID.Dialer.call)
                 // ⛔ THE DESTINATION IS ATTACHED TO THE BUTTON, NOT LEFT BESIDE THE
-                // FIELD. "This number rings Switzerland" is the line that catches a
+                // FIELD. "Rings Switzerland · +41 …" is the line that catches a
                 // call about to reach the wrong country and be billed for it,
                 // see the ⛔ on ``destination``, and it is a separate element two
                 // swipes back. Someone using VoiceOver otherwise hears "Call, button"

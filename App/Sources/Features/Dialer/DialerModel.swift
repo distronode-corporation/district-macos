@@ -20,10 +20,10 @@ import Observation
 ///   2. **One audio owner at a time**, and a second attempt while a call OR A MEETING
 ///      ROOM is live is refused rather than queued. Two engines would fight over the
 ///      device's audio focus. ⚠️ The room half is enforced here; see ``RoomAudio``.
-///   3. **The number travels exactly as typed.** Normalisation is the server's and it
-///      runs BEFORE the DNC lookup and before the dial, so a client-side canonicaliser
-///      that disagreed by one character would place a call the compliance check never
-///      saw.
+///   3. **The number sent is the number shown.** The entry is read in the country on
+///      the button (``DialPlan``) and the line under it states the whole international
+///      number before Call; that E.164 form is what is sent. The server still normalises
+///      its own copy before the DNC lookup and the dial, and E.164 passes it unchanged.
 ///   4. **The call outlives the screen.** See below.
 ///
 /// Ported from district-ios `Features/Dialer/DialerModel.swift` (see PORTING.md), WITHOUT
@@ -63,8 +63,13 @@ import Observation
 @MainActor
 @Observable
 final class DialerModel: LiveCallControls, LiveCallOwner {
-    /// What the operator typed, verbatim. ⛔ See property 3 on the type.
+    /// The field: the number in its local form. ⛔ See property 3 on the type.
     private(set) var entry: String = ""
+    /// The country the field is read in. ⚠️ Module-visible: `DialerEntry.swift` writes it.
+    var countries: DialerCountries
+    /// Whether a wrong length may be said yet: set when the field loses focus or Return is
+    /// pressed in it, cleared by the next edit. See ``entryProblem(_:lengthChecked:)``.
+    private(set) var lengthChecked = false
 
     /// The live call, or nil when the dialer is on the keypad.
     ///
@@ -142,14 +147,23 @@ final class DialerModel: LiveCallControls, LiveCallOwner {
         callLog = container.calls
         self.workspaceId = workspaceId
         canDial = WorkspaceRole.allowsMutation(role)
+        countries = DialerCountries(workspaceId: workspaceId, numbers: container.numbers)
     }
 
     // MARK: - What the keypad may do
 
-    /// ⚠️ CLEARS THE PREVIOUS REFUSAL, because it was about a different number.
+    /// ⚠️ CLEARS THE PREVIOUS REFUSAL, and the wrong-length sentence, because both were
+    /// about a different number. ``absorb(_:)`` reads it.
     func onEntryChange(_ value: String) {
-        entry = value
+        entry = absorb(value)
         refusal = nil
+        lengthChecked = false
+    }
+
+    /// The operator stopped typing: the field lost focus, or Return was pressed in it.
+    /// A number of a length its country never issues is said from now until the next edit.
+    func checkLength() {
+        lengthChecked = true
     }
 
     /// Read the recent inbound calls the operator might return. ⚠️ IDEMPOTENT AND SAFE
@@ -172,7 +186,11 @@ final class DialerModel: LiveCallControls, LiveCallOwner {
     /// that asked nothing would fail only at the media join, after the carrier had already
     /// rung the callee on a real, billed line.
     func placeCall() {
-        guard canPlaceCall else { return }
+        // ⚠️ A REFUSED ATTEMPT SAYS A WRONG LENGTH TOO, as leaving the field does.
+        guard canPlaceCall else {
+            lengthChecked = true
+            return
+        }
         // ⛔ THE PROCESS HOLDS ONE CALL. See property 2 on the type. This also covers an
         // inbound call (or a ring) already holding the claim.
         guard !calls.hasLiveCall else {
@@ -204,7 +222,7 @@ final class DialerModel: LiveCallControls, LiveCallOwner {
         // still on screen while the microphone question is up, so a field read later
         // could dial a DIFFERENT number from the one the operator pressed Call on. The
         // field is disabled while `placing` for the same reason.
-        pendingNumber = entry
+        pendingNumber = destination.e164 ?? ""
         let attempt = UUID()
         attemptID = attempt
         claimed = true
@@ -262,7 +280,7 @@ final class DialerModel: LiveCallControls, LiveCallOwner {
         placing = false
         call = SoftphoneSession(number: pendingNumber)
         await apply(.dialRequested)
-        // ⛔ THE NUMBER AS TYPED. See property 3 on the type.
+        // ⛔ THE E.164 NUMBER THE LINE UNDER THE FIELD STATED. See property 3 on the type.
         let outcome = await dial.dial(workspaceId: workspaceId, to: pendingNumber)
         // ⛔ THE CALL CAN END WHILE THE DIAL IS IN FLIGHT (a hang-up a second after the
         // press, measured on iOS), and the answer is NOT dropped, because that is where

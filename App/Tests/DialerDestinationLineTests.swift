@@ -1,26 +1,22 @@
-import DistrictCall
+import DistrictL10n
 @testable import DistrictMac
 import XCTest
 
-/// The App-target half of the dialler's number handling.
+/// The line under the dialler's field: where the call rings and the number that is sent.
 ///
-/// ⚠️ THE VALIDATION HALF IS NOT HERE AND SHOULD NOT BE. `DialEntry.assess(_:)`
-/// decides what is dialable and lives in DistrictCore (district-core-swift), where
-/// `DialNumberTests` already covers it on the cheap Linux runner. What only the
-/// App target can reach is the WORDING, the sentence beside the field that lets
-/// an operator notice `+41` is Switzerland before pressing Call.
+/// ⚠️ THE READING IS ``DialPlan``'S AND `DialPlanTests` PINS IT. What is pinned here is the
+/// WORDING, the sentence that lets an operator notice `+41` is Switzerland before Call.
 /// ⚠️ `@MainActor` BECAUSE THE COPY HANGS OFF ``DialerModel``, WHICH IS. These are
 /// pure functions, but they are `static` members of a MainActor-isolated type, so
 /// reaching them from a nonisolated test is a concurrency error rather than a
 /// lookup failure, and the compiler words it as neither.
 @MainActor
 final class DialerDestinationLineTests: XCTestCase {
-    /// ⚠️ nil RATHER THAN AN EMPTY STRING. Nothing has been typed that names a
-    /// country, so there is nothing honest to say yet and `entryHint` occupies
-    /// that moment instead; an empty string would render a blank line and reserve
-    /// space for a sentence that never arrives.
-    func testNoCountryCodeSaysNothing() {
-        XCTAssertNil(DialerModel.destinationLine(.none))
+    /// ⚠️ nil RATHER THAN AN EMPTY STRING while the number is incomplete: the flag already
+    /// names the country, and an empty string would reserve space for nothing.
+    func testAnIncompleteNumberSaysNothing() {
+        XCTAssertNil(DialerModel.destinationLine(DialPlan.read("416555", country: "CA")))
+        XCTAssertNil(DialerModel.destinationLine(DialPlan.read("", country: "CA")))
     }
 
     /// ⛔ AN UNKNOWN CODE SAYS SO PLAINLY RATHER THAN GUESSING. Naming the wrong
@@ -28,31 +24,117 @@ final class DialerDestinationLineTests: XCTestCase {
     /// confirmation of a number that is about to be dialled.
     func testUnrecognisedCodeIsAdmittedRatherThanGuessed() {
         XCTAssertEqual(
-            DialerModel.destinationLine(.unrecognised),
+            DialerModel.destinationLine(DialPlan.read("+999 1234 5678", country: nil)),
             "Unrecognised country code. Check the number before calling."
+        )
+        XCTAssertEqual(
+            DialerModel.destinationLine(DialPlan.read("+9991", country: nil)),
+            "Unrecognised country code. Check the number before calling.",
+            "said as soon as three digits name no country"
         )
     }
 
-    /// ⛔ THE SENTENCE THAT WOULD HAVE CAUGHT THE BILLED CALL. `+41` resolves to
-    /// Switzerland, and this line is the only place in the app or on the server
-    /// that ever mentions a country.
-    func testNamedCountryIsStatedBesideTheField() {
-        XCTAssertEqual(DialerModel.destinationLine(.named("Switzerland")), "This number rings Switzerland.")
-        XCTAssertEqual(DialerModel.destinationLine(.named("Canada")), "This number rings Canada.")
+    /// ⛔ THE SENTENCE THAT WOULD HAVE CAUGHT THE BILLED CALL: the country and the whole
+    /// number, which is exactly what is sent.
+    func testACompleteNumberSaysWhereItRingsAndTheWholeNumber() {
+        XCTAssertEqual(
+            DialerModel.destinationLine(DialPlan.read("4165550199", country: "CA")),
+            "Rings Canada · +1 416 555 0199"
+        )
+        XCTAssertEqual(
+            DialerModel.destinationLine(DialPlan.read("+41 65 550 12 34", country: "CA")),
+            "Rings Switzerland · +41 65 550 12 34"
+        )
+    }
+
+    func testTheFrenchLineNamesTheCountryInFrench() {
+        L10nRuntime.withLocale(.frCA) {
+            XCTAssertEqual(
+                DialerModel.destinationLine(DialPlan.read("+44 20 7946 0958", country: nil)),
+                "Pays de destination\u{00A0}: Royaume-Uni · +44 20 7946 0958"
+            )
+        }
+    }
+
+    func testTheEmptyFieldSaysHowToType() {
+        XCTAssertEqual(DialerModel.entryHint(country: "CA"), "Type the number as you would dial it in Canada.")
+        XCTAssertEqual(DialerModel.entryHint(country: nil), "Start with + and the country code, or pick a country.")
+    }
+
+    func testDigitsWithNoCountryAskForOneAtOnce() {
+        XCTAssertEqual(
+            DialerModel.entryProblem(DialPlan.read("4165550199", country: nil), lengthChecked: false),
+            "Pick a country, or start with + and the country code."
+        )
+        XCTAssertNil(DialerModel.entryProblem(DialPlan.read("", country: "CA"), lengthChecked: true))
+        XCTAssertNil(DialerModel.entryProblem(DialPlan.read("4165550199", country: "CA"), lengthChecked: true))
+    }
+
+    // MARK: - A wrong length waits until the operator stops
+
+    private let wrongLength =
+        "That is the wrong number of digits for a number in the country it rings. Check it before you call."
+
+    /// ⛔ NOTHING WHILE TYPING (the web dialler's rule, MR !102). Every ten-digit number
+    /// passes through lengths no number has; Call is simply off until it is whole.
+    func test_MAC_DIALER_01_aWrongLengthIsNotSaidWhileTyping() {
+        for partial in ["4", "41655", "416555019", "+4165550123", "41655501999"] {
+            let reading = DialPlan.read(partial, country: "CA")
+            XCTAssertNil(reading.e164, partial)
+            XCTAssertNil(DialerModel.entryProblem(reading, lengthChecked: false), partial)
+        }
+    }
+
+    /// ⛔ THE SWITZERLAND CASE, SAID ONCE THE OPERATOR STOPS: eight digits after `+41`, and
+    /// every Swiss number has nine. Too many digits reads the same sentence.
+    func test_MAC_DIALER_02_aWrongLengthIsSaidOnceChecked() {
+        XCTAssertEqual(
+            DialerModel.entryProblem(DialPlan.read("+4165550123", country: "CA"), lengthChecked: true),
+            wrongLength
+        )
+        XCTAssertEqual(
+            DialerModel.entryProblem(DialPlan.read("416555019", country: "CA"), lengthChecked: true),
+            wrongLength
+        )
+        let tooLong = DialPlan.read("41655501999", country: "CA")
+        XCTAssertEqual(tooLong.status, .tooLong)
+        XCTAssertEqual(DialerModel.entryProblem(tooLong, lengthChecked: true), wrongLength)
+    }
+
+    /// ⚠️ NOTHING TO MEASURE IS NOT A WRONG LENGTH: a lone `+`, a lone trunk `0`, or a code no
+    /// country uses (which the line above the field already says).
+    func test_MAC_DIALER_03_nothingToMeasureIsNotAWrongLength() {
+        for entry in ["+", "0", "+99912"] {
+            let country: String? = entry == "0" ? "GB" : "CA"
+            XCTAssertNil(DialerModel.entryProblem(DialPlan.read(entry, country: country), lengthChecked: true), entry)
+        }
+    }
+
+    func test_MAC_DIALER_04_theFrenchWrongLength() {
+        L10nRuntime.withLocale(.frCA) {
+            XCTAssertEqual(
+                DialerModel.entryProblem(DialPlan.read("+4165550123", country: "CA"), lengthChecked: true),
+                "Ce numéro n'a pas le bon nombre de chiffres pour le pays de destination. Vérifiez-le avant d'appeler."
+            )
+        }
     }
 }
 
 /// The App-target half of the emergency hand-off: the sentence itself.
 ///
-/// ⛔ `DialEntry` DECIDES, THIS SAYS IT, AND ONLY THE SAYING IS TESTABLE HERE.
-/// The detection is pinned on the cheap Linux runner by `EmergencyNumberTests`;
-/// what only the App target can reach is whether the copy names somewhere that
-/// can place the call, which is the half that makes it a hand-off rather than a
-/// refusal. ⚠️ MAC: "a phone", where iOS names "the Phone app" (a Mac has none).
+/// ⛔ `DialEntry` (the core) DECIDES, THIS SAYS IT. The detection is pinned on the cheap
+/// Linux runner by `EmergencyNumberTests` and its use here by `DialPlanTests`; what is
+/// pinned here is whether the copy names somewhere that can place the call, which is the
+/// half that makes it a hand-off rather than a refusal. ⚠️ MAC: "a phone", where iOS names
+/// "the Phone app" (a Mac has none).
 @MainActor
 final class EmergencyCopyTests: XCTestCase {
+    private func problem(_ entry: String, checked: Bool = false) -> String? {
+        DialerModel.entryProblem(DialPlan.read(entry, country: "CA"), lengthChecked: checked)
+    }
+
     func testTheEmergencyLineNamesAPhone() {
-        let line = DialerModel.entryProblem(.emergencyNumber)
+        let line = problem("911")
         XCTAssertEqual(line, "District cannot place emergency calls. Use a phone to call for help.")
         XCTAssertTrue(line?.contains("Use a phone") == true, "a bare refusal strands the caller")
     }
@@ -60,15 +142,20 @@ final class EmergencyCopyTests: XCTestCase {
     /// ⛔ IT MUST NOT READ AS A CORRECTABLE MISTAKE. Telling somebody dialling an
     /// emergency number to add a country code is the failure this pins.
     func testTheEmergencyLineNeverAsksForACountryCode() {
-        let line = DialerModel.entryProblem(.emergencyNumber) ?? ""
+        let line = problem("911") ?? ""
         XCTAssertFalse(line.lowercased().contains("country code"))
-        XCTAssertFalse(line.lowercased().contains("too short"))
+        XCTAssertFalse(line.lowercased().contains("digits"))
     }
 
-    func testItIsDistinctFromEveryOtherRefusal() {
-        let emergency = DialerModel.entryProblem(.emergencyNumber)
-        for other: DialRefusal in [.missingCountryCode, .tooShort, .tooLong, .strayPlus] {
-            XCTAssertNotEqual(DialerModel.entryProblem(other), emergency)
-        }
+    /// ⚠️ SAID AT ONCE, NOT HELD FOR THE LENGTH CHECK: it is not a length.
+    func test_MAC_DIALER_05_itIsSaidWhileTypingAndDistinctFromEveryOtherRefusal() {
+        let emergency = problem("911")
+        XCTAssertNotNil(emergency)
+        XCTAssertEqual(problem("911", checked: true), emergency)
+        XCTAssertNotEqual(
+            DialerModel.entryProblem(DialPlan.read("4165550199", country: nil), lengthChecked: true),
+            emergency
+        )
+        XCTAssertNotEqual(problem("+4165550123", checked: true), emergency)
     }
 }

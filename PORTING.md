@@ -57,6 +57,8 @@ not copied: they are shared.
 | 9 | Tests: `SchedulingFailureCopyTests`, `SchedulingHandOffTests`, `SchedulingModelTestCase`, `SchedulingModelTests`, `SchedulingReadConcurrencyTests`, `SchedulingSectionModelTests`, `SchedulingSectionTests`, `SchedulingTestTransport`, and `SchedulingRoutingTests` from its gate cases on (`_10` to `_15`, the settings hub's row among them) | `4777c40` | `App/Tests/` |
 | 10 | Live transcript: the model (`LiveTranscriptModel`, rewritten to watch through `TranscriptChannel` rather than own a socket), its copy and its pane | `6ac8f70` | `App/Sources/Features/Calls/LiveTranscript*.swift` |
 | 10 | `CallDisplay.transcribesLive`, the call screen's live pane and the two accessibility identifiers | `6ac8f70` | `App/Sources/Features/Calls/`, `App/Sources/Accessibility/A11yID.swift` |
+| 11 | Dialler design A: `DialPlan`, `DialPlan+Countries`, `DialerCountryMemory`, `DialerEntry`, `DialerCopy`, the country list and the number field (both rewritten for AppKit), the strings and the two identifiers | `e23c4fc` | `App/Sources/Features/Dialer/`, `App/Sources/Accessibility/A11yID.swift` |
+| 11 | Tests: `DialPlanTests`, `DialerCountryTests`, `DialerDestinationLineTests`, the dialler half of `A11ySpokenFormTests` | `e23c4fc` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -93,6 +95,17 @@ The alignment with the contract's §4.12 follows district-ios `ef9c62c`; on the 
 call-status signal after `not_live` also comes from the socket's `call_updated`, heard by a
 watch that keeps no subscription. Mac-only tests: `MacLiveTranscriptTests`,
 `MacLiveTranscriptContractTests`.
+
+Wave 11 (dialler design A) is ported from district-ios `e23c4fc` (PR #95). `DialPlan` and its
+country table are copied unchanged, so both apps read a number alike. On the Mac the country
+list is a popover under the flag button, driven from the keyboard (the search field has focus,
+the arrow keys move, Return picks, Escape closes), and the number field is an `NSTextField`
+that formats inside `controlTextDidChange(_:)`, for the reason iOS's `UITextField` does. ⛔ One
+deliberate difference, the web dialler's rule (MR !102): a wrong length (too few or too many
+digits for the country) only keeps Call off while the operator types, and is said once they
+stop (the field loses focus, Return, or a refused Call), with the web's sentence; the next
+keystroke clears it. Mac-only tests: `MacDialerCountryPickerTests` and the `test_MAC_DIALER_*`
+cases.
 
 Wave 9 adds Mac-only tests with no iOS original: `MacSchedulingTests` (the two scheduling
 tables' order and cells, the navigator a table row opens through, the settings hub's
@@ -434,7 +447,7 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | 9 | Rooms | 6 | No Flip camera and no speaker toggle (one camera, no earpiece); device pickers instead. "Read the minutes" only for a meeting with minutes. |
 | 10 | Workflows | 7 | None. |
 | 11 | Desk | 7 | None. "New ticket" (district-ios #37, `DeskModel.canStartTicket`) is also File > New Ticket, which waits for the desk's first read (`DeskModel.hasSettled`). |
-| 12 | Dial | 6 | No CallKit; the emergency hand-off says "Use a phone to call for help." |
+| 12 | Dial | 6, 11 | No CallKit; the emergency hand-off says "Use a phone to call for help."; the country list is a popover; a wrong length is said once the operator stops typing. |
 | 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet. |
 | 14 | Support | 7 | None (reporting a message or a call came in Wave 5). |
 | 15 | Workspace settings | 8 | The persona audition has no loudspeaker request (no earpiece). |
