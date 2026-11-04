@@ -62,6 +62,15 @@ not sent.
   (Sean, 2026-11-04, GitLab #2). As on the web it is said from 8 digits with the `1` (Call
   still off, the number ungrouped until whole). The button keeps its +1 country. The dial
   screen's 12 French strings are marked reviewed.
+- Dialler: three cases Seer found in district-core-rust #63's port of `DialPlan`, which
+  this copy had too (and district-ios, fixed the same way). `+7` then `812` typed one key at a
+  time kept its 8: a `+` and a calling code with no digit after it now stay in the field, so
+  the 8 is read after the code instead of as Russia's trunk prefix; a country picked over
+  such a field clears it (`DialPlan.entryForPick`). A Russian number typed with its `7` and
+  no `+` (`79161234567`) is too long rather than offered as an eleven-digit Kazakh number:
+  every +7 number now needs exactly ten digits after the code. And `+911` is still refused
+  but keeps its plus, so the next digit reaches India (`+91 1…`) instead of reading `91…` as
+  a local number.
 - Dial (design A, #91): three fixes found after it merged, the same as district-ios #96.
   `+7` typed one key at a time now reaches Kazakhstan for a `6` or `7` after it, as a pasted
   `+7 701 …` does; it stayed on Russia, because the digits after `+7` arrived as a national
