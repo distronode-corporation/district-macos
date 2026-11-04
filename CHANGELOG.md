@@ -40,6 +40,13 @@ not sent.
 
 ### Fixed
 
+- Dial: a +1 toll-free number (800, 833, 844, 855, 866, 877, 888) no longer says "Rings
+  Canada" or "Rings United States" under the field. It says what the web dialler says, "Rings
+  +1 800 555 0100. This number does not belong to one country. Check it before you call." (and
+  the web's French), new key `dialer_m.rings_no_country`, the same change as district-ios
+  (Sean, 2026-11-04, GitLab #2). As on the web it is said from 8 digits with the `1` (Call
+  still off, the number ungrouped until whole). The button keeps its +1 country. The dial
+  screen's 12 French strings are marked reviewed.
 - Dial (design A, #91): three fixes found after it merged, the same as district-ios #96.
   `+7` typed one key at a time now reaches Kazakhstan for a `6` or `7` after it, as a pasted
   `+7 701 …` does; it stayed on Russia, because the digits after `+7` arrived as a national
