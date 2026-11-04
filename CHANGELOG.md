@@ -23,6 +23,20 @@ not sent.
   and two api-error codes (`engine_unavailable`, `workflow_member_push_roles_invalid`) whose
   sentences, in English and Canadian French, now come from the core's api-error table. No app source
   changes; swift-asn1 stays 1.7.3 (8.1.0's `Package.resolved` records it).
+- Dial: dialler design A, ported from district-ios #95 (`e23c4fc`). A flag and calling-code
+  button in front of the number opens a searchable country list in a popover (Suggested first:
+  the workspace's home country, the one on screen, then Canada and the United States); the
+  arrow keys move through it, Return picks and Escape closes. The number is typed the local way
+  and formats as it is typed, and a `+`, `011` or `00` number moves the flag to its country (a
+  pasted `+44 20 7946 0958` shows the UK flag and `020 7946 0958`). Before Call, "Rings
+  <country> · <international number>" states the whole number, and that E.164 number is what
+  `POST /api/district/calls/dial` receives; it was the text as typed. The home country comes
+  from the workspace's own numbers (`GET /api/district/workspace/provider/numbers`), cached per
+  workspace; a workspace with none remembers the country picked. Emergency numbers stay
+  refused. A number of a length its country never issues (`+4165550123`, eight digits after
+  Switzerland's `+41`) keeps Call off and is said only once the operator stops: on leaving the
+  field, Return or a refused Call, as the web dialler does; the next keystroke clears it. No
+  API field changed. The new strings are drafts until the French is signed off.
 
 ### Fixed
 
