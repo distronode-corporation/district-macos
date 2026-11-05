@@ -194,7 +194,7 @@ final class InboxModel {
             // (``PushRegistrar/handleSilentPush()``). An occasionally low badge is
             // worth more than no ambient signal at all.
             UnreadBadge.set(unreadTotal)
-            await loadDraftBadges()
+            await loadDraftBadges(read: read)
         case let .failure(error):
             // ⛔ THE BADGE IS LEFT EXACTLY AS IT WAS, AND IS NOT ZEROED. Zero means
             // "nothing unread", never "we could not ask".
@@ -340,6 +340,20 @@ final class InboxModel {
         return conversations.filter { $0.assignedToMe == true }
     }
 
+    /// The thread keys of the rows the list shows now. A change closes an open conversation
+    /// the filter hides (``InboxAssignmentLayer``).
+    var visibleThreadKeys: [String] {
+        guard case let .content(conversations, _, _, _) = state else { return [] }
+        return visible(conversations).map(\.threadKey)
+    }
+
+    /// The open conversation the toolbar's Assign… may act on: nil when the filter hides it,
+    /// so the button never targets a row the list no longer shows (Seer, #95).
+    static func assignTarget(_ open: ConversationSummary?, assignedToMeOnly: Bool) -> ConversationSummary? {
+        guard let open, !visible([open], assignedToMeOnly: assignedToMeOnly).isEmpty else { return nil }
+        return open
+    }
+
     /// Open the assign sheet for one row. Nothing for a role that cannot write.
     func beginAssigning(_ conversation: ConversationSummary) {
         guard canReply else { return }
@@ -396,9 +410,12 @@ final class InboxModel {
     /// ⚠️ THE STATE IS RE-READ AFTER THE AWAIT rather than closed over from before it.
     /// A refresh or a failure can land while this request is in flight, and writing a
     /// captured list back would resurrect rows the newer read had already replaced.
-    private func loadDraftBadges() async {
+    /// - Parameter read: the list read these badges belong to (``LatestRead``).
+    private func loadDraftBadges(read: Int) async {
         guard canReply else { return }
-        guard case let .success(drafts) = await container.inbox.drafts(workspaceId: workspaceId) else { return }
+        let outcome = await container.inbox.drafts(workspaceId: workspaceId)
+        // ⛔ AN OLDER READ'S BADGES ARE DROPPED TOO (Seer, #99), as its list is.
+        guard reads.isLatest(read), case let .success(drafts) = outcome else { return }
         guard case let .content(conversations, isPartial, _, refreshing) = state else { return }
         state = .content(
             conversations: conversations,

@@ -34,10 +34,10 @@ private struct InboxAssignmentLayer: ViewModifier {
             // act on a conversation the list no longer shows. ⛔ THROUGH THE PATH, NOT THE
             // SELECTION: ``ListDetailPath`` ignores a nil selection on purpose, so the
             // stored stack (the open row and anything pushed beside it) is what is emptied.
-            .onChange(of: model.assignedToMeOnly) {
-                guard selection != nil, let open = selectedConversation, model.visible([open]).isEmpty else { return }
-                path.wrappedValue = []
-            }
+            .onChange(of: model.assignedToMeOnly) { closeIfHidden() }
+            // ⛔ AND SO DOES A REFRESH THAT HIDES IT (Seer, #95): a reassignment, by this sheet or
+            // a colleague, takes the open row out of Assigned to me with the filter already on.
+            .onChange(of: model.visibleThreadKeys) { closeIfHidden() }
             .sheet(item: $model.assigning) { assign in
                 ThreadAssignSheet(model: assign) {
                     Task { await model.load(refreshing: true) }
@@ -67,10 +67,16 @@ private struct InboxAssignmentLayer: ViewModifier {
         .accessibilityIdentifier(A11yID.Inbox.filter)
     }
 
+    private func closeIfHidden() {
+        guard selection != nil, let open = selectedConversation, model.visible([open]).isEmpty else { return }
+        path.wrappedValue = []
+    }
+
     /// ⚠️ DISABLED, NOT HIDDEN, WITH NO CONVERSATION OPEN: the control is the role's to
     /// use, and only the target is missing. A role that cannot write gets none at all.
+    /// ⛔ NOR ONE THE FILTER HIDES (``InboxModel/assignTarget(_:assignedToMeOnly:)``).
     private var assignButton: some View {
-        let open = selectedConversation
+        let open = InboxModel.assignTarget(selectedConversation, assignedToMeOnly: model.assignedToMeOnly)
         return Button(InboxCopy.assignMenu, systemImage: "person.crop.circle.badge.plus") {
             if let open {
                 model.beginAssigning(open)

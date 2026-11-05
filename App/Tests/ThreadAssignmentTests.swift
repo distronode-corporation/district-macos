@@ -78,6 +78,28 @@ final class ThreadAssignmentTests: XCTestCase {
         XCTAssertEqual(InboxModel.visible(conversations, assignedToMeOnly: false).count, 3)
     }
 
+    /// ⛔ THE TOOLBAR'S ASSIGN… NEVER ACTS ON A ROW THE FILTER HIDES (Seer, #95): an open
+    /// conversation reassigned away from this person, with Assigned to me on, is no target.
+    func testAssignTargetsOnlyAnOpenConversationTheListStillShows() async throws {
+        let conversations = await ParityFixtures.summaries([
+            ParityFixtures.row(
+                threadKey: "mine", counterpart: "+1", channels: ["sms"], replyOptions: "[]",
+                assigneeEmail: "me@contract.test", assignedToMe: true
+            ),
+            ParityFixtures.row(
+                threadKey: "reassigned", counterpart: "+2", channels: ["sms"], replyOptions: "[]",
+                assigneeEmail: "alex@contract.test", assignedToMe: false
+            ),
+        ])
+        let mine = try XCTUnwrap(conversations.first)
+        let reassigned = try XCTUnwrap(conversations.last)
+
+        XCTAssertEqual(InboxModel.assignTarget(mine, assignedToMeOnly: true)?.threadKey, "mine")
+        XCTAssertNil(InboxModel.assignTarget(reassigned, assignedToMeOnly: true), "hidden by the filter")
+        XCTAssertEqual(InboxModel.assignTarget(reassigned, assignedToMeOnly: false)?.threadKey, "reassigned")
+        XCTAssertNil(InboxModel.assignTarget(nil, assignedToMeOnly: false), "nothing open")
+    }
+
     // MARK: - The sheet
 
     /// ⛔ NO VIEWER IS OFFERED, and the current owner keeps a row even when the roster no
