@@ -145,6 +145,23 @@ enum ParityFixtures {
      "senderId":"wa_sender_1","receivedOn":"+16475550100"}
     """#
 
+    /// The thread behind the closed-window screenshots (02, 14, 21 and 31): the operator's
+    /// WhatsApp reply, then the customer's answer. The same thread as district-ios's.
+    ///
+    /// ⛔ THE REPLY IS `delivered` EVEN THOUGH THE CUSTOMER HAS READ IT. The service never
+    /// stores or sends `read`: Meta's read receipts, Twilio's `read` and the history
+    /// import all record `delivered` (the website's `lib/whatsapp/status.ts` and
+    /// `webhooks/twilio/message-status`). The first screenshots' seed said `read`, which
+    /// DistrictCore 8.2.0 names (Read / « Lu ») only so a stray one never shows a wire word.
+    static let answeredTimeline = #"""
+    {"success":true,"timeline":[
+     {"id":"msg_3","type":"whatsapp","timestamp":"2026-11-03T16:00:00.000Z",
+      "direction":"outbound","body":"Your appointment is booked for Tuesday at 9.","status":"delivered"},
+     {"id":"msg_4","type":"whatsapp","timestamp":"2026-11-03T16:10:00.000Z",
+      "direction":"inbound","body":"Thanks, see you next week.","status":"received"}],
+     "pageInfo":{"hasMore":false,"oldest":"2026-11-03T16:00:00.000Z","oldestId":"msg_3"}}
+    """#
+
     static let windowClosed = #"""
     {"success":true,"window":{"open":false,"expiresAt":null},"senderId":"wa_sender_1","receivedOn":null}
     """#

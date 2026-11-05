@@ -228,9 +228,10 @@ final class InboxReplyChannelTests: XCTestCase {
 
     // MARK: - Statuses
 
-    /// ⛔ A WHATSAPP OR META READ RECEIPT IS NAMED, NEVER SHOWN AS ITS WIRE WORD. The row's
-    /// and the bubble's status come from the core's vocabulary (DistrictCore 8.2.0 names
-    /// `read`); English must not fall back to the raw `read`, nor French to « Autre ».
+    /// ⛔ A STRAY `read` IS NAMED, NEVER SHOWN AS ITS WIRE WORD. The service records every read
+    /// receipt as `delivered` (``InboxDeliveryStatusTests``), but the row's and the bubble's
+    /// status come from the core's vocabulary, which names `read` (DistrictCore 8.2.0), so
+    /// English never falls back to the raw `read`, nor French to « Autre ».
     func testAReadReceiptIsNamedInBothLanguages() {
         XCTAssertEqual(AppWire.label(.messageDeliveryStatus, "read"), "Read")
         XCTAssertEqual(french { AppWire.label(.messageDeliveryStatus, "read") }, "Lu")
