@@ -37,7 +37,8 @@ not sent.
   conversation and an item in each row's context menu (iOS uses a swipe). A closed WhatsApp
   window replaces the reply box with the approved templates (variables, preview,
   `sendWhatsAppTemplate`) in one two-step sheet, and an open one names its sender. The alert push
-  register declares `metaChannels`. 25 new strings in English and French, French in draft.
+  register declares `metaChannels`. 25 new strings in English and French, the French reviewed
+  (Sean's sign-off, 2026-11-05).
   The composer's three bindings move verbatim to `ComposerBar+Support.swift` for SwiftLint's
   `file_length`.
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
