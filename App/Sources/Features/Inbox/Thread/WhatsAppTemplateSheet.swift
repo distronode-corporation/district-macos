@@ -133,6 +133,7 @@ struct WhatsAppTemplateSheet: View {
     }
 
     private func choose(_ template: WhatsAppTemplate) {
+        model.clearTemplateFailure()
         values = Array(repeating: "", count: ThreadModel.templateVariableCount(template))
         chosen = template.id
     }
