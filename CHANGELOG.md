@@ -25,6 +25,21 @@ not sent.
 
 ### Changed
 
+- App parity with the web Inbox, on DistrictCore `exactVersion` 8.2.0 (district-core-swift#52),
+  ported from district-ios `f78ff97`. WhatsApp, Messenger and Instagram threads are answered on
+  the channel the server's `replyOptions` name (first is the default, `[]` is no reply box, an
+  unknown channel is skipped), so a WhatsApp-only customer is no longer answered by SMS; the SMS
+  stopgap's 409 (`sms_reply_not_customer_channel`) is said in English and French. Messenger and
+  Instagram threads are listed, labelled and answered as text. The Inbox asks for
+  `assignments=1`: an assignee badge on each row, an Assigned to me filter in the toolbar, and an
+  assign sheet (members, no viewers; Unassigned) with the `assignee_is_viewer` and
+  `assignee_not_member` refusals. On the Mac, Assign… is a toolbar button for the open
+  conversation and an item in each row's context menu (iOS uses a swipe). A closed WhatsApp
+  window replaces the reply box with the approved templates (variables, preview,
+  `sendWhatsAppTemplate`) in one two-step sheet, and an open one names its sender. The alert push
+  register declares `metaChannels`. 25 new strings in English and French, French in draft.
+  The composer's three bindings move verbatim to `ComposerBar+Support.swift` for SwiftLint's
+  `file_length`.
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
   district-ios already names. Additive only: two Live Activity endpoints this app does not call
   and two api-error codes (`engine_unavailable`, `workflow_member_push_roles_invalid`) whose

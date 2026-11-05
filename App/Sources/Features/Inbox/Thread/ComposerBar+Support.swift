@@ -2,8 +2,9 @@ import DistrictData
 import PhotosUI
 import SwiftUI
 
-// The reply box's constants and the two attachment readers, apart from ``ComposerBar`` for
-// SwiftLint's `file_length`.
+// The reply box's constants, the two attachment readers and the three bindings, apart from
+// ``ComposerBar`` for SwiftLint's `file_length`. ⚠️ The bindings moved verbatim when the
+// WhatsApp window joined the box (8.2.0); they lost `private` only because it is file-scoped.
 
 extension ComposerBar {
     /// ⛔ THE SEND KEY: ⌘↩ (``KeyboardShortcut/districtSubmit``), never `.defaultAction`, which
@@ -69,6 +70,45 @@ extension ComposerBar {
         await model.attach(
             data,
             mimeType: AttachmentFile.mimeType(of: url, allowed: MediaUploadLimits.allowedMimeTypes)
+        )
+    }
+
+    // MARK: - Wiring
+
+    var text: Binding<String> {
+        Binding(
+            get: { model.composerText },
+            set: { model.composerTextChanged($0) }
+        )
+    }
+
+    /// ⚠️ THROUGH ``ThreadModel/subjectChanged(_:)`` FOR THE REASON ``text`` GOES
+    /// THROUGH ``ThreadModel/composerTextChanged(_:)``: that method is the only one
+    /// that arms an autosave, and there must be no second copy of this string.
+    var subject: Binding<String> {
+        Binding(
+            get: { model.composerSubject },
+            set: { model.subjectChanged($0) }
+        )
+    }
+
+    /// Which of the thread's channels the next send uses.
+    ///
+    /// ⛔ THROUGH ``ThreadModel/selectReplyTarget(_:)`` AND NOWHERE ELSE, for the same
+    /// class of reason the two bindings above go through their own methods: that
+    /// method is the only thing that drops staged images when the channel stops being
+    /// able to carry them and writes the note saying so. A binding straight to the
+    /// index would move the channel and leave the images attached to a send that
+    /// silently ignores them.
+    ///
+    /// ⚠️ A CLOSURE LITERAL, NEVER A BARE METHOD REFERENCE. A bare
+    /// MainActor-isolated method as a `Binding` setter aborts the compiler in IRGen
+    /// under Swift 6 with no `error:` line; `.swiftlint.yml`'s one custom rule exists
+    /// for exactly this.
+    var selectedChannel: Binding<Int> {
+        Binding(
+            get: { model.selectedReplyIndex },
+            set: { model.selectReplyTarget($0) }
         )
     }
 }

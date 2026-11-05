@@ -47,6 +47,7 @@ struct ConversationRow: View {
                 DistrictBadge(text: label, tone: .neutral)
             }
             statusBadge
+            assigneeBadge
             draftBadge
             unreadBadge
         }
@@ -62,6 +63,18 @@ struct ConversationRow: View {
     private var statusBadge: some View {
         if let statusLabel = display.statusLabel {
             DistrictBadge(text: statusLabel, tone: display.statusTone)
+        }
+    }
+
+    /// Who owns the thread (DistrictCore 8.2.0, `assignments=1`).
+    ///
+    /// ⚠️ VOICEOVER HEARS THE WHOLE ADDRESS, the badge shows the part before the `@`:
+    /// two teammates can share a first name, and a list read aloud has room for both.
+    @ViewBuilder
+    private var assigneeBadge: some View {
+        if let label = display.assigneeLabel {
+            DistrictBadge(text: label, tone: .info)
+                .accessibilityLabel(InboxCopy.assignedTo(display.assigneeEmail ?? label))
         }
     }
 

@@ -174,7 +174,7 @@ extension ShellView {
                     // ⛔ THE SERVER'S OWN PAIR, the only one available on this path: the list
                     // has not been read here, so the composer names the channel instead of
                     // offering the set, which arrives with the list refresh.
-                    replyTargets: [resolved.replyTarget],
+                    replyTargets: InboxParity.replyable([resolved.replyTarget]),
                     // ⚠️ NO TITLE: the name comes from the list, which this path has not read.
                     title: nil
                 ),
