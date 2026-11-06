@@ -42,19 +42,23 @@ struct ThreadAssignSheet: View {
         case let .failed(failure):
             FailureView(failure: failure) { Task { await model.load() } }
         case let .ready(emails):
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    row(InboxCopy.unassigned, email: nil)
-                    ForEach(emails, id: \.self) { email in
-                        row(email, email: email)
-                    }
-                    if let failure = model.failure {
-                        Text(failure.message)
-                            .font(DistrictType.caption)
-                            .foregroundStyle(colors.destructive)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, DistrictSpacing.gutter)
-                            .padding(.vertical, DistrictSpacing.row)
+            VStack(spacing: 0) {
+                // ⛔ PINNED ABOVE THE ROSTER, NOT AT ITS END (Seer, #95): a long member list
+                // scrolled the refusal out of sight, so a failed write looked like nothing happened.
+                if let failure = model.failure {
+                    Text(failure.message)
+                        .font(DistrictType.caption)
+                        .foregroundStyle(colors.destructive)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DistrictSpacing.gutter)
+                        .padding(.vertical, DistrictSpacing.row)
+                }
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        row(InboxCopy.unassigned, email: nil)
+                        ForEach(emails, id: \.self) { email in
+                            row(email, email: email)
+                        }
                     }
                 }
             }
