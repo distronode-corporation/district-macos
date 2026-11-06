@@ -141,6 +141,26 @@ final class SuperviseReviewTests: XCTestCase {
         XCTAssertFalse(CallTeardown.isWorkspaceSwitch(from: "ws_1", to: nil))
     }
 
+    /// ⛔ A PICKER SWITCH PASSES THROUGH nil WHILE THE NEW LIST LOADS (Seer, PR #98): A, nil,
+    /// B still ends the supervision, and A, nil, A (the same list read again) does not.
+    func testASwitchThroughNilStillEndsTheSupervision() async throws {
+        let stack = CallStack(microphone: FakeMicrophoneAccess(status: .granted))
+        let model = try makeModel()
+        await listen(model)
+        stack.supervisor = model
+
+        stack.workspaceSelected("ws_1")
+        stack.workspaceSelected(nil)
+        stack.workspaceSelected("ws_1")
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(model.state.phase, .listening, "the same workspace read again is not a switch")
+
+        stack.workspaceSelected(nil)
+        stack.workspaceSelected("ws_2")
+        await waitUntil { model.state.phase == .idle }
+        XCTAssertFalse(media.isClaimed)
+    }
+
     // MARK: - A receipt before the 200
 
     /// ⛔ A RECEIPT THAT ARRIVES BEFORE THE ROUTE ANSWERS IS KEPT.
