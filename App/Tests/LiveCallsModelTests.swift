@@ -256,6 +256,24 @@ final class LiveCallsModelTests: XCTestCase {
         XCTAssertEqual(rows.count, LiveCallsModel.pageLimit)
     }
 
+    /// ⛔ A READ CANCELLED PART WAY IS A FAILURE, NOT THE PAGES IT REACHED (Seer, PR #98): the
+    /// later page fails because the task was cancelled, and the list on screen is kept.
+    func testACancelledReadIsAFailureNotAPartialList() async throws {
+        let first = try page("new", minutesAgo: 5)
+        let cancelling = OffsetPager<CallSummary>(identify: { $0.id }, fetch: { limit, offset in
+            guard offset == 0 else {
+                withUnsafeCurrentTask { $0?.cancel() }
+                return .failure(.transport("cancelled"))
+            }
+            return .success(OffsetPage(items: Array(first.prefix(limit))))
+        })
+        let now = now
+        let result = await Task { await LiveCallsModel.readLive(pager: cancelling, now: now) }.value
+        if case .success = result {
+            XCTFail("a cancelled read must not hand back a partial list")
+        }
+    }
+
     /// ⚠️ ONLY AN UPDATE THAT CAN ADD A ROW RE-READS (max review, item 12): an in-progress one does;
     /// a completed or ringing one takes the row off without reading ten pages again.
     func testOnlyAnInProgressUpdateReReads() async throws {
