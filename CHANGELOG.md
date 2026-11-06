@@ -57,7 +57,8 @@ not sent.
   A blank reply box deletes the saved draft only once the draft has been read, so removing an
   image or clearing the box after a failed read cannot delete a reply nobody has seen; a save
   that lands counts as read, since the server then holds only this composer's text. A draft
-  restored after an image was attached merges its images with it (by URL) instead of replacing it.
+  restored after an image was attached merges its images with it (by URL) instead of replacing it,
+  and an upload that lands once that merge filled the five is dropped with the five-image sentence.
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
   district-ios already names. Additive only: two Live Activity endpoints this app does not call
   and two api-error codes (`engine_unavailable`, `workflow_member_push_roles_invalid`) whose
