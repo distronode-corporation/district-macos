@@ -23,6 +23,17 @@ not sent.
   and Lithuania check a prefix against libphonenumber's number patterns; modelling every
   country's pattern is left out. The line under the field shows the whole number before Call.
 
+### Added
+
+- Messenger and Instagram reply window (3.3.0, web parity), on DistrictCore 8.3.0's
+  `InboxRepository.metaWindow`, ported from district-ios. A Messenger or Instagram reply reads
+  Meta's window when its channel is selected and again after a send, with the WhatsApp
+  window's guards (latest read only, a cancelled read dropped, an answer for another address
+  dropped). Closed shows the website's warning and disables Send (the text is kept); a 409
+  `messenger_window_closed` closes it at once. The 7-day human agent window shows the
+  website's badge and offers no AI draft. Open and an unknown state block nothing, and no
+  countdown is drawn. Two strings, the website's English and French.
+
 ### Changed
 
 - Live supervise, on DistrictCore 8.2.0, ported from district-ios #101 (`9f317b7`) with the
