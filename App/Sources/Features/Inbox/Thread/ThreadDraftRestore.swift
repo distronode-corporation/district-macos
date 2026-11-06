@@ -106,6 +106,7 @@ extension ThreadModel {
             noteDraftUnread(outcome)
             return
         }
+        draftRead = true
         // ⛔ nil IS THE ORDINARY ANSWER, NOT A FAILURE. Almost every thread has no
         // draft, and the route answers `{success, draft: null}` rather than 404
         // precisely so the composer's normal open path is not an error in every log.

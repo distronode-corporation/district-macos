@@ -53,7 +53,9 @@ not sent.
   is already past. After an assignment the Inbox closes only the conversation that was assigned,
   once a list read that applies hides it, and the open reply is written before any close (the
   filter's too). Three new strings (`inbox.attachment_held`, `inbox.attachment_held_by_email`,
-  `inbox.attachment_held_on`), the French in draft until Sean signs it off.
+  `inbox.attachment_held_on`), the French reviewed (Sean's sign-off, 2026-11-06, "Approve all 3").
+  A blank reply box deletes the saved draft only once the draft has been read, so removing an
+  image or clearing the box after a failed read cannot delete a reply nobody has seen.
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
   district-ios already names. Additive only: two Live Activity endpoints this app does not call
   and two api-error codes (`engine_unavailable`, `workflow_member_push_roles_invalid`) whose
