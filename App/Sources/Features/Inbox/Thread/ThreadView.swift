@@ -106,6 +106,10 @@ struct ThreadView: View {
                 guard phase != .active else { return }
                 Task { await model.flushDraft() }
             }
+            // ⛔ SO THE INBOX CAN FLUSH THIS REPLY BEFORE IT CLOSES THE THREAD (max review, #95):
+            // the filter and the assign sheet empty the path from outside (``OpenThreadDrafts``).
+            .onAppear { OpenThreadDrafts.opened(model) }
+            .onDisappear { OpenThreadDrafts.closed(model) }
     }
 
     @ViewBuilder

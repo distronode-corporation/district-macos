@@ -34,16 +34,27 @@ private struct InboxAssignmentLayer: ViewModifier {
             // act on a conversation the list no longer shows. ⛔ THROUGH THE PATH, NOT THE
             // SELECTION: ``ListDetailPath`` ignores a nil selection on purpose, so the
             // stored stack (the open row and anything pushed beside it) is what is emptied.
-            .onChange(of: model.assignedToMeOnly) { closeIfHidden() }
+            .onChange(of: model.assignedToMeOnly) {
+                if InboxModel.hidesOpenConversation(selectedConversation, assignedToMeOnly: model.assignedToMeOnly) {
+                    closeOpenThread()
+                }
+            }
             // ⛔ AND SO DOES THIS SHEET'S OWN ASSIGNMENT (Seer, #95), once the re-read says the row
             // has left Assigned to me. ⛔ NOT A REFRESH (xhigh review): a push re-read closed the
             // thread the operator was typing in (``InboxModel/hidesOpenConversation(_:assignedToMeOnly:)``).
+            // ⛔ ONLY THE THREAD THAT WAS ASSIGNED, AND ONLY ONCE A READ APPLIES (max review, #95):
+            // a row's menu can assign another conversation than the open one, and a re-read that
+            // a newer one overtook was checked against the list before it (``InboxModel/assigned(_:)``).
+            .onChange(of: model.assignClose) { _, check in
+                guard let check else { return }
+                model.assignClose = nil
+                if model.closes(check, open: openThreadKey) {
+                    closeOpenThread()
+                }
+            }
             .sheet(item: $model.assigning) { assign in
                 ThreadAssignSheet(model: assign) {
-                    Task {
-                        await model.load(refreshing: true)
-                        closeIfHidden()
-                    }
+                    Task { await model.assigned(assign.threadKey) }
                 }
             }
     }
@@ -70,12 +81,23 @@ private struct InboxAssignmentLayer: ViewModifier {
         .accessibilityIdentifier(A11yID.Inbox.filter)
     }
 
-    private func closeIfHidden() {
+    /// Close the open conversation, its unsaved reply written first.
+    ///
+    /// ⛔ THE DRAFT IS FLUSHED BEFORE THE PATH EMPTIES (max review, #95): the thread's model goes
+    /// with its screen, and an edit inside the autosave's two seconds went with it
+    /// (``OpenThreadDrafts``). The write is started here and finishes on its own.
+    private func closeOpenThread() {
         guard selection != nil else { return }
-        guard InboxModel.hidesOpenConversation(selectedConversation, assignedToMeOnly: model.assignedToMeOnly) else {
-            return
+        if let openThreadKey {
+            OpenThreadDrafts.flush(workspaceId: model.workspaceId, threadKey: openThreadKey)
         }
         path.wrappedValue = []
+    }
+
+    /// The open conversation's thread key, or nil with none open.
+    private var openThreadKey: String? {
+        guard case let .thread(_, _, threadKey, _, _) = selection?.wrappedValue else { return nil }
+        return threadKey
     }
 
     /// ⚠️ DISABLED, NOT HIDDEN, WITH NO CONVERSATION OPEN: the control is the role's to
@@ -95,8 +117,43 @@ private struct InboxAssignmentLayer: ViewModifier {
 
     /// The loaded row of the open conversation, or nil with none open (or none in the list).
     private var selectedConversation: ConversationSummary? {
-        guard case let .thread(_, _, threadKey, _, _) = selection?.wrappedValue else { return nil }
-        return model.conversation(forThreadKey: threadKey)
+        openThreadKey.flatMap { model.conversation(forThreadKey: $0) }
+    }
+}
+
+/// The close an assignment asks for, once a list read has applied (``InboxModel/assigned(_:)``).
+///
+/// ⚠️ THE READ'S TOKEN RIDES WITH THE KEY so two assignments of one thread are two changes.
+struct AssignClose: Equatable {
+    let threadKey: String
+    let read: Int
+}
+
+extension InboxModel {
+    /// The sheet's write landed: re-read the list, and ask to close once a read applies.
+    ///
+    /// ⛔ ANY READ THAT APPLIES, NOT ONLY THIS ONE (max review, #95, Seer 4488553051). When a newer
+    /// read (a push) overtakes this one, this one's answer is dropped (``LatestRead``), and the
+    /// check used to run on the list from before the assignment. The pending close now waits
+    /// for the next read that applies, this one or the newer.
+    func assigned(_ threadKey: String) async {
+        pendingAssignClose = threadKey
+        await load(refreshing: true)
+    }
+
+    /// A successful read applied: hand any pending close to the view.
+    func settleAssignClose(read: Int) {
+        guard let threadKey = pendingAssignClose else { return }
+        pendingAssignClose = nil
+        assignClose = AssignClose(threadKey: threadKey, read: read)
+    }
+
+    /// True when `check` closes the open conversation: it is the thread that was assigned, and
+    /// the list no longer shows it (max review, #95: the open one was closed whichever row was
+    /// assigned).
+    func closes(_ check: AssignClose, open openThreadKey: String?) -> Bool {
+        guard let openThreadKey, check.threadKey == openThreadKey else { return false }
+        return Self.hidesOpenConversation(conversation(forThreadKey: openThreadKey), assignedToMeOnly: assignedToMeOnly)
     }
 }
 

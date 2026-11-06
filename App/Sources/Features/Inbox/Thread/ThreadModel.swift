@@ -320,9 +320,10 @@ final class ThreadModel {
     /// customer's mail client threads the reply onto the wrong conversation.
     func send() async {
         guard canReply, let recipient = target.replyTarget else { return }
-        guard var content = current, !content.sending, canSendNow else { return }
+        guard var content = current, !content.sending, !content.attaching, canSendNow else { return }
         let body = composerText
-        let media = content.attachments
+        // ⛔ ONLY A CHANNEL THAT CARRIES IMAGES SENDS THEM (max review), behind the hold.
+        let media = canAttach ? content.attachments : []
 
         content.sending = true
         content.sendFailure = nil
@@ -331,7 +332,7 @@ final class ThreadModel {
         // ⚠️ ``sendReply(to:body:media:)`` picks the route: a WhatsApp reply names its sender.
         switch await sendReply(to: recipient, body: body, media: media) {
         case .success:
-            await finishSend()
+            await finishSend(sent: media)
         case let .failure(error):
             // ⚠️ THE CONVERSATION STAYS, AND SO DO THE ATTACHMENTS. They are already
             // uploaded, and dropping them would make a retry re-pick every image.
@@ -397,7 +398,7 @@ final class ThreadModel {
     ///
     /// ⚠️ AND THE SERVER DRAFT IS DELETED, NOT LEFT TO EXPIRE. A draft that survives
     /// its own send is a message the operator sends twice on their next device.
-    private func finishSend() async {
+    private func finishSend(sent: [String]) async {
         autosaveTask?.cancel()
         autosaveTask = nil
         composerText = ""
@@ -409,9 +410,15 @@ final class ThreadModel {
         if await !deleteDraft(), await !deleteDraft() {
             draftNotice = Self.sentDraftSurvived
         }
-        // ⚠️ THE IMAGES WENT OUT WITH IT (and a text-only send's held ones with the draft), so
-        // the re-read below must not put them back.
-        composerMedia = ComposerMedia()
+        // ⛔ ONLY WHAT WENT OUT IS CLEARED (max review, #99 and #95): held images stay, as their
+        // sentence says, and so does one that landed mid-send. With no body they are not
+        // stored (a blank draft is a DELETE); the next keystroke's autosave writes them back.
+        let held = composerMedia.held
+        composerMedia = ComposerMedia(
+            attachments: composerMedia.attachments.filter { !sent.contains($0) },
+            held: held,
+            note: held.isEmpty ? nil : composerMedia.note
+        )
         await load()
         seedSubjectIfNeeded()
     }

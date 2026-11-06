@@ -122,14 +122,6 @@ final class ThreadAssignmentTests: XCTestCase {
         XCTAssertFalse(InboxModel.hidesOpenConversation(mine, assignedToMeOnly: true))
         XCTAssertFalse(InboxModel.hidesOpenConversation(reassigned, assignedToMeOnly: false), "the filter is off")
         XCTAssertFalse(InboxModel.hidesOpenConversation(nil, assignedToMeOnly: true), "nothing open")
-        let layer = try String(
-            contentsOf: URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent().deletingLastPathComponent()
-                .appendingPathComponent("Sources/Features/Inbox/InboxAssignment.swift"),
-            encoding: .utf8
-        )
-        XCTAssertEqual(layer.components(separatedBy: "closeIfHidden()").count - 1, 3, "two callers and the definition")
-        XCTAssertFalse(layer.contains("onChange(of: model.visibleThreadKeys"), "no refresh closes the thread")
     }
 
     // MARK: - The sheet
@@ -247,6 +239,168 @@ final class ThreadAssignmentTests: XCTestCase {
             XCTAssertEqual(sheet.failure?.message, french, code)
             XCTAssertFalse(sheet.saving)
         }
+    }
+
+    // MARK: - The max review (#99 and #95)
+
+    /// ⛔ THE SHEET CANNOT BE DISMISSED WHILE A WRITE IS IN FLIGHT (Cancel, a swipe down, Esc): the
+    /// refusal is said in the sheet, and one closed mid-save said nothing.
+    func testTheSheetCannotBeDismissedMidWriteAndTheRefusalStaysInSight() async {
+        let transport = ParityTransport()
+        transport.on(
+            .post, "/conversations/assign", 400,
+            #"{"success":false,"error":"Not a member.","code":"assignee_not_member"}"#
+        )
+        let gate = transport.hold(.post, "/conversations/assign")
+        let sheet = model(transport)
+        XCTAssertTrue(sheet.canDismiss)
+
+        let write = Task { await sheet.assign("former@contract.test") }
+        await waitUntil { transport.requests(to: "/conversations/assign").count == 1 }
+        XCTAssertFalse(sheet.canDismiss, "blocked while saving")
+        gate.open()
+        let assigned = await write.value
+
+        XCTAssertFalse(assigned)
+        XCTAssertTrue(sheet.canDismiss)
+        XCTAssertNotNil(sheet.failure, "the refusal is there to read")
+    }
+
+    /// ⛔ THE SHEET RE-READS THE OWNER WHEN IT OPENS: the row it was opened from can be minutes old,
+    /// and a colleague's assignment since would tick the wrong member.
+    func testTheSheetRereadsTheCurrentOwnerWhenItOpens() async {
+        let row = ParityFixtures.row(
+            threadKey: "contact:c_1", counterpart: "+14165550177", channels: ["sms"], replyOptions: "[]",
+            assigneeEmail: "teammate@contract.test"
+        )
+        let transport = ParityTransport()
+        transport.on(.get, "/workspace/members", 200, Self.roster)
+        transport.on(.get, "/conversations", 200, ParityFixtures.conversations([row]))
+        let sheet = model(transport, current: "owner@contract.test")
+
+        await sheet.load()
+
+        XCTAssertEqual(sheet.current, "teammate@contract.test")
+        XCTAssertEqual(transport.requests(to: "/conversations").count, 1)
+    }
+
+    /// ⚠️ A FAILED RE-READ, OR A ROW OUTSIDE THE LIST'S SCAN, KEEPS THE OWNER THE SHEET OPENED WITH.
+    func testAFailedOwnerRereadKeepsTheRowsOwner() async {
+        let transport = ParityTransport()
+        transport.on(.get, "/workspace/members", 200, Self.roster)
+        let failed = model(transport, current: "owner@contract.test")
+        await failed.load()
+        XCTAssertEqual(failed.current, "owner@contract.test", "the list read failed")
+
+        let other = ParityFixtures.row(
+            threadKey: "contact:c_2",
+            counterpart: "+2",
+            channels: ["sms"],
+            replyOptions: "[]"
+        )
+        transport.on(.get, "/conversations", 200, ParityFixtures.conversations([other]))
+        let missing = model(transport, current: "owner@contract.test")
+        await missing.load()
+        XCTAssertEqual(missing.current, "owner@contract.test", "the row is not in the list")
+    }
+}
+
+/// The max review of #95, Mac only: after the assign sheet's write, which conversation closes,
+/// when, and that its reply is written first.
+@MainActor
+final class InboxAssignCloseTests: XCTestCase {
+    private func inboxModel(_ transport: ParityTransport) throws -> InboxModel {
+        let unreachable = try XCTUnwrap(URL(string: "https://inbox.invalid"))
+        return InboxModel(
+            container: AppContainer(baseURL: unreachable),
+            workspaceId: "ws_1",
+            role: .client,
+            inbox: ParityFixtures.inbox(transport)
+        )
+    }
+
+    private static func listed(_ assignedToMe: Bool) -> String {
+        ParityFixtures.conversations([
+            ParityFixtures.row(
+                threadKey: "contact:c_1", counterpart: "+14165550177", channels: ["sms"], replyOptions: "[]",
+                assigneeEmail: assignedToMe ? "me@contract.test" : "alex@contract.test", assignedToMe: assignedToMe
+            ),
+            ParityFixtures.row(
+                threadKey: "contact:c_2", counterpart: "+14165550188", channels: ["sms"], replyOptions: "[]",
+                assigneeEmail: "me@contract.test", assignedToMe: true
+            ),
+        ])
+    }
+
+    /// ⛔ THE CLOSE WAITS FOR A READ THAT APPLIES (Seer 4488553051): a push read begun after the
+    /// assignment overtakes its re-read, whose answer is dropped, and the check used to run on the
+    /// list from before. Now the newer read carries the close.
+    func testAfterAnAssignTheCloseWaitsForTheReadThatApplies() async throws {
+        let transport = ParityTransport()
+        transport.on(.get, "/conversations", 200, Self.listed(true))
+        transport.on(.get, "/conversations", 200, Self.listed(false))
+        let inbox = try inboxModel(transport)
+        inbox.assignedToMeOnly = true
+        let gate = transport.hold(.get, "/conversations")
+
+        let reRead = Task { await inbox.assigned("contact:c_1") }
+        await waitUntil { transport.requests(to: "/conversations").count == 1 }
+        XCTAssertNil(inbox.assignClose, "nothing applied yet")
+        await inbox.load(refreshing: true)
+        let check = try XCTUnwrap(inbox.assignClose, "the newer read carries the close")
+        gate.open()
+        await reRead.value
+
+        XCTAssertEqual(inbox.assignClose, check, "the dropped answer changes nothing")
+        XCTAssertEqual(check.threadKey, "contact:c_1")
+        XCTAssertTrue(inbox.closes(check, open: "contact:c_1"), "the newer list hides it")
+    }
+
+    /// ⛔ ONLY THE ASSIGNED CONVERSATION CLOSES (max review M4): a row's menu can assign another
+    /// conversation than the open one, and the open one used to close. ⚠️ A refresh with no
+    /// assignment behind it asks for no close at all.
+    func testOnlyTheAssignedConversationCloses() async throws {
+        let transport = ParityTransport()
+        transport.on(.get, "/conversations", 200, Self.listed(false))
+        let inbox = try inboxModel(transport)
+        inbox.assignedToMeOnly = true
+
+        await inbox.load(refreshing: true)
+        XCTAssertNil(inbox.assignClose, "a refresh asks nothing")
+
+        await inbox.assigned("contact:c_1")
+        let check = try XCTUnwrap(inbox.assignClose)
+        XCTAssertTrue(inbox.closes(check, open: "contact:c_1"))
+        XCTAssertFalse(inbox.closes(check, open: "contact:c_2"), "another conversation is open")
+        XCTAssertFalse(inbox.closes(check, open: nil), "nothing is open")
+        inbox.assignedToMeOnly = false
+        XCTAssertFalse(inbox.closes(check, open: "contact:c_1"), "the list still shows it")
+    }
+
+    /// ⛔ THE CLOSE WRITES THE OPEN REPLY FIRST (max review M4): the thread's model goes with its
+    /// screen, and an edit inside the autosave's two seconds went with it.
+    func testClosingAThreadFlushesItsDraft() async {
+        let transport = ParityTransport()
+        transport.on(.get, "/timeline", 200, ParityFixtures.timeline)
+        transport.on(.put, "/messages/drafts", 200, #"{"success":true,"draft":null}"#)
+        let thread = ParityFixtures.thread(
+            transport,
+            threadKey: "contact:c_1",
+            targets: [ReplyTarget(to: "+14165550177", channel: MessageChannel.sms)]
+        )
+        await thread.load()
+        OpenThreadDrafts.opened(thread)
+        defer { OpenThreadDrafts.closed(thread) }
+        thread.composerTextChanged("Half a reply")
+
+        OpenThreadDrafts.flush(workspaceId: "ws_1", threadKey: "contact:c_2")
+        OpenThreadDrafts.flush(workspaceId: "ws_1", threadKey: "contact:c_1")
+
+        await waitUntil(timeout: 1) { !transport.requests(to: "/messages/drafts").isEmpty }
+        let saves = transport.requests(to: "/messages/drafts")
+        XCTAssertEqual(saves.count, 1, "only the open thread, once")
+        XCTAssertEqual(saves.first?.json["body"] as? String, "Half a reply")
+        XCTAssertNil(thread.autosaveTask, "the debounce is spent")
     }
 }
 

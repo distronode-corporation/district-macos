@@ -40,9 +40,20 @@ not sent.
   register declares `metaChannels`. 25 new strings in English and French, the French reviewed
   (Sean's sign-off, 2026-11-05). The held-images sentences then replace the three "removed" ones
   with four new strings (`inbox.attachments_held_*`, `inbox.attachments_switch_to_sms`), the
-  French in draft until Sean signs it off.
+  French reviewed too (Sean's sign-off, 2026-11-05, "Approve all").
   The composer's three bindings move verbatim to `ComposerBar+Support.swift` for SwiftLint's
   `file_length`.
+  The max review's findings (Sean, "All except 9"): an image that finishes uploading after a
+  switch to a text-only channel, or is handed over after one, is held rather than lost, and Send
+  and the channel picker wait for an upload; held images show in the reply box as dimmed chips
+  with Held under them, each with Remove (which updates the saved draft), and VoiceOver names the
+  channel they are not sent on; a text-only send keeps them; the assign sheet cannot be closed
+  mid-save (Esc included) and re-reads the current owner when it opens; overlapping WhatsApp
+  window reads apply only the latest, and the read at the window's close re-arms while the answer
+  is already past. After an assignment the Inbox closes only the conversation that was assigned,
+  once a list read that applies hides it, and the open reply is written before any close (the
+  filter's too). Three new strings (`inbox.attachment_held`, `inbox.attachment_held_by_email`,
+  `inbox.attachment_held_on`), the French in draft until Sean signs it off.
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release
   district-ios already names. Additive only: two Live Activity endpoints this app does not call
   and two api-error codes (`engine_unavailable`, `workflow_member_push_roles_invalid`) whose

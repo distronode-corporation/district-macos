@@ -178,6 +178,7 @@ final class InboxModel {
         guard reads.isLatest(read) else { return }
         switch outcome {
         case let .success(list):
+            settleAssignClose(read: read)
             guard !list.conversations.isEmpty else {
                 state = .empty
                 // ⚠️ A SUCCESSFUL READ THAT FOUND NOTHING IS A KNOWN ZERO, which is
@@ -331,6 +332,12 @@ final class InboxModel {
 
     /// The assign sheet's model while it is open, or nil.
     var assigning: ThreadAssignModel?
+
+    /// The thread this sheet's own write was for, until a list read applies (`InboxAssignment.swift`).
+    @ObservationIgnored var pendingAssignClose: String?
+
+    /// Set by that read: the view closes the thread if it is the open one and now hidden.
+    var assignClose: AssignClose?
 
     /// The rows the filter lets through.
     ///

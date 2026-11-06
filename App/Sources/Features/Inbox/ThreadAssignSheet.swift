@@ -25,9 +25,13 @@ struct ThreadAssignSheet: View {
         MacSheetChrome(title: InboxCopy.assignLabel) {
             content
         } buttons: {
+            // ⛔ NOT WHILE A WRITE IS IN FLIGHT (max review, #95), Esc included: the refusal is
+            // said here, and a sheet closed mid-save said nothing (``ThreadAssignModel/canDismiss``).
             Button(InboxCopy.cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
+                .disabled(!model.canDismiss)
         }
+        .interactiveDismissDisabled(!model.canDismiss)
         .frame(minWidth: 420, idealWidth: 460, minHeight: 320, idealHeight: 420)
         .task { await model.load() }
         .accessibilityIdentifier(A11yID.Inbox.assignSheet)

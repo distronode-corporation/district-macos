@@ -104,9 +104,7 @@ extension ThreadModel {
         } else if wasAttachable || !content.heldAttachments.isEmpty {
             content.heldAttachments += content.attachments
             content.attachments = []
-            if !content.heldAttachments.isEmpty {
-                content.channelNote = attachmentsHeldNote(count: content.heldAttachments.count)
-            }
+            content.channelNote = heldNote(content.heldAttachments)
         }
         setContent(content)
     }
@@ -118,6 +116,21 @@ extension ThreadModel {
             channel: target.replyTarget?.channel,
             smsOffered: replyTargets.contains { $0.channel == MessageChannel.sms }
         )
+    }
+
+    /// The held sentence for `held`, or nil when nothing is held.
+    func heldNote(_ held: [String]) -> String? {
+        held.isEmpty ? nil : attachmentsHeldNote(count: held.count)
+    }
+
+    /// What VoiceOver says on a held image's chip: held, and the channel it will not go out on
+    /// (max review, #99 and #95). ⚠️ Email is its own sentence, because French says « par
+    /// courriel » where a brand name keeps its capital.
+    var heldAttachmentLabel: String {
+        guard let channel = target.replyTarget?.channel, channel != MessageChannel.email else {
+            return InboxCopy.attachmentHeldByEmail
+        }
+        return InboxCopy.attachmentHeldOn(ThreadChannelName.of(channel))
     }
 
     /// ⛔ IT SAYS WHAT HAPPENS, WHICH IS THAT NOTHING IS LOST (xhigh review, #99 and #95). The

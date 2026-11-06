@@ -58,9 +58,10 @@ struct ComposerBar: View {
             // by the server, so the box is replaced rather than left to fail (8.2.0).
             if model.whatsAppWindowClosed {
                 WhatsAppClosedWindow(model: model)
+                ComposerAttachmentStrip(model: model, content: content)
             } else {
                 subjectField
-                attachmentStrip
+                ComposerAttachmentStrip(model: model, content: content)
                 field
                 // ⚠️ THE FIELD TAKES THE WHOLE WIDTH AND THE CONTROLS SIT IN ONE ROW UNDER IT, as
                 // Mail's composer does. Beside the field, even as icons, the four took
@@ -156,7 +157,8 @@ struct ComposerBar: View {
             }
             .pickerStyle(.segmented)
             .fixedSize()
-            .disabled(content.sending)
+            // ⚠️ AND WHILE AN UPLOAD IS IN FLIGHT (max review): it lands held off SMS anyway.
+            .disabled(content.sending || content.attaching)
             if let recipient = model.recipientName {
                 recipientLine(recipient)
             }
@@ -294,42 +296,6 @@ struct ComposerBar: View {
         }
     }
 
-    /// The images waiting to go out with the next send.
-    ///
-    /// ⚠️ ALREADY UPLOADED, so removing one costs nothing server-side and the send
-    /// carries only URLs. Uploading at PICK time rather than at SEND time means an
-    /// upload failure costs a retry of one image instead of failing a billable send
-    /// that has already spent its rate-limit slot.
-    ///
-    /// ⚠️ SMALL, WITH THE REMOVE CONTROL ON THE THUMBNAIL, as Mail and Messages stage an
-    /// attachment: a 96pt thumbnail over a "Remove" button was the tallest thing in the box.
-    @ViewBuilder
-    private var attachmentStrip: some View {
-        if !content.attachments.isEmpty {
-            ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: DistrictSpacing.tight) {
-                    ForEach(content.attachments, id: \.self) { url in
-                        ThreadMediaThumbnail(url: url, side: ThreadMediaThumbnail.stagedSide)
-                            .overlay(alignment: .topTrailing) {
-                                Button(InboxCopy.removeAttachment, systemImage: "xmark.circle.fill") {
-                                    model.removeAttachment(url)
-                                }
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.plain)
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, .black.opacity(0.6))
-                                .buttonName(InboxCopy.removeAttachment)
-                                .padding(2)
-                            }
-                    }
-                }
-                // ⚠️ ROOM FOR THE REMOVE CONTROL'S EDGE, which a scroll view would clip.
-                .padding(.vertical, 2)
-            }
-            .scrollIndicators(.hidden)
-        }
-    }
-
     /// ⛔ A `TextEditor`, NOT A VERTICAL `TextField`: on a Mac a `TextField` ends editing
     /// on Return and takes a new line only with Option-Return, and Return here must be a new
     /// line (``sendShortcut``).
@@ -456,7 +422,8 @@ struct ComposerBar: View {
         .buttonStyle(.districtPrimary)
         .keyboardShortcut(Self.sendShortcut)
         .help(Self.sendHelp(InboxCopy.send))
-        .disabled(content.sending || !model.canSendNow)
+        // ⛔ AND WHILE AN IMAGE UPLOADS (max review): it would land after the send took the list.
+        .disabled(content.sending || content.attaching || !model.canSendNow)
         // ⛔ IT IS IN `UITestApp.forbiddenSurfaces`, AND THE REFUSAL IN
         // `UITestApp.tap(_:)` KEYS ON THIS IDENTIFIER. Without it that guard would
         // protect a string that appears nowhere in the app, a vacuous guard on the

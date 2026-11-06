@@ -185,7 +185,8 @@ struct ThreadContent {
     /// ⛔ KEPT IN THE STORED DRAFT, NEVER SENT (Seer, #99). The autosave writes them with
     /// ``attachments``, so a draft opened on a WhatsApp default does not lose its images to
     /// the next keystroke, and a switch back to SMS returns them as chips. A send on the
-    /// text-only channel goes out as text, as ``channelNote`` says, and the draft is gone.
+    /// text-only channel goes out as text, as ``channelNote`` says, and they stay (max review).
+    /// The composer draws them as dimmed chips marked held, each with its own Remove.
     var heldAttachments: [String]
     /// What changed when the operator switched channel, said out loud.
     ///
