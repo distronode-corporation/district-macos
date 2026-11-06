@@ -450,6 +450,25 @@ not sent.
   to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
   publishes nothing.
 
+## [3.3.0] - 2026-11-06
+
+- Live calls: see your receptionist's calls in progress and listen in. The caller does not
+  hear you. Send your receptionist a note during the call and see whether it was used, take
+  over the call yourself, and hand it back when you are done. Viewers can listen only.
+- The Inbox answers WhatsApp, Messenger and Instagram customers on their own channel, so a
+  WhatsApp customer is no longer answered by SMS.
+- Messenger and Instagram conversations are in the Inbox, and you can answer them.
+- Assign a conversation to a teammate with Assign… in the toolbar or a row's menu. Each row
+  shows who it is assigned to, and Assigned to me shows yours.
+- When WhatsApp allows only a template, the reply box offers your approved templates, with
+  their variables and a preview before you send.
+- When Messenger or Instagram no longer accepts a reply, the reply box says why and turns
+  Send off, keeping your text. A human agent reply shows its badge.
+- Images you attached stay in the draft when you switch to a channel that sends text only.
+- The dial screen has a country button with a searchable list. Numbers format as you type
+  them, and before you call, the line under the field shows the whole number and the
+  country it rings.
+
 ## [3.1.0]
 
 - When you decline a call, this Mac tells the assistant right away: once everyone it rang
