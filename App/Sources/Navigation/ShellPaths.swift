@@ -110,7 +110,7 @@ struct ShellPaths: Equatable {
         case .contactDetail: .contacts
         case .devices: .account
         case .hq, .analytics, .marketplace, .billing, .workflows, .rooms, .activeRoom, .dialer,
-             .workspaceSettings, .scheduling, .support, .supportRequest, .desk, .deskTicket:
+             .liveCalls, .superviseCall, .workspaceSettings, .scheduling, .support, .supportRequest, .desk, .deskTicket:
             SidebarItem.owner(of: route) ?? .overview
         }
     }

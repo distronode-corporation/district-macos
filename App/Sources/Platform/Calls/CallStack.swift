@@ -51,6 +51,43 @@ final class CallStack {
     /// call can find it again, or nil. ⛔ WEAK: the claim already keeps it alive.
     weak var softphone: AnyObject?
 
+    /// The live supervision that owns the call, so a Live screen rebuilt around it can find
+    /// it again, or nil. ⛔ WEAK, for the reason ``softphone`` is: the claim keeps it alive.
+    weak var supervisor: AnyObject?
+
+    /// End a live supervision, if there is one.
+    ///
+    /// ⛔ ON A SESSION THAT ENDED OR MUST SIGN IN AGAIN, AND ON A WORKSPACE SWITCH (Sean,
+    /// 2026-11-06), beside ``endRoom(_:)``: the screen that drives it is gone, and a takeover is
+    /// a live microphone on a customer's call that nobody could otherwise reach in the app.
+    /// Sign-out, sleep and quit already end it through ``endEverything(_:)``.
+    func endSupervision() async {
+        await (supervisor as? SupervisionEnding)?.endSupervision()
+    }
+
+    /// The last workspace the shell resolved, for ``workspaceSelected(_:)``.
+    private var lastWorkspaceId: String?
+
+    /// The shell resolved a workspace: a switch from another one ends a live supervision.
+    ///
+    /// ⛔ COMPARED WITH THE LAST WORKSPACE THAT RESOLVED, NOT WITH THE VALUE JUST BEFORE. A
+    /// switch passes through nil while the new list loads (`WorkspaceSessionModel.select(_:)`
+    /// reads the list again), so the change arrives as A to nil, then nil to B, and neither of
+    /// those is one workspace to another. ⚠️ Synchronous, so two changes in a row are
+    /// compared in the order they came.
+    func workspaceSelected(_ workspaceId: String?) {
+        guard let workspaceId else { return }
+        let previous = lastWorkspaceId
+        lastWorkspaceId = workspaceId
+        guard CallTeardown.isWorkspaceSwitch(from: previous, to: workspaceId) else { return }
+        Task { await endSupervision() }
+    }
+
+    /// End the keypad's call, if there is one. See ``CallTeardown/endsSoftphone(_:)``.
+    func endSoftphone() async {
+        await (softphone as? LiveCallOwner)?.endForSystem()
+    }
+
     /// Carrier hang-ups still on their way. ⛔ Awaited (briefly) before the app quits, so
     /// quitting mid-call cannot leave a telephone ringing an empty room and billing. See
     /// ``trackServerHangUp(_:)``.
@@ -136,9 +173,26 @@ final class CallStack {
     /// ⚠️ IT TEARS DOWN A PREVIOUS ENGINE RATHER THAN LEAKING ONE, though reaching here
     /// with one would be a bug in the caller.
     func beginCall() async -> AsyncStream<CallEngineEvent> {
+        await beginCall(publishingMicrophone: true)
+    }
+
+    /// ``beginCall()``, for a join that may publish nothing at all.
+    ///
+    /// ⛔ `false` ONLY FOR A LISTEN-IN, whose seat cannot publish; see
+    /// ``LiveKitCallEngine``'s `publishesMicrophone`. Every other rule of ``beginCall()``
+    /// holds: the room yields first, and a previous engine is torn down, which is how a
+    /// takeover replaces the listen engine with the coach's.
+    func beginCall(
+        publishingMicrophone: Bool,
+        announcingPresentParticipants: Bool = false
+    ) async -> AsyncStream<CallEngineEvent> {
         await endRoom(.telephoneCall)
         endCall()
-        let engine = LiveKitCallEngine(devices: devices)
+        let engine = LiveKitCallEngine(
+            devices: devices,
+            publishesMicrophone: publishingMicrophone,
+            announcesPresentParticipants: announcingPresentParticipants
+        )
         self.engine = engine
         return engine.events
     }
@@ -248,4 +302,40 @@ protocol LiveCallOwner: AnyObject {
     /// End the call because the Mac is sleeping or quitting, or the session is ending.
     /// ⚠️ Not a press: the ended-call summary must not say "you hung up".
     func endForSystem() async
+}
+
+/// A live supervision the call stack can end without naming the feature type.
+@MainActor
+protocol SupervisionEnding: AnyObject {
+    /// Leave the call, as Stop listening or Hand back does.
+    func endSupervision() async
+}
+
+/// When the session's end takes this Mac's calls down with it.
+enum CallTeardown {
+    /// ⛔ THE KEYPAD'S CALL ENDS ON SIGN-OUT ONLY (Sean, 2026-11-06: "End it on sign-out only"):
+    /// signing out, a session that ended, a session that must sign in again (all `signedOut`).
+    /// NOT on `unavailable` (the session is intact) and NOT on a workspace switch.
+    static func endsSoftphone(_ phase: AuthPhase) -> Bool {
+        if case .signedOut = phase {
+            return true
+        }
+        return false
+    }
+
+    /// ⛔ A LIVE SUPERVISION ENDS WHENEVER THE SESSION IS NOT SIGNED IN: signed out, ended, a
+    /// reauth, or a session that cannot be checked. Nothing on screen can drive it then.
+    static func endsSupervision(_ phase: AuthPhase) -> Bool {
+        switch phase {
+        case .signedOut, .unavailable: true
+        case .signedIn, .checking: false
+        }
+    }
+
+    /// ⛔ A SWITCH IS ONE WORKSPACE TO ANOTHER, however it was made (a link, a push or the
+    /// picker). The first workspace resolving is not a switch.
+    static func isWorkspaceSwitch(from previous: String?, to current: String?) -> Bool {
+        guard let previous, let current else { return false }
+        return previous != current
+    }
 }

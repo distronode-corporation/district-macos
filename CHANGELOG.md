@@ -36,6 +36,24 @@ not sent.
 
 ### Changed
 
+- Live supervise, on DistrictCore 8.2.0, ported from district-ios #101 (`9f317b7`) with the
+  fixes from its two reviews. A Live calls section (sidebar and Overview) lists the workspace's
+  calls in progress, read from the call log and kept current by the workspace's call events. A
+  call's screen offers Listen (a listen-only seat: this Mac never publishes its microphone while
+  listening), a note to the receptionist with its receipt ("Your receptionist used your note"
+  with the first words, or the reason it could not), Take over (the microphone is asked first,
+  then the coach seat, then the listen room is left and the coach room joined) and Hand back.
+  A viewer may only listen; on a colleague's own softphone call the note and Take over are
+  replaced by « Votre réceptionniste ne participe pas à cet appel ». The server's refusals are
+  said by their codes (`call_ended` is « Cet appel est terminé. »). There is no CallKit on a Mac:
+  a supervision takes the Mac's one call claim, so a dial, a room or a second supervision is
+  refused during it, and sleep, quit and sign-out end it. It also ends when the session ends or
+  must sign in again, and on a workspace switch; a call placed from the keypad now ends when the
+  session ends or must sign in again too, but not on a workspace switch. The participants
+  already in the room are counted as joins, and the SDK's teardown leaves are ignored, so a web
+  supervisor stopping or a network drop never reads as the call ending; after a takeover the
+  microphone starting is reported. The listen seat is asked for as `macos`. New strings: the
+  supervise catalog from district-ios, reviewed copy, in English and French.
 - App parity with the web Inbox, on DistrictCore `exactVersion` 8.2.0 (district-core-swift#52),
   ported from district-ios `f78ff97`. WhatsApp, Messenger and Instagram threads are answered on
   the channel the server's `replyOptions` name (first is the default, `[]` is no reply box, an

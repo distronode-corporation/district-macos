@@ -60,6 +60,13 @@ enum RouteDestinations {
         case let .dialer(workspaceId, role):
             DialerView(container: container, workspaceId: workspaceId, role: role)
 
+        // ⛔ NEITHER JOINS ANYTHING ON ARRIVAL; see the ⛔ on `Route.superviseCall`.
+        case let .liveCalls(workspaceId, role):
+            LiveCallsView(container: container, workspaceId: workspaceId, role: role)
+
+        case let .superviseCall(workspaceId, role, callId):
+            SuperviseView(container: container, workspaceId: workspaceId, role: role, callId: callId, channel: live)
+
         // ⚠️ THE ROLE IS CARRIED BUT THE LIST IS NOT GATED ON IT: the lobby hides only the
         // START form from a viewer, whose token carries `canPublish:false` anyway.
         case let .rooms(workspaceId, role):

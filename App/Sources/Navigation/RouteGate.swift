@@ -69,6 +69,10 @@ extension RouteGate {
         // which is worse than no row.
         case .dialer, .desk, .deskTicket:
             .hidden
+        // ⚠️ LISTEN IS OPEN TO A VIEWER (`calls/token` admits `viewer`); the note and the
+        // takeover are not, and the screen offers neither (`SuperviseState`).
+        case .liveCalls, .superviseCall:
+            .partial
         // ⛔ HIDDEN OUTRIGHT, AND THE REASON IS UNUSUAL ON THIS SURFACE: the SUPPORT
         // READS exclude `viewer` too, not only the writes. The route's own header
         // gives the argument, these payloads are support CORRESPONDENCE rather than
