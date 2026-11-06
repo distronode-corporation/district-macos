@@ -169,7 +169,12 @@ struct ShellView: View {
         // app is handed to the registrar from the first window's `onAppear`, in no promised
         // order with this view's first evaluation.
         .onChange(of: push.pendingTapPayload, initial: true) { adoptTappedPush() }
-        .onChange(of: workspaceSession.workspaceId, initial: true) {
+        .onChange(of: workspaceSession.workspaceId, initial: true) { previous, current in
+            // ⛔ A SWITCH ENDS A LIVE SUPERVISION, however made; never the keypad's call.
+            if CallTeardown.isWorkspaceSwitch(from: previous, to: current) {
+                let callStack = container.callStack
+                Task { await callStack.endSupervision() }
+            }
             // ⛔ FIRST, AND THE ORDER IS LOAD BEARING: this drops the previous tenant's
             // stacks, and the two resolvers below may land a route for the new one.
             paths.adopt(workspaceSession.workspaceId)

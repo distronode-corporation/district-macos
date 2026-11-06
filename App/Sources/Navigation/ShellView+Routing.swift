@@ -130,6 +130,7 @@ extension ShellView {
         if let workspaceId = action.selectWorkspaceId {
             let callStack = container.callStack
             Task { await callStack.endRoom(.workspaceChanged) }
+            Task { await callStack.endSupervision() }
             Task { await workspaceSession.select(workspaceId) }
             // ⛔ EVERY STACK IS CLEARED HERE AND NOT LEFT TO ``ShellPaths/adopt(_:)``, and the
             // stamp is what tells the `onChange` the switch is already accounted for, so the
