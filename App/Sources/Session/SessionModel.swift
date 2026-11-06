@@ -154,6 +154,17 @@ final class SessionModel {
         phase = next
         incoming?.sessionChanged(next)
         language?.sessionChanged(next)
+        // ⛔ A LIVE SUPERVISION ENDS WHEN THE SESSION DOES, AND THE KEYPAD'S CALL ON SIGN-OUT ONLY
+        // (Sean, 2026-11-06). A sign-out pressed in the app has already ended both through
+        // ``DesktopLive/signOut()``; this is the session that ended, or must sign in again,
+        // without one. ``CallTeardown`` holds the two rules.
+        let callStack = container.callStack
+        if CallTeardown.endsSupervision(next) {
+            Task { await callStack.endSupervision() }
+        }
+        if CallTeardown.endsSoftphone(next) {
+            Task { await callStack.endSoftphone() }
+        }
         switch next {
         case .signedOut, .unavailable:
             // ⚠️ NOTHING IS WITHDRAWN: there is no session left to do it with, and the

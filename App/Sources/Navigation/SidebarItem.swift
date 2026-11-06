@@ -25,6 +25,7 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
     case workflows
     case desk
     case dialer
+    case live
     case scheduling
     case support
     case settings
@@ -49,6 +50,7 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
         case .workflows: WorkflowsCopy.title
         case .desk: DeskCopy.title
         case .dialer: NavigationCopy.dial
+        case .live: SuperviseCopy.pageTitle
         case .scheduling: NavigationCopy.scheduling
         case .support: SupportCopy.title
         case .settings: SettingsCopy.hubTitle
@@ -71,6 +73,7 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
         case .workflows: "flowchart"
         case .desk: "tray.full"
         case .dialer: "phone.arrow.up.right"
+        case .live: "headphones"
         case .scheduling: "calendar"
         case .support: "lifepreserver"
         case .settings: "gearshape"
@@ -93,6 +96,7 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
         case .workflows: A11yID.Sidebar.workflows
         case .desk: A11yID.Sidebar.desk
         case .dialer: A11yID.Sidebar.dialer
+        case .live: A11yID.Sidebar.live
         case .scheduling: A11yID.Sidebar.scheduling
         case .support: A11yID.Sidebar.support
         case .settings: A11yID.Sidebar.settings
@@ -110,7 +114,7 @@ enum SidebarItem: String, Hashable, CaseIterable, Identifiable {
         case .desk: (NavigationCopy.selectATicket, "tray.full")
         case .support: (NavigationCopy.selectARequest, "lifepreserver")
         case .overview, .account, .hq, .analytics, .marketplace, .billing, .rooms, .workflows, .dialer,
-             .scheduling, .settings:
+             .live, .scheduling, .settings:
             nil
         }
     }

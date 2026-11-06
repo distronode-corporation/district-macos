@@ -3,11 +3,11 @@ import XCTest
 
 /// The sidebar is the iPad-parity checklist, so its count, order and wording are pinned.
 final class MacSidebarItemTests: XCTestCase {
-    func testSixteenSectionsInTheiPadOrder() {
+    func testSeventeenSectionsInTheiPadOrder() {
         XCTAssertEqual(SidebarItem.allCases.map(\.title), [
             "Overview", "Inbox", "Calls", "Contacts",
             "District HQ", "Analytics", "Phone numbers", "Billing", "Rooms", "Workflows",
-            "Desk", "Dial", "Scheduling", "Support", "Workspace settings",
+            "Desk", "Dial", "Live calls", "Scheduling", "Support", "Workspace settings",
             "Account",
         ])
     }

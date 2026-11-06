@@ -113,6 +113,26 @@ final class MacClientPlatformTests: XCTestCase {
         XCTAssertNotEqual(body["nonce"] as? String, nonce.hashed, "the service hashes the raw nonce itself")
     }
 
+    // MARK: - Live supervise
+
+    /// ⛔ THE LISTEN SEAT IS ASKED FOR AS A MAC (`calls/token`, `identity: "macos"`), through the
+    /// core's repository with the platform the supervision passes (``SuperviseModel/platform``).
+    @MainActor
+    func testTheListenSeatIsAskedForAsAMac() async throws {
+        let transport = RecordingTransport(
+            status: 200,
+            body: #"{"success":true,"token":"listen.jwt","url":"wss://sfu.example.test"}"#
+        )
+        let calls = CallsRepository(client: ApiClient(baseURL: base, transport: transport, accessToken: { "access-1" }))
+        let callId = try XCTUnwrap(SupervisedCallID("cmh1live0001"))
+
+        _ = await calls.monitor(callId: callId, platform: SuperviseModel.platform)
+
+        let body = try transport.body()
+        XCTAssertEqual(body["identity"] as? String, "macos")
+        XCTAssertEqual(body["roomName"] as? String, "cmh1live0001")
+    }
+
     // MARK: - Push registration
 
     private func pushTokens(

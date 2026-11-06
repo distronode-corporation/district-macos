@@ -170,6 +170,8 @@ struct ShellView: View {
         // order with this view's first evaluation.
         .onChange(of: push.pendingTapPayload, initial: true) { adoptTappedPush() }
         .onChange(of: workspaceSession.workspaceId, initial: true) {
+            // ⛔ A SWITCH ENDS A LIVE SUPERVISION, however made; never the keypad's call.
+            container.callStack.workspaceSelected(workspaceSession.workspaceId)
             // ⛔ FIRST, AND THE ORDER IS LOAD BEARING: this drops the previous tenant's
             // stacks, and the two resolvers below may land a route for the new one.
             paths.adopt(workspaceSession.workspaceId)
