@@ -1,15 +1,15 @@
 {
-  "signed_off_by": "iMac manager distronode-com (Opus 5.5), Mac 3.1.0: the l10n/macos.toml changes since v3.0.3 (#79 to #82) and release-notes/fr-CA/3.1.0.txt reviewed by an Opus 5.5 xhigh fr-CA reviewer; its must-fix and suggestions applied as Sean approved them (\"Must-fix + all suggestions (Recommended)\"; the U+00A0 in the time-format error deferred to an all-platform change), 2026-10-25",
-  "release": "v3.1.0",
-  "commit": "fbf521eb3f5fe8c430c4299b0b5e80c016692ba2",
+  "signed_off_by": "Sean Dean, 2026-11-06",
+  "release": "v3.3.0",
+  "commit": "6a4805edf96baecf16cc6c5b9cdbc549d147652b",
   "catalogs": [
     {
       "path": "l10n/infoplist.toml",
-      "sha256": "3d2424c58a52f956850cf9680afd3de680f025fd0b91049b66166bf87ca3fac7"
+      "sha256": "01311779af88298bdb01832b2f2aa39b52738f2a3ae00877f096d92b1c48c483"
     },
     {
       "path": "l10n/macos.toml",
-      "sha256": "c17c49d5da3d7ea09a36e661fa8c56b63b458c773fab9861f4f57dc5998781c0"
+      "sha256": "d2d6e5321ff8ddb066f3d1ad314b17a77b44ad2c5ead80177bfc03c57e875cb9"
     },
     {
       "path": "l10n/push.toml",

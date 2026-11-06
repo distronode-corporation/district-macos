@@ -1,0 +1,8 @@
+- « Appels en cours » : voyez les appels que votre réceptionniste traite en ce moment et écoutez-les. L'appelant ne vous entend pas. Pendant l'appel, soufflez une consigne à votre réceptionniste et voyez si elle l'a utilisée, prenez l'appel vous-même, puis redonnez-le-lui quand vous avez terminé. Les membres ayant le rôle Lecteur peuvent seulement écouter.
+- La boîte de réception répond aux clients WhatsApp, Messenger et Instagram sur leur propre canal : un client WhatsApp ne reçoit plus de réponse par texto.
+- Les conversations Messenger et Instagram figurent dans la boîte de réception, et vous pouvez y répondre.
+- Assignez une conversation à un membre de l'équipe avec « Assigner… » dans la barre d'outils ou dans le menu d'une rangée. Chaque rangée indique à qui la conversation est assignée, et « Qui me sont assignées » affiche les vôtres.
+- Quand WhatsApp n'accepte plus qu'un modèle de message, la zone de réponse propose vos modèles approuvés, avec leurs variables et un aperçu avant l'envoi.
+- Quand Messenger ou Instagram n'accepte plus de réponse, la zone de réponse en indique la raison et désactive « Envoyer », sans effacer votre texte. Une réponse d'un agent humain affiche son badge.
+- Les images jointes restent dans le brouillon quand vous passez à un canal qui n'envoie que du texte.
+- L'écran « Composer » a un bouton de pays avec une liste où chercher. Les numéros se mettent en forme pendant la saisie et, avant l'appel, la ligne sous le champ affiche le numéro complet et le pays de destination.
