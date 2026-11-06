@@ -80,6 +80,8 @@ struct ComposerBar: View {
         }
         // ⚠️ RE-READ ON EVERY CHANNEL SWITCH: the window belongs to the WhatsApp reply only.
         .task(id: model.selectedReplyIndex) { await model.refreshWhatsAppWindow() }
+        // ⛔ AND AGAIN WHEN AN OPEN WINDOW REACHES ITS CLOSE, so free text is not offered past it.
+        .task(id: model.whatsApp.window) { await model.rereadWindowAtExpiry() }
         .padding(.horizontal, DistrictSpacing.gutter)
         .padding(.vertical, DistrictSpacing.row)
         .background(colors.surface)

@@ -35,12 +35,15 @@ private struct InboxAssignmentLayer: ViewModifier {
             // SELECTION: ``ListDetailPath`` ignores a nil selection on purpose, so the
             // stored stack (the open row and anything pushed beside it) is what is emptied.
             .onChange(of: model.assignedToMeOnly) { closeIfHidden() }
-            // ⛔ AND SO DOES A REFRESH THAT HIDES IT (Seer, #95): a reassignment, by this sheet or
-            // a colleague, takes the open row out of Assigned to me with the filter already on.
-            .onChange(of: model.visibleThreadKeys) { closeIfHidden() }
+            // ⛔ AND SO DOES THIS SHEET'S OWN ASSIGNMENT (Seer, #95), once the re-read says the row
+            // has left Assigned to me. ⛔ NOT A REFRESH (xhigh review): a push re-read closed the
+            // thread the operator was typing in (``InboxModel/hidesOpenConversation(_:assignedToMeOnly:)``).
             .sheet(item: $model.assigning) { assign in
                 ThreadAssignSheet(model: assign) {
-                    Task { await model.load(refreshing: true) }
+                    Task {
+                        await model.load(refreshing: true)
+                        closeIfHidden()
+                    }
                 }
             }
     }
@@ -68,7 +71,10 @@ private struct InboxAssignmentLayer: ViewModifier {
     }
 
     private func closeIfHidden() {
-        guard selection != nil, let open = selectedConversation, model.visible([open]).isEmpty else { return }
+        guard selection != nil else { return }
+        guard InboxModel.hidesOpenConversation(selectedConversation, assignedToMeOnly: model.assignedToMeOnly) else {
+            return
+        }
         path.wrappedValue = []
     }
 

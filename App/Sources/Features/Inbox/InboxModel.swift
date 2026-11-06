@@ -126,8 +126,15 @@ final class InboxModel {
     /// shows it.
     @ObservationIgnored private var reads = LatestRead()
 
-    init(container: AppContainer, workspaceId: String, role: WorkspaceRole?) {
+    /// The container's one repository, or a test's (``init(container:workspaceId:role:inbox:)``).
+    private let inbox: InboxRepository
+
+    /// - Parameter inbox: ⚠️ THE TEST SEAM ONLY, a repository over a scripted transport. Production
+    ///   passes nothing and reads through the container's one repository, for the reason the ⛔ on
+    ///   ``AppContainer`` gives.
+    init(container: AppContainer, workspaceId: String, role: WorkspaceRole?, inbox: InboxRepository? = nil) {
         self.container = container
+        self.inbox = inbox ?? container.inbox
         self.workspaceId = workspaceId
         // ⚠️ `allowsMutation` rather than `role != .viewer`, so an UNPARSED role also
         // reads as read-only: `fromWire` fails closed and nil means no privileges.
@@ -164,7 +171,7 @@ final class InboxModel {
     func load(refreshing: Bool = false) async {
         let read = reads.begin()
         state = Self.pending(from: state, refreshing: refreshing)
-        let outcome = await container.inbox.conversations(workspaceId: workspaceId)
+        let outcome = await inbox.conversations(workspaceId: workspaceId)
         // ⛔ AN OLDER READ THAT ANSWERS LAST IS DROPPED (Seer, #99): a pull-to-refresh
         // begun before an assignment would otherwise put the old assignee back over the
         // re-read that followed it. ``LatestRead``.
@@ -228,7 +235,7 @@ final class InboxModel {
         // ⚠️ HOISTED INTO LOCALS BEFORE THE AWAIT, as ``markRead(_:)`` does: the
         // repository is a `Sendable` struct, so nothing non-`Sendable` has to cross,
         // and ``AppContainer`` is `@MainActor` and would.
-        let repository = container.inbox
+        let repository = inbox
         let id = workspaceId
         guard case .success = await repository.markAllRead(workspaceId: id) else { return }
         // ⛔ RE-READ RATHER THAN OVERLAID. The server has just changed what every other
@@ -340,11 +347,16 @@ final class InboxModel {
         return conversations.filter { $0.assignedToMe == true }
     }
 
-    /// The thread keys of the rows the list shows now. A change closes an open conversation
-    /// the filter hides (``InboxAssignmentLayer``).
-    var visibleThreadKeys: [String] {
-        guard case let .content(conversations, _, _, _) = state else { return [] }
-        return visible(conversations).map(\.threadKey)
+    /// True when the list no longer shows the open conversation, so it is closed.
+    ///
+    /// ⛔ ASKED ONLY AFTER THE OPERATOR'S OWN ACT (xhigh review, #95): the filter toggled, or
+    /// this sheet's own assignment (``InboxAssignmentLayer``). A refresh never asks, whether a
+    /// push or a colleague's reassignment: the operator may be typing a reply, and the thread
+    /// closing under them mid-sentence is worse than a row that has left the list. The
+    /// toolbar's Assign… stops targeting it either way (``assignTarget(_:assignedToMeOnly:)``).
+    static func hidesOpenConversation(_ open: ConversationSummary?, assignedToMeOnly: Bool) -> Bool {
+        guard let open else { return false }
+        return visible([open], assignedToMeOnly: assignedToMeOnly).isEmpty
     }
 
     /// The open conversation the toolbar's Assign… may act on: nil when the filter hides it,
@@ -358,7 +370,7 @@ final class InboxModel {
     func beginAssigning(_ conversation: ConversationSummary) {
         guard canReply else { return }
         assigning = ThreadAssignModel(
-            inbox: container.inbox,
+            inbox: inbox,
             workspaces: container.workspaces,
             workspaceId: workspaceId,
             threadKey: conversation.threadKey,
@@ -376,7 +388,7 @@ final class InboxModel {
     /// newer answer with the older one, results that are correct for a query the
     /// field no longer holds, which is indistinguishable from a broken search.
     private func runSearch(_ query: String) async {
-        let outcome = await container.inbox.search(workspaceId: workspaceId, query: query)
+        let outcome = await inbox.search(workspaceId: workspaceId, query: query)
         guard !Task.isCancelled else { return }
         switch outcome {
         case let .success(results):
@@ -413,7 +425,7 @@ final class InboxModel {
     /// - Parameter read: the list read these badges belong to (``LatestRead``).
     private func loadDraftBadges(read: Int) async {
         guard canReply else { return }
-        let outcome = await container.inbox.drafts(workspaceId: workspaceId)
+        let outcome = await inbox.drafts(workspaceId: workspaceId)
         // ⛔ AN OLDER READ'S BADGES ARE DROPPED TOO (Seer, #99), as its list is.
         guard reads.isLatest(read), case let .success(drafts) = outcome else { return }
         guard case let .content(conversations, isPartial, _, refreshing) = state else { return }

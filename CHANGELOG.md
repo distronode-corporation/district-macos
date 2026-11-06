@@ -38,7 +38,9 @@ not sent.
   window replaces the reply box with the approved templates (variables, preview,
   `sendWhatsAppTemplate`) in one two-step sheet, and an open one names its sender. The alert push
   register declares `metaChannels`. 25 new strings in English and French, the French reviewed
-  (Sean's sign-off, 2026-11-05).
+  (Sean's sign-off, 2026-11-05). The held-images sentences then replace the three "removed" ones
+  with four new strings (`inbox.attachments_held_*`, `inbox.attachments_switch_to_sms`), the
+  French in draft until Sean signs it off.
   The composer's three bindings move verbatim to `ComposerBar+Support.swift` for SwiftLint's
   `file_length`.
 - DistrictCore 8.1.0 (district-core-swift fdb2cc5, tag 8.1.0), pinned by its tag, the release

@@ -100,6 +100,38 @@ final class ThreadAssignmentTests: XCTestCase {
         XCTAssertNil(InboxModel.assignTarget(nil, assignedToMeOnly: false), "nothing open")
     }
 
+    /// ⛔ THE OPEN CONVERSATION CLOSES ONLY WHEN THE LIST HIDES IT, and only the operator's own
+    /// act asks (xhigh review): the filter toggled, or this sheet's assignment. A refresh never
+    /// asks, so a push re-read cannot close the thread the operator is typing in; the rule here
+    /// is what the filter and the sheet apply.
+    func testTheOpenConversationClosesOnlyWhenTheListHidesIt() async throws {
+        let conversations = await ParityFixtures.summaries([
+            ParityFixtures.row(
+                threadKey: "mine", counterpart: "+1", channels: ["sms"], replyOptions: "[]",
+                assigneeEmail: "me@contract.test", assignedToMe: true
+            ),
+            ParityFixtures.row(
+                threadKey: "reassigned", counterpart: "+2", channels: ["sms"], replyOptions: "[]",
+                assigneeEmail: "alex@contract.test", assignedToMe: false
+            ),
+        ])
+        let mine = try XCTUnwrap(conversations.first)
+        let reassigned = try XCTUnwrap(conversations.last)
+
+        XCTAssertTrue(InboxModel.hidesOpenConversation(reassigned, assignedToMeOnly: true))
+        XCTAssertFalse(InboxModel.hidesOpenConversation(mine, assignedToMeOnly: true))
+        XCTAssertFalse(InboxModel.hidesOpenConversation(reassigned, assignedToMeOnly: false), "the filter is off")
+        XCTAssertFalse(InboxModel.hidesOpenConversation(nil, assignedToMeOnly: true), "nothing open")
+        let layer = try String(
+            contentsOf: URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("Sources/Features/Inbox/InboxAssignment.swift"),
+            encoding: .utf8
+        )
+        XCTAssertEqual(layer.components(separatedBy: "closeIfHidden()").count - 1, 3, "two callers and the definition")
+        XCTAssertFalse(layer.contains("onChange(of: model.visibleThreadKeys"), "no refresh closes the thread")
+    }
+
     // MARK: - The sheet
 
     /// ⛔ NO VIEWER IS OFFERED, and the current owner keeps a row even when the roster no
@@ -130,6 +162,63 @@ final class ThreadAssignmentTests: XCTestCase {
         XCTAssertEqual(writes[0].json["assigneeEmail"] as? String, "teammate@contract.test")
         XCTAssertEqual(writes[0].json["threadKey"] as? String, "contact:c_1")
         XCTAssertTrue(writes[1].json["assigneeEmail"] is NSNull, "unassign sends an explicit null")
+    }
+
+    /// ⛔ TWO TAPS WRITE ONE ASSIGNMENT: the second, made while the first is in flight, writes
+    /// nothing.
+    func testASecondTapWhileAnAssignmentIsInFlightWritesNothing() async {
+        let transport = ParityTransport()
+        transport.on(.post, "/conversations/assign", 200, Self.assigned)
+        let gate = transport.hold(.post, "/conversations/assign")
+        let sheet = model(transport)
+
+        let first = Task { await sheet.assign("teammate@contract.test") }
+        await waitUntil { transport.requests(to: "/conversations/assign").count == 1 }
+        let second = await sheet.assign("owner@contract.test")
+        XCTAssertTrue(sheet.saving)
+        gate.open()
+        let firstAssigned = await first.value
+
+        XCTAssertFalse(second)
+        XCTAssertTrue(firstAssigned)
+        XCTAssertEqual(transport.requests(to: "/conversations/assign").count, 1)
+        XCTAssertFalse(sheet.saving)
+    }
+
+    /// ⛔ AN OLDER LIST READ THAT ANSWERS LAST IS DROPPED (Seer, #99): a refresh begun before an
+    /// assignment, answering after the re-read that followed it, must not put the old assignee
+    /// back on screen.
+    func testAnOlderListReadThatAnswersLastIsDropped() async throws {
+        let before = ParityFixtures.row(
+            threadKey: "contact:c_1", counterpart: "+14165550177", channels: ["sms"], replyOptions: "[]",
+            assigneeEmail: nil
+        )
+        let after = ParityFixtures.row(
+            threadKey: "contact:c_1", counterpart: "+14165550177", channels: ["sms"], replyOptions: "[]",
+            assigneeEmail: "teammate@contract.test"
+        )
+        let transport = ParityTransport()
+        transport.on(.get, "/conversations", 200, ParityFixtures.conversations([before]))
+        transport.on(.get, "/conversations", 200, ParityFixtures.conversations([after]))
+        let gate = transport.hold(.get, "/conversations")
+        let unreachable = try XCTUnwrap(URL(string: "https://inbox.invalid"))
+        let inbox = InboxModel(
+            container: AppContainer(baseURL: unreachable),
+            workspaceId: "ws_1",
+            role: .client,
+            inbox: ParityFixtures.inbox(transport)
+        )
+
+        let older = Task { await inbox.load(refreshing: true) }
+        await waitUntil { transport.requests(to: "/conversations").count == 1 }
+        await inbox.load(refreshing: true)
+        gate.open()
+        await older.value
+
+        guard case let .content(conversations, _, _, _) = inbox.state else {
+            return XCTFail("no list: \(inbox.state)")
+        }
+        XCTAssertEqual(conversations.map(\.assigneeEmail), ["teammate@contract.test"], "the newer answer stands")
     }
 
     /// ⛔ BOTH REFUSALS ARE SAID, in French from the catalog.

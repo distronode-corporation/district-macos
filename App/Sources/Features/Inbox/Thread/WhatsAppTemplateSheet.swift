@@ -28,8 +28,8 @@ struct WhatsAppClosedWindow: View {
 
 /// The sender's approved templates; one chosen, its variables, a preview and Send.
 ///
-/// ⛔ ONLY APPROVED TEMPLATES ARE LISTED (``WhatsAppTemplate/isSendable``): Meta refuses
-/// any other, and the website's picker offers the same set.
+/// ⛔ ONLY THE TEMPLATES THE SEND ROUTE ACCEPTS ARE LISTED (``ThreadModel/offerable(_:senderId:)``),
+/// the website's rule: approved, numbered placeholders, a body, and this sender's or no one's.
 ///
 /// ⚠️ TWO STEPS IN ONE ``MacSheetChrome``, NOT A `NavigationStack`: a stack draws the
 /// system's grey title bar over a Mac sheet (`MacSheetFitTests`). The list is the first
