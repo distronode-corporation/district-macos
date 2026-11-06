@@ -179,6 +179,15 @@ struct ThreadContent {
     var sendFailure: FailureText?
     /// ⛔ Already uploaded, capped at ``ThreadModel/maximumAttachments``.
     var attachments: [String]
+    /// Images the draft holds that the selected channel cannot carry: a restored draft's,
+    /// or those staged before a switch away from SMS.
+    ///
+    /// ⛔ KEPT IN THE STORED DRAFT, NEVER SENT (Seer, #99). The autosave writes them with
+    /// ``attachments``, so a draft opened on a WhatsApp default does not lose its images to
+    /// the next keystroke, and a switch back to SMS returns them as chips. A send on the
+    /// text-only channel goes out as text, as ``channelNote`` says, and they stay (max review).
+    /// The composer draws them as dimmed chips marked held, each with its own Remove.
+    var heldAttachments: [String]
     /// What changed when the operator switched channel, said out loud.
     ///
     /// ⛔ ITS OWN SLOT RATHER THAN A FOURTH TENANT OF ``sendFailure``, AND THE REASON
@@ -203,9 +212,26 @@ struct ThreadContent {
     var draftGenerating: Bool
 }
 
+/// The composer's images and their sentence, held on the model outside ``ThreadState``.
+///
+/// ⛔ A RE-READ REPLACES THE CONTENT, AND THESE MUST OUTLIVE IT (xhigh review, #99 and #95).
+/// They are uploaded and in the stored draft, so a re-read after a template send, a failed
+/// read or a retry puts them back (``ThreadModel/load()``), an autosave while there is no
+/// content still writes them, and only a send that carried them clears them.
+struct ComposerMedia: Equatable {
+    var attachments: [String] = []
+    var held: [String] = []
+    var note: String?
+
+    /// What the stored draft holds: both, the held ones never sent.
+    var all: [String] {
+        attachments + held
+    }
+}
+
 extension ThreadContent {
-    /// The state a freshly read page starts in.
-    static func from(_ page: ThreadPage) -> ThreadContent {
+    /// The state a freshly read page starts in, with the composer's images put back.
+    static func from(_ page: ThreadPage, media: ComposerMedia = ComposerMedia()) -> ThreadContent {
         ThreadContent(
             events: page.events,
             hasMore: page.hasMore,
@@ -216,8 +242,9 @@ extension ThreadContent {
             incompleteCount: page.droppedEventCount,
             sending: false,
             sendFailure: nil,
-            attachments: [],
-            channelNote: nil,
+            attachments: media.attachments,
+            heldAttachments: media.held,
+            channelNote: media.note,
             attaching: false,
             draftGenerating: false
         )

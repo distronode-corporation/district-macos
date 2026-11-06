@@ -9,6 +9,9 @@ import SwiftUI
 /// path in from a row, so "Call back" and "Message" would each be a new feature wearing a
 /// menu item. Copying a value the row already shows is neither.
 ///
+/// ⚠️ THE ONE EXCEPTION IS THE INBOX ROW'S Assign… (DistrictCore 8.2.0), added after the
+/// copies by its own modifier and gated by role there (`InboxAssignment.swift`).
+///
 /// ⚠️ NOT GATED BY ROLE. Every role that can see a row can read what it copies, and copying
 /// spends no request, so there is nothing for ``RouteGate`` to refuse.
 struct RowContextAction: Hashable, Identifiable {
@@ -74,11 +77,21 @@ extension View {
             self
         } else {
             contextMenu {
-                ForEach(actions) { action in
-                    Button(action.title, systemImage: "doc.on.doc") {
-                        Clipboard.copy(action.value)
-                    }
-                }
+                RowContextCopyItems(actions: actions)
+            }
+        }
+    }
+}
+
+/// The copy items of a row's context menu, for a menu that adds a command after them (the
+/// Inbox row's Assign…, `InboxAssignment.swift`).
+struct RowContextCopyItems: View {
+    let actions: [RowContextAction]
+
+    var body: some View {
+        ForEach(actions) { action in
+            Button(action.title, systemImage: "doc.on.doc") {
+                Clipboard.copy(action.value)
             }
         }
     }

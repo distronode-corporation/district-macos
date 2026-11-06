@@ -244,7 +244,7 @@ final class AppContainer {
         contacts = ContactsRepository(client: api)
         // ⚠️ FROM THE ONE `contacts` ABOVE, never a fresh repository.
         blockedContacts = BlockedContactsStore(contacts: contacts)
-        inbox = InboxRepository(client: api)
+        inbox = InboxRepository(client: api, options: InboxParity.readOptions)
         support = SupportRepository(client: api)
         desk = DeskRepository(client: api)
         devices = DevicesRepository(client: api)
@@ -286,8 +286,17 @@ final class AppContainer {
     /// token is the only push this Mac registers here (presence, `kind: "desktop"`, is
     /// `DistrictLive`'s), and the server refuses `voip` from a Mac (PushKit's VoIP push is
     /// unavailable on macOS), so ``PushTokenRepository/registerVoip(token:)`` is never called.
+    ///
+    /// ⛔ AND IT DECLARES ``InboxParity/pushCapabilities`` (`metaChannels`, DistrictCore
+    /// 8.2.0) beside the Inbox reads that list Messenger and Instagram threads; see the ⛔ on
+    /// ``InboxParity``.
     nonisolated static func pushTokenRepository(client: ApiClient, memory: any PushTokenMemory) -> PushTokenRepository {
-        PushTokenRepository(client: client, memory: memory, platform: .macos)
+        PushTokenRepository(
+            client: client,
+            memory: memory,
+            platform: .macos,
+            capabilities: InboxParity.pushCapabilities
+        )
     }
 
     /// Sign out, on the server and locally.

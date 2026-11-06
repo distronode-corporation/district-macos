@@ -135,20 +135,38 @@ final class MacClientPlatformTests: XCTestCase {
         XCTAssertEqual(request.url.absoluteString, "https://www.distronode.com/api/district/devices/register")
         XCTAssertEqual(request.headers["Authorization"], "Bearer access-1")
         let body = try transport.body()
-        XCTAssertEqual(Set(body.keys), ["token", "platform"], "no `kind`: this is the alert token")
+        XCTAssertEqual(Set(body.keys), ["token", "platform", "capabilities"], "no `kind`: this is the alert token")
         XCTAssertEqual(body["platform"] as? String, "macos")
+        // ⛔ DistrictCore 8.2.0: the Inbox lists Messenger and Instagram, so their pushes may come.
+        XCTAssertEqual(body["capabilities"] as? [String], ["metaChannels"])
         XCTAssertEqual(memory.lastRegisteredToken(), "abc123")
+        XCTAssertEqual(memory.lastRegisteredCapabilities(), "metaChannels")
     }
 
     func testPushRegisterSkipsATokenTheServerAlreadyAffirmed() async {
         let transport = RecordingTransport()
         let memory = FakeMemory()
         memory.rememberRegisteredToken("abc123")
+        memory.rememberRegisteredCapabilities("metaChannels")
 
         let result = await pushTokens(transport, memory: memory).register(token: "abc123")
 
         XCTAssertEqual(result, .success(.alreadyRegistered))
         XCTAssertTrue(transport.requests.isEmpty)
+    }
+
+    /// ⛔ AN INSTALL THAT REGISTERED BEFORE 8.2.0 (token remembered, no declaration)
+    /// registers once more, so the server learns it may push Messenger and Instagram.
+    func testPushRegisterSendsAnUnchangedTokenOnceMoreToDeclareMetaChannels() async throws {
+        let transport = RecordingTransport(status: 200, body: #"{"success":true}"#)
+        let memory = FakeMemory()
+        memory.rememberRegisteredToken("abc123")
+
+        let result = await pushTokens(transport, memory: memory).register(token: "abc123")
+
+        XCTAssertEqual(result, .success(.registered))
+        XCTAssertEqual(transport.requests.count, 1)
+        XCTAssertEqual(try transport.body()["capabilities"] as? [String], ["metaChannels"])
     }
 }
 
@@ -156,6 +174,7 @@ final class MacClientPlatformTests: XCTestCase {
 final class FakeMemory: PushTokenMemory, @unchecked Sendable {
     private var alert: String?
     private var voip: String?
+    private var capabilities: String?
 
     func lastRegisteredToken() -> String? {
         alert
@@ -179,5 +198,17 @@ final class FakeMemory: PushTokenMemory, @unchecked Sendable {
 
     func forgetRegisteredVoipToken() {
         voip = nil
+    }
+
+    func lastRegisteredCapabilities() -> String? {
+        capabilities
+    }
+
+    func rememberRegisteredCapabilities(_ capabilities: String) {
+        self.capabilities = capabilities
+    }
+
+    func forgetRegisteredCapabilities() {
+        capabilities = nil
     }
 }

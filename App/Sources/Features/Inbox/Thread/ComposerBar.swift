@@ -54,24 +54,35 @@ struct ComposerBar: View {
             draftStrip
             draftNoticeStrip
             failureStrip
-            subjectField
-            attachmentStrip
-            field
-            // ⚠️ THE FIELD TAKES THE WHOLE WIDTH AND THE CONTROLS SIT IN ONE ROW UNDER IT, as
-            // Mail's composer does. Beside the field, even as icons, the four took
-            // two thirds of a 370pt open thread and the reply wrapped every two words (first
-            // after-capture, run 38781965734). The three icons are borderless; Send alone is
-            // bordered, and prominent, as the default button.
-            HStack(spacing: DistrictSpacing.row) {
-                attachControl
-                draftControl
-                Spacer(minLength: DistrictSpacing.tight)
-                sendControl
+            // ⛔ A CLOSED WHATSAPP WINDOW TAKES ONLY A TEMPLATE: free text there is refused
+            // by the server, so the box is replaced rather than left to fail (8.2.0).
+            if model.whatsAppWindowClosed {
+                WhatsAppClosedWindow(model: model)
+                ComposerAttachmentStrip(model: model, content: content)
+            } else {
+                subjectField
+                ComposerAttachmentStrip(model: model, content: content)
+                field
+                // ⚠️ THE FIELD TAKES THE WHOLE WIDTH AND THE CONTROLS SIT IN ONE ROW UNDER IT, as
+                // Mail's composer does. Beside the field, even as icons, the four took
+                // two thirds of a 370pt open thread and the reply wrapped every two words (first
+                // after-capture, run 38781965734). The three icons are borderless; Send alone is
+                // bordered, and prominent, as the default button.
+                HStack(spacing: DistrictSpacing.row) {
+                    attachControl
+                    draftControl
+                    Spacer(minLength: DistrictSpacing.tight)
+                    sendControl
+                }
+                .buttonStyle(.borderless)
+                .imageScale(.large)
+                .controlSize(.large)
             }
-            .buttonStyle(.borderless)
-            .imageScale(.large)
-            .controlSize(.large)
         }
+        // ⚠️ RE-READ ON EVERY CHANNEL SWITCH: the window belongs to the WhatsApp reply only.
+        .task(id: model.selectedReplyIndex) { await model.refreshWhatsAppWindow() }
+        // ⛔ AND AGAIN WHEN AN OPEN WINDOW REACHES ITS CLOSE, so free text is not offered past it.
+        .task(id: model.whatsApp.window) { await model.rereadWindowAtExpiry() }
         .padding(.horizontal, DistrictSpacing.gutter)
         .padding(.vertical, DistrictSpacing.row)
         .background(colors.surface)
@@ -104,11 +115,8 @@ struct ComposerBar: View {
     /// for the other one, and the badge is still the thing that stops the channel
     /// being hidden.
     ///
-    /// ⚠️ WHATSAPP CANNOT APPEAR HERE AT ALL, AND THAT IS A WIRE GAP RATHER THAN AN
-    /// OMISSION IN THIS PICKER. `conversations` publishes no `canWhatsapp`, so
-    /// ``ConversationSummary/replyTargets`` can never produce a WhatsApp target and a
-    /// WhatsApp-only thread arrives marked `canSms: true`, it goes out as SMS. Fixing
-    /// it needs a server field, not a client rule.
+    /// ⛔ THE CHANNELS ARE THE SERVER'S `replyOptions` (DistrictCore 8.2.0), in its order,
+    /// so a WhatsApp, Messenger or Instagram customer is offered their own channel first.
     @ViewBuilder
     private var channelStrip: some View {
         if model.replyTargets.count > 1 {
@@ -149,7 +157,8 @@ struct ComposerBar: View {
             }
             .pickerStyle(.segmented)
             .fixedSize()
-            .disabled(content.sending)
+            // ⚠️ AND WHILE AN UPLOAD IS IN FLIGHT (max review): it lands held off SMS anyway.
+            .disabled(content.sending || content.attaching)
             if let recipient = model.recipientName {
                 recipientLine(recipient)
             }
@@ -287,42 +296,6 @@ struct ComposerBar: View {
         }
     }
 
-    /// The images waiting to go out with the next send.
-    ///
-    /// ⚠️ ALREADY UPLOADED, so removing one costs nothing server-side and the send
-    /// carries only URLs. Uploading at PICK time rather than at SEND time means an
-    /// upload failure costs a retry of one image instead of failing a billable send
-    /// that has already spent its rate-limit slot.
-    ///
-    /// ⚠️ SMALL, WITH THE REMOVE CONTROL ON THE THUMBNAIL, as Mail and Messages stage an
-    /// attachment: a 96pt thumbnail over a "Remove" button was the tallest thing in the box.
-    @ViewBuilder
-    private var attachmentStrip: some View {
-        if !content.attachments.isEmpty {
-            ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: DistrictSpacing.tight) {
-                    ForEach(content.attachments, id: \.self) { url in
-                        ThreadMediaThumbnail(url: url, side: ThreadMediaThumbnail.stagedSide)
-                            .overlay(alignment: .topTrailing) {
-                                Button(InboxCopy.removeAttachment, systemImage: "xmark.circle.fill") {
-                                    model.removeAttachment(url)
-                                }
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.plain)
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, .black.opacity(0.6))
-                                .buttonName(InboxCopy.removeAttachment)
-                                .padding(2)
-                            }
-                    }
-                }
-                // ⚠️ ROOM FOR THE REMOVE CONTROL'S EDGE, which a scroll view would clip.
-                .padding(.vertical, 2)
-            }
-            .scrollIndicators(.hidden)
-        }
-    }
-
     /// ⛔ A `TextEditor`, NOT A VERTICAL `TextField`: on a Mac a `TextField` ends editing
     /// on Return and takes a new line only with Option-Return, and Return here must be a new
     /// line (``sendShortcut``).
@@ -449,7 +422,8 @@ struct ComposerBar: View {
         .buttonStyle(.districtPrimary)
         .keyboardShortcut(Self.sendShortcut)
         .help(Self.sendHelp(InboxCopy.send))
-        .disabled(content.sending || !model.canSendNow)
+        // ⛔ AND WHILE AN IMAGE UPLOADS (max review): it would land after the send took the list.
+        .disabled(content.sending || content.attaching || !model.canSendNow)
         // ⛔ IT IS IN `UITestApp.forbiddenSurfaces`, AND THE REFUSAL IN
         // `UITestApp.tap(_:)` KEYS ON THIS IDENTIFIER. Without it that guard would
         // protect a string that appears nowhere in the app, a vacuous guard on the
@@ -457,44 +431,5 @@ struct ComposerBar: View {
         // live workspace. Do not remove it: the `precondition` keys on the
         // identifier, so an unnamed control is an unprotected one.
         .accessibilityIdentifier(A11yID.Inbox.send)
-    }
-
-    // MARK: - Wiring
-
-    private var text: Binding<String> {
-        Binding(
-            get: { model.composerText },
-            set: { model.composerTextChanged($0) }
-        )
-    }
-
-    /// ⚠️ THROUGH ``ThreadModel/subjectChanged(_:)`` FOR THE REASON ``text`` GOES
-    /// THROUGH ``ThreadModel/composerTextChanged(_:)``: that method is the only one
-    /// that arms an autosave, and there must be no second copy of this string.
-    private var subject: Binding<String> {
-        Binding(
-            get: { model.composerSubject },
-            set: { model.subjectChanged($0) }
-        )
-    }
-
-    /// Which of the thread's channels the next send uses.
-    ///
-    /// ⛔ THROUGH ``ThreadModel/selectReplyTarget(_:)`` AND NOWHERE ELSE, for the same
-    /// class of reason the two bindings above go through their own methods: that
-    /// method is the only thing that drops staged images when the channel stops being
-    /// able to carry them and writes the note saying so. A binding straight to the
-    /// index would move the channel and leave the images attached to a send that
-    /// silently ignores them.
-    ///
-    /// ⚠️ A CLOSURE LITERAL, NEVER A BARE METHOD REFERENCE. A bare
-    /// MainActor-isolated method as a `Binding` setter aborts the compiler in IRGen
-    /// under Swift 6 with no `error:` line; `.swiftlint.yml`'s one custom rule exists
-    /// for exactly this.
-    private var selectedChannel: Binding<Int> {
-        Binding(
-            get: { model.selectedReplyIndex },
-            set: { model.selectReplyTarget($0) }
-        )
     }
 }
