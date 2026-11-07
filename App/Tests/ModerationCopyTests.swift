@@ -196,4 +196,12 @@ final class ModerationCopyTests: XCTestCase {
     func testTheUnblockPromptSaysContentComesBack() {
         XCTAssertTrue(ContactBlockCopy.unblockPrompt.contains("start appearing in this workspace again"))
     }
+
+    /// ⛔ ANDROID'S AND iOS'S NAME FOR THE SAME BUTTON, VERBATIM, so one test plan
+    /// addresses all three apps.
+    func testTheBlockConfirmationIsNamedAsOnAndroidAndIOS() {
+        XCTAssertEqual(A11yID.Contacts.confirmBlock, "district-contact-block-confirm")
+        XCTAssertEqual(A11yID.Contacts.block, "district-contact-block")
+        XCTAssertEqual(A11yID.Contacts.unblock, "district-contact-unblock")
+    }
 }
