@@ -315,7 +315,7 @@ final class LiveCallsModelTests: XCTestCase {
     }
 }
 
-/// A read queued behind a cancelled one (Sean, 2026-11-06).
+/// A read queued behind a cancelled one (2026-11-06).
 extension LiveCallsModelTests {
     /// ⛔ A READ QUEUED BEHIND THE CANCELLED ONE STILL LANDS: it runs in a fresh task, where its
     /// request is not refused, and the list takes the call it brings.

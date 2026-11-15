@@ -117,7 +117,7 @@ struct ContactsTable: View {
             .width(min: widths.email, ideal: widths.email)
             // ⚠️ THE DAY, NOT THE MINUTE: the whole stamp needs 170pt, which this column cannot
             // have beside the other three in a list column at the 1000pt window minimum
-            // (Sean's first build, 20019, cut it to "Aug 15, 2026 at"). The contact's own
+            // (the first signed build, 20019, cut it to "Aug 15, 2026 at"). The contact's own
             // screen keeps the full stamp.
             TableColumn(ContactsCopy.added, value: \.instant) { row in
                 Text(WireDate.displayDay(row.contact.createdAt))
@@ -135,7 +135,7 @@ struct ContactsTable: View {
     /// built.
     ///
     /// ⚠️ MAC: UNDER THE NAME, NOT BESIDE IT. Beside it, "Building dossier…" took the column
-    /// and left "+1647..." of the name (Sean's first build, 20019); a row with a badge grows
+    /// and left "+1647..." of the name (the first signed build, 20019); a row with a badge grows
     /// a line instead.
     ///
     /// ⚠️ AND THE DOSSIER IS A SPINNER WITH ITS WORDS ON HOVER, NOT THE iPad's BADGE. The badge

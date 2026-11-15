@@ -101,7 +101,7 @@ country table are copied unchanged, so both apps read a number alike. On the Mac
 list is a popover under the flag button, driven from the keyboard (the search field has focus,
 the arrow keys move, Return picks, Escape closes), and the number field is an `NSTextField`
 that formats inside `controlTextDidChange(_:)`, for the reason iOS's `UITextField` does. ⛔ One
-deliberate difference, the web dialler's rule (MR !102): a wrong length (too few or too many
+deliberate difference, the web dialler's rule: a wrong length (too few or too many
 digits for the country) only keeps Call off while the operator types, and is said once they
 stop (the field loses focus, Return, or a refused Call), with the web's sentence; the next
 keystroke clears it. Mac-only tests: `MacDialerCountryPickerTests` and the `test_MAC_DIALER_*`
@@ -206,7 +206,7 @@ Copied as is, then:
   fit beside them (``DistrictRowLayout``), where the iPad always puts them beside it and
   truncates the title; Support's and the Overview's rows also keep the date whole. In the
   contacts table a contact's badges sit under the name, a transfer outcome stacks over the
-  status in the call log, and the Added column shows the day (Sean's first build, 20019).
+  status in the call log, and the Added column shows the day (the first signed build, 20019).
 - Four Mac-only differences in what a screen shows, each from that build: an avatar takes
   initials from letters only and draws a person glyph for a number or no name (the iPad
   draws "+" or "·"); Rooms offers "Read the minutes" only when the meeting has minutes (the
@@ -248,7 +248,7 @@ custom components.
 ## The sidebar on a Mac
 
 The shell keeps the iPad's shape: a three-column `NavigationSplitView` for a list section
-and a two-column one for everything else, swapped by an `if`. Sean's first real build
+and a two-column one for everything else, swapped by an `if`. The first real build
 (20019) showed what that costs in a real Mac window, and each point below was read off the
 live `NSSplitView` and `NSToolbar` with the harness described in the next paragraph:
 

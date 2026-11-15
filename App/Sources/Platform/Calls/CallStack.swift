@@ -57,8 +57,8 @@ final class CallStack {
 
     /// End a live supervision, if there is one.
     ///
-    /// ⛔ ON A SESSION THAT ENDED OR MUST SIGN IN AGAIN, AND ON A WORKSPACE SWITCH (Sean,
-    /// 2026-11-06), beside ``endRoom(_:)``: the screen that drives it is gone, and a takeover is
+    /// ⛔ ON A SESSION THAT ENDED OR MUST SIGN IN AGAIN, AND ON A WORKSPACE SWITCH
+    /// (2026-11-06), beside ``endRoom(_:)``: the screen that drives it is gone, and a takeover is
     /// a live microphone on a customer's call that nobody could otherwise reach in the app.
     /// Sign-out, sleep and quit already end it through ``endEverything(_:)``.
     func endSupervision() async {
@@ -313,7 +313,7 @@ protocol SupervisionEnding: AnyObject {
 
 /// When the session's end takes this Mac's calls down with it.
 enum CallTeardown {
-    /// ⛔ THE KEYPAD'S CALL ENDS ON SIGN-OUT ONLY (Sean, 2026-11-06: "End it on sign-out only"):
+    /// ⛔ THE KEYPAD'S CALL ENDS ON SIGN-OUT ONLY (2026-11-06: "End it on sign-out only"):
     /// signing out, a session that ended, a session that must sign in again (all `signedOut`).
     /// NOT on `unavailable` (the session is intact) and NOT on a workspace switch.
     static func endsSoftphone(_ phase: AuthPhase) -> Bool {

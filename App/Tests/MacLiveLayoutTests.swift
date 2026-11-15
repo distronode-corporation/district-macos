@@ -4,7 +4,7 @@ import DistrictModel
 import SwiftUI
 import XCTest
 
-/// The logic behind the layout fixes from Sean's first real use of the Developer ID build
+/// The logic behind the layout fixes from the first real use of the Developer ID build
 /// (20019): the avatar's fallback, the row's arrangement, the Rooms minutes action and the
 /// devices' platform names. The sidebar's visibility is ``ShellColumnsTests``.
 @MainActor

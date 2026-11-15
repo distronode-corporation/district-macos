@@ -56,7 +56,7 @@ final class DialerDestinationLineTests: XCTestCase {
         }
     }
 
-    /// ⛔ A +1 TOLL-FREE NUMBER NAMES NO COUNTRY (Sean, 2026-11-04, GitLab #2): the web's
+    /// ⛔ A +1 TOLL-FREE NUMBER NAMES NO COUNTRY (2026-11-04): the web's
     /// `ringsNoCountry`, word for word, for every one of the seven codes, typed locally or
     /// with `+1`, whatever +1 country is on the button.
     func testATollFreeNumberSaysItBelongsToNoOneCountry() {
@@ -152,7 +152,7 @@ final class DialerDestinationLineTests: XCTestCase {
     private let wrongLength =
         "That is the wrong number of digits for a number in the country it rings. Check it before you call."
 
-    /// ⛔ NOTHING WHILE TYPING (the web dialler's rule, MR !102). Every ten-digit number
+    /// ⛔ NOTHING WHILE TYPING (the web dialler's rule). Every ten-digit number
     /// passes through lengths no number has; Call is simply off until it is whole.
     func test_MAC_DIALER_01_aWrongLengthIsNotSaidWhileTyping() {
         for partial in ["4", "41655", "416555019", "+4165550123", "41655501999"] {

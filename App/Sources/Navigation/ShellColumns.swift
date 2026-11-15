@@ -53,7 +53,7 @@ enum ShellColumns {
 /// ⛔ A TABLE'S MINIMUM IS ITS COLUMNS' MINIMUMS, PLUS 17pt OF CELL SPACING EACH AND 15pt OF
 /// ROW INSET (both read off the real `NSTableView`), with each column's ideal at its
 /// minimum. The table does not shrink its columns to fit the frame it is first drawn in:
-/// past that sum it scrolls sideways, which hid Duration and Status in Sean's first build
+/// past that sum it scrolls sideways, which hid Duration and Status in the first signed build
 /// (20019). Wider than the sum, the columns share the room. So Calls and Contacts take
 /// their tables' measured minimum (``CallLogColumns``, ``ContactsColumns``), in the language
 /// showing.
