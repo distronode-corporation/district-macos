@@ -227,6 +227,11 @@ struct TwoStepView: View {
     // ── The button row ───────────────────────────────────────────────────────
 
     /// Back where a step has one, Close (Esc), then the step's own default button (Return).
+    ///
+    /// ⛔ ONE HEIGHT AND ONE TREATMENT FOR EVERY BUTTON IN THE ROW (visual QA, #112), as on the
+    /// deletion sheet: a bare Close is drawn by macOS as a small bezel pill, grey in dark mode,
+    /// and a ghost Back as plain text. Both take ``ButtonStyle/districtSecondary``; the step's own
+    /// takes ``View/macSheetDefaultButton()``. `MacTwoStepTests` pins it.
     @ViewBuilder
     private var buttons: some View {
         if model.busy {
@@ -236,7 +241,7 @@ struct TwoStepView: View {
         switch model.step {
         case .reauth, .password, .scan:
             Button(DeleteAccountCopy.back, action: model.back)
-                .buttonStyle(.districtGhost)
+                .buttonStyle(.districtSecondary)
                 .disabled(model.busy)
                 .accessibilityIdentifier(A11yID.TwoStep.back)
         case .loading, .loadFailed, .overview, .recoveryCodes:
@@ -244,6 +249,7 @@ struct TwoStepView: View {
         }
         if model.step != .recoveryCodes {
             Button(TwoStepCopy.close) { dismiss() }
+                .buttonStyle(.districtSecondary)
                 .keyboardShortcut(.cancelAction)
                 .disabled(!Self.canClose(model.step, busy: model.busy))
                 .accessibilityIdentifier(A11yID.TwoStep.close)

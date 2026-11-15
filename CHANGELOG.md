@@ -76,12 +76,12 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   step is covered too), and are dropped when the sheet closes, including from an answer that
   lands after it went. Open in an authenticator app opens only an `otpauth://` link. On the Mac the
   sheet is drawn in `MacSheetChrome`: Back, Close (Esc) and the step's own button (Return) are
-  its bottom row, and Close and Esc are off over the recovery codes and mid-request. It lives on
+  its bottom row, all the palette's and one height, and Close and Esc are off over the recovery codes and mid-request. It lives on
   Account, not in the Settings window, which holds only what belongs to this Mac. 40 strings from
   district-ios in English and French, with "this Mac" where iOS says "this device"; the French
   needs the next release's sign-off. `TwoStepModelTests` (15) and `TwoStepGuardTests` (10) from
   district-ios (their single-flight cases hold the first request on the wire), and
-  `MacTwoStepTests` (9).
+  `MacTwoStepTests` (10).
 
 ### Changed
 

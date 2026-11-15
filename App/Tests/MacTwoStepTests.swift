@@ -153,4 +153,10 @@ final class MacTwoStepTests: XCTestCase {
         let end = try XCTUnwrap(code.range(of: "struct TwoStepParagraph: View {"))
         XCTAssertTrue(code[start.upperBound ..< end.lowerBound].contains(".privacySensitive()"))
     }
+
+    /// ⛔ EVERY BUTTON IN THE SHEET'S BOTTOM ROW HAS THE PALETTE'S LARGE TREATMENT (visual QA,
+    /// #112): no bare system Close (a small grey pill in dark mode) and no ghost Back.
+    func test_MAC_TWOSTEP_10_theButtonRowIsOneHeightAndTreatment() throws {
+        try FooterButtons.assertStyled("TwoStepView.swift", until: "private var messageLines", expected: 6)
+    }
 }
