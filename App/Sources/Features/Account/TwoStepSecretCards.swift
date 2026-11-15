@@ -6,8 +6,9 @@ import SwiftUI
 /// Ported from district-ios.
 ///
 /// ⛔ NOTHING HERE LOGS, PERSISTS OR SHARES THE SECRET. Copy writes it to this Mac's
-/// pasteboard only, for two minutes (``TwoStepSecret/copySensitive(_:to:)``), and Open hands
-/// the `otpauth://` link to an authenticator app on this Mac; there is no share menu.
+/// pasteboard only, for two minutes (``TwoStepSecret/copySensitive(_:to:lifetime:)``), and Open
+/// hands an `otpauth://` link, and nothing else, to an authenticator app on this Mac; there is no
+/// share menu.
 ///
 /// ⚠️ THE CONFIRM BUTTON IS THE SHEET'S DEFAULT, IN ITS BUTTON ROW (``TwoStepView``), so the
 /// refusal is drawn here, by the field it is about.
@@ -97,7 +98,7 @@ struct TwoStepScanCard: View {
     }
 
     private func open() {
-        guard let url = URL(string: enrollment.otpauthURI) else {
+        guard let url = TwoStepSecret.authenticatorURL(enrollment.otpauthURI) else {
             openFailed = true
             return
         }
@@ -159,39 +160,69 @@ enum TwoStepSecret {
         }.joined(separator: " ")
     }
 
+    /// The last copy that has not expired yet, for ``expireOnQuit()``.
+    private static var pending: (pasteboard: NSPasteboard, written: Int)?
+
     /// ⛔ THIS MAC ONLY, AND FOR TWO MINUTES: never Universal Clipboard (`.currentHostOnly`,
     /// iOS's `.localOnly`), never a clipboard history (the concealed and transient markers),
     /// and not left on the pasteboard for whatever is pasted next week. `NSPasteboard` has no
-    /// expiry of its own (iOS's `.expirationDate`), so the copy is cleared after
-    /// ``pasteboardLifetime`` unless something else was copied since.
+    /// expiry of its own (iOS's `.expirationDate`), so the copy is cleared after `lifetime`
+    /// unless something else was copied since, and at the latest when the app quits
+    /// (``expireOnQuit()``), since the timer dies with the process (Seer and cubic on #112).
     ///
     /// ⚠️ `clearContents()` IS PART OF `prepareForNewContents(with:)`, so no older type is left
     /// beside the secret (see ``Clipboard``).
     @discardableResult
-    static func copySensitive(_ text: String, to pasteboard: NSPasteboard = .general) -> Int {
+    static func copySensitive(
+        _ text: String,
+        to pasteboard: NSPasteboard = .general,
+        lifetime: Duration = pasteboardLifetime
+    ) -> Int {
         pasteboard.prepareForNewContents(with: .currentHostOnly)
         pasteboard.setString(text, forType: .string)
         pasteboard.setData(Data(), forType: concealedType)
         pasteboard.setData(Data(), forType: transientType)
         let written = pasteboard.changeCount
+        pending = (pasteboard, written)
         Task { @MainActor in
-            try? await Task.sleep(for: pasteboardLifetime)
+            try? await Task.sleep(for: lifetime)
             expire(pasteboard, written: written)
         }
         return written
     }
 
-    /// Clears the secret ``copySensitive(_:to:)`` wrote, unless the pasteboard has changed
-    /// since. ⚠️ A newer copy (of anything) is never cleared.
+    /// Clears the secret ``copySensitive(_:to:lifetime:)`` wrote, unless the pasteboard has
+    /// changed since. ⚠️ A newer copy (of anything) is never cleared.
     static func expire(_ pasteboard: NSPasteboard, written: Int) {
+        if pending?.pasteboard === pasteboard, pending?.written == written {
+            pending = nil
+        }
         guard pasteboard.changeCount == written else { return }
         pasteboard.clearContents()
+    }
+
+    /// The app is quitting: the copy that has not expired yet goes now (``AppDelegate``).
+    static func expireOnQuit() {
+        guard let pending else { return }
+        expire(pending.pasteboard, written: pending.written)
+    }
+
+    /// The link Open hands over, ONLY when it is an `otpauth://` link (cubic on #112): an
+    /// enrolment answer that named another scheme must never open a browser, a file or another
+    /// app.
+    static func authenticatorURL(_ uri: String) -> URL? {
+        guard let url = URL(string: uri), url.scheme?.lowercased() == "otpauth" else { return nil }
+        return url
     }
 }
 
 // ── Pieces shared by the sheet and its cards ─────────────────────────────────
 
-/// A secret in a monospaced, selectable, privacy-sensitive box.
+/// A secret in a monospaced, privacy-sensitive box.
+///
+/// ⛔ NOT SELECTABLE, where iOS's is (cubic on #112): a ⌘C on the Mac would write it to the
+/// general pasteboard for good and to Universal Clipboard. The Copy buttons are the one way out,
+/// through ``TwoStepSecret/copySensitive(_:to:lifetime:)``.
 struct TwoStepSecretText: View {
     let text: String
     @Environment(\.colorScheme) private var colorScheme
@@ -201,7 +232,6 @@ struct TwoStepSecretText: View {
         Text(text)
             .font(DistrictType.bodySmall)
             .monospaced()
-            .textSelection(.enabled)
             .foregroundStyle(colors.foreground)
             .padding(DistrictSpacing.tight)
             .frame(maxWidth: .infinity, alignment: .leading)

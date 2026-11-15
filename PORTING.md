@@ -111,8 +111,8 @@ stop (the field loses focus, Return, or a refused Call), with the web's sentence
 keystroke clears it. Mac-only tests: `MacDialerCountryPickerTests` and the `test_MAC_DIALER_*`
 cases.
 
-Wave 12 (account deletion) is ported from district-ios `80f622b` (#114), at the French of the
-3.4.0 sign-off (`1cdd029`). ⛔ The one thing
+Wave 12 (account deletion, then two-step verification) is ported from district-ios `80f622b`
+(#114) and `885b84b` (#119), at the French of the 3.4.0 sign-off (`1cdd029`). ⛔ The one thing
 the Mac cannot copy is the re-authentication window's session: district-ios builds the
 `ASWebAuthenticationSession` and its completion handler inline in a `@MainActor` type, which on
 the Mac traps when the window closes (build 20012), so `WebAuthSheet` takes its session from

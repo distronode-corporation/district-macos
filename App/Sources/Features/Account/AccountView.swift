@@ -309,6 +309,8 @@ struct AccountView: View {
                 )
             }
             .buttonStyle(.plain)
+            // ⚠️ NOT WHILE A SIGN-OUT IS ENDING THE SESSION, as the deletion row.
+            .disabled(session.isBusy)
             .sheet(isPresented: $twoStep) {
                 TwoStepView(container: container)
                     .macSheetSize(width: 480, height: 560)

@@ -56,7 +56,11 @@ final class MacTwoStepTests: XCTestCase {
         for step in all {
             XCTAssertFalse(TwoStepView.covers(step, appActive: true), "\(step) while active")
         }
-        XCTAssertEqual(all.filter { TwoStepView.covers($0, appActive: false) }, [.scan, .recoveryCodes])
+        XCTAssertEqual(
+            all.filter { TwoStepView.covers($0, appActive: false) },
+            [.password(.turnOff, needsCode: true), .scan, .recoveryCodes],
+            "the password step's code field shows what was typed"
+        )
     }
 
     /// ⛔ NOT PAST THE CODES, NOR MID-REQUEST; anything else closes (Esc included).
@@ -65,5 +69,85 @@ final class MacTwoStepTests: XCTestCase {
         XCTAssertTrue(TwoStepView.canClose(.scan, busy: false))
         XCTAssertFalse(TwoStepView.canClose(.recoveryCodes, busy: false))
         XCTAssertFalse(TwoStepView.canClose(.overview, busy: true))
+    }
+
+    /// ⛔ THE TIMER CLEARS IT: copied with a short lifetime, it is gone once that has passed.
+    func test_MAC_TWOSTEP_05_theCopyIsClearedWhenItsLifetimeEnds() async {
+        TwoStepSecret.copySensitive("JBSWY3DPEHPK3PXP", to: pasteboard, lifetime: .milliseconds(30))
+        XCTAssertNotNil(pasteboard.string(forType: .string))
+        await waitUntil { self.pasteboard.string(forType: .string) == nil }
+    }
+
+    /// ⛔ A QUIT INSIDE THE TWO MINUTES TAKES THE COPY WITH IT (Seer and cubic on #112), and still
+    /// never a newer one.
+    func test_MAC_TWOSTEP_06_aQuitClearsACopyThatHasNotExpired() {
+        TwoStepSecret.copySensitive("aaaa-bbbb", to: pasteboard)
+        TwoStepSecret.expireOnQuit()
+        XCTAssertNil(pasteboard.string(forType: .string))
+
+        TwoStepSecret.copySensitive("cccc-dddd", to: pasteboard)
+        pasteboard.clearContents()
+        pasteboard.setString("copied since", forType: .string)
+        TwoStepSecret.expireOnQuit()
+        XCTAssertEqual(pasteboard.string(forType: .string), "copied since")
+    }
+
+    /// ⛔ OPEN HANDS OVER AN `otpauth://` LINK AND NOTHING ELSE (cubic on #112).
+    func test_MAC_TWOSTEP_07_onlyAnOtpauthLinkIsOpened() {
+        XCTAssertNotNil(TwoStepSecret.authenticatorURL("otpauth://totp/Distronode:you?secret=JBSW&issuer=Distronode"))
+        XCTAssertNotNil(TwoStepSecret.authenticatorURL("OTPAUTH://totp/x?secret=JBSW"))
+        for uri in ["https://example.test/otpauth", "file:///etc/passwd", "districtai://auth", "not a url", ""] {
+            XCTAssertNil(TwoStepSecret.authenticatorURL(uri), uri)
+        }
+    }
+
+    /// ⛔ AN ANSWER THAT LANDS AFTER THE SHEET WENT PUTS NO SECRET BACK (cubic on #112). The sheet
+    /// cannot be closed mid-request, but a session that ends takes it away.
+    func test_MAC_TWOSTEP_08_noSecretOutlivesASheetThatWentMidRequest() async {
+        let transport = HeldTransport(responses: [
+            (200, TwoStepFixtures.statusOff),
+            (200, TwoStepFixtures.proof),
+            (200, TwoStepFixtures.enrolled),
+            (200, TwoStepFixtures.confirmed),
+        ], holding: 4)
+        let model = TwoStepHarness(transport).model
+        await TwoStepFixtures.drive(model, toScanWith: "pw")
+        model.totp = "123456"
+        let confirm = Task { await model.confirm() }
+        await waitUntil { transport.requestCount == 4 }
+        model.leave()
+        transport.release()
+        await confirm.value
+        XCTAssertEqual(model.recoveryCodes, [], "the codes answered after the sheet went are dropped")
+        XCTAssertNil(model.enrollment)
+
+        let enrolling = HeldTransport(responses: [
+            (200, TwoStepFixtures.statusOff),
+            (200, TwoStepFixtures.proof),
+            (200, TwoStepFixtures.enrolled),
+        ], holding: 3)
+        let second = TwoStepHarness(enrolling).model
+        await second.load()
+        second.begin(.turnOn)
+        second.usePassword()
+        second.password = "pw"
+        let submit = Task { await second.submitPassword() }
+        await waitUntil { enrolling.requestCount == 3 }
+        second.leave()
+        enrolling.release()
+        await submit.value
+        XCTAssertNil(second.enrollment, "the secret answered after the sheet went is dropped")
+    }
+
+    /// ⛔ THE SECRETS ARE NOT SELECTABLE (cubic on #112): ⌘C would bypass the controlled copy.
+    func test_MAC_TWOSTEP_09_theSecretsAreNotSelectable() throws {
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/Features/Account/TwoStepSecretCards.swift")
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: file.path), "sources are not beside this test")
+        let code = try SourceComments.stripped(String(contentsOf: file, encoding: .utf8))
+        XCTAssertFalse(code.contains(".textSelection("))
+        XCTAssertTrue(code.contains(".privacySensitive()"))
     }
 }

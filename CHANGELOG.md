@@ -69,15 +69,19 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   tell and reads the status again. Each call is single-flight. The secret and the codes are
   never logged (the model and its enrolment redact `print` and `dump`), are copied to this Mac
   only (`.currentHostOnly`, so never Universal Clipboard, with the concealed and transient
-  markers a clipboard history skips) and cleared after two minutes unless something else was
-  copied since, are covered while the app is not active (`NSApplication`'s, since the scene
-  phase stays active behind another app), and are dropped when the sheet closes. On the Mac the
+  markers a clipboard history skips) and cleared after two minutes or when the app quits,
+  whichever is first, unless something else was copied since, are not selectable (where iOS's
+  are: a ⌘C would bypass all of that), are covered, for VoiceOver too, while the app is not
+  active (`NSApplication`'s, since the scene phase stays active behind another app; the password
+  step is covered too), and are dropped when the sheet closes, including from an answer that
+  lands after it went. Open in an authenticator app opens only an `otpauth://` link. On the Mac the
   sheet is drawn in `MacSheetChrome`: Back, Close (Esc) and the step's own button (Return) are
   its bottom row, and Close and Esc are off over the recovery codes and mid-request. It lives on
   Account, not in the Settings window, which holds only what belongs to this Mac. 40 strings from
   district-ios in English and French, with "this Mac" where iOS says "this device"; the French
   needs the next release's sign-off. `TwoStepModelTests` (15) and `TwoStepGuardTests` (10) from
-  district-ios, and `MacTwoStepTests` (4).
+  district-ios (their single-flight cases hold the first request on the wire), and
+  `MacTwoStepTests` (9).
 
 ### Changed
 

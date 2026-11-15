@@ -74,6 +74,11 @@ final class TwoStepModel {
     /// The authenticator's code that confirms enrolment (``Step/scan``).
     var totp = ""
 
+    /// ``leave()`` ran: an answer still on its way must not put a secret back (cubic on #112).
+    /// ⚠️ MAC ONLY. The sheet cannot be closed mid-request, but a session that ends takes the
+    /// sheet away whatever is in flight.
+    private var left = false
+
     private let settings: TwoStepSettingsRepository
     private let reauth: NativeReauthRepository
     private let sso: SSO
@@ -204,6 +209,7 @@ final class TwoStepModel {
         case let .success(confirmed):
             totp = ""
             dropEnrollment()
+            guard !left else { return }
             recoveryCodes = confirmed.backupCodes
             // ⚠️ ON NOW, WHATEVER THE NEXT READ SAYS: a read that fails after this must not show it off.
             status = MfaStatusResponse(
@@ -235,6 +241,7 @@ final class TwoStepModel {
     /// ⛔ THE SCREEN IS CLOSING: nothing secret outlives it. An unconfirmed secret stays pending
     /// on the service, which replaces it on the next enrolment.
     func leave() {
+        left = true
         dropEnrollment()
         recoveryCodes = []
         totp = ""
@@ -255,6 +262,7 @@ final class TwoStepModel {
         case .turnOn:
             switch await settings.enroll() {
             case let .success(response):
+                guard !left else { return }
                 enrollment = Enrollment(
                     secret: response.secret,
                     otpauthURI: response.otpauthUri,

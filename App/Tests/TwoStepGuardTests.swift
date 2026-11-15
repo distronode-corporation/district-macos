@@ -105,62 +105,80 @@ final class TwoStepGuardTests: XCTestCase {
 
     // MARK: - Single flight
 
-    /// ⛔ TWO TAPS BEFORE A RE-RENDER SEND ONE CONFIRM.
+    /// ⛔ TWO CLICKS BEFORE A RE-RENDER SEND ONE CONFIRM. The confirm is held on the wire, so the
+    /// second click provably comes while it is in flight.
     func testTwoConcurrentConfirmsSendOne() async {
-        let transport = SettingsTransport([
-            TwoStepFixtures.statusOff,
-            TwoStepFixtures.proof,
-            TwoStepFixtures.enrolled,
-            TwoStepFixtures.confirmed,
-            TwoStepFixtures.confirmed,
-        ])
+        let transport = HeldTransport(responses: [
+            (200, TwoStepFixtures.statusOff),
+            (200, TwoStepFixtures.proof),
+            (200, TwoStepFixtures.enrolled),
+            (200, TwoStepFixtures.confirmed),
+            (200, TwoStepFixtures.confirmed),
+        ], holding: 4)
         let model = TwoStepHarness(transport).model
         await TwoStepFixtures.drive(model, toScanWith: "pw")
         model.totp = "123456"
-        let before = transport.requests.count
 
-        async let first: Void = model.confirm()
-        async let second: Void = model.confirm()
-        _ = await (first, second)
+        let first = Task { await model.confirm() }
+        await waitUntil { transport.requestCount == 4 }
+        await model.confirm()
+        XCTAssertEqual(transport.requestCount, 4, "the second click sends nothing while the first is in flight")
+        transport.release()
+        await first.value
 
-        XCTAssertEqual(transport.requests.count, before + 1)
+        XCTAssertEqual(transport.paths.filter { $0 == "/api/auth/mfa/confirm" }.count, 1)
+        XCTAssertEqual(model.step, .recoveryCodes)
     }
 
     func testTwoConcurrentPasswordTriesSendOne() async {
-        let transport = SettingsTransport([
-            TwoStepFixtures.statusOff,
-            TwoStepFixtures.proof,
-            TwoStepFixtures.enrolled,
-            TwoStepFixtures.proof,
-        ])
+        let transport = HeldTransport(responses: [
+            (200, TwoStepFixtures.statusOff),
+            (200, TwoStepFixtures.proof),
+            (200, TwoStepFixtures.enrolled),
+            (200, TwoStepFixtures.proof),
+        ], holding: 2)
         let model = TwoStepHarness(transport).model
         await model.load()
         model.begin(.turnOn)
         model.usePassword()
         model.password = "pw"
 
-        async let first: Void = model.submitPassword()
-        async let second: Void = model.submitPassword()
-        _ = await (first, second)
+        let first = Task { await model.submitPassword() }
+        await waitUntil { transport.requestCount == 2 }
+        model.password = "pw"
+        await model.submitPassword()
+        XCTAssertEqual(transport.requestCount, 2, "the second try sends nothing while the first is in flight")
+        transport.release()
+        await first.value
 
         XCTAssertEqual(transport.paths.filter { $0 == "/api/auth/native/reauth/password" }.count, 1)
     }
 
+    /// ⛔ ONE SIGN-IN WINDOW: a second click while the first window is up opens none.
     func testTwoConcurrentSignInsOpenOneSheet() async {
         let transport = SettingsTransport([
             TwoStepFixtures.statusOff,
             TwoStepFixtures.enrolled,
             TwoStepFixtures.enrolled,
         ])
-        let harness = TwoStepHarness(transport, sso: .proved(expiresInSeconds: 300))
-        await harness.model.load()
-        harness.model.begin(.turnOn)
+        let gate = SignInWindowGate()
+        let client = ApiClient(baseURL: ApiClient.productionBaseURL, transport: transport, accessToken: { "t" })
+        let model = TwoStepModel(
+            settings: TwoStepSettingsRepository(client: client),
+            reauth: NativeReauthRepository(client: client),
+            sso: { _ in await gate.open() }
+        )
+        await model.load()
+        model.begin(.turnOn)
 
-        async let first: Void = harness.model.reauthenticate(with: .google)
-        async let second: Void = harness.model.reauthenticate(with: .google)
-        _ = await (first, second)
+        let first = Task { await model.reauthenticate(with: .google) }
+        await waitUntil { gate.opened == 1 }
+        await model.reauthenticate(with: .google)
+        XCTAssertEqual(gate.opened, 1, "no second window while the first is up")
+        gate.close(with: .proved(expiresInSeconds: 300))
+        await first.value
 
-        XCTAssertEqual(harness.providers.count, 1)
+        XCTAssertEqual(gate.opened, 1)
         XCTAssertEqual(transport.paths.filter { $0 == "/api/auth/mfa/enroll" }.count, 1)
     }
 
@@ -239,5 +257,22 @@ final class TwoStepGuardTests: XCTestCase {
         XCTAssertEqual(TwoStepSecret.grouped("JBSWY3DPEHPK3PXP"), "JBSW Y3DP EHPK 3PXP")
         XCTAssertEqual(TwoStepSecret.grouped("ABCDEF"), "ABCD EF")
         XCTAssertEqual(TwoStepSecret.grouped(""), "")
+    }
+}
+
+/// A sign-in window that stays up until the test closes it.
+@MainActor
+private final class SignInWindowGate {
+    private(set) var opened = 0
+    private var waiting: CheckedContinuation<SSOReauthOutcome, Never>?
+
+    func open() async -> SSOReauthOutcome {
+        opened += 1
+        return await withCheckedContinuation { waiting = $0 }
+    }
+
+    func close(with outcome: SSOReauthOutcome) {
+        waiting?.resume(returning: outcome)
+        waiting = nil
     }
 }

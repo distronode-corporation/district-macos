@@ -56,8 +56,14 @@ struct TwoStepView: View {
     }
 
     /// ⚠️ ONLY THE STEPS THAT HOLD A CREDENTIAL ARE COVERED: the overview has nothing to hide.
+    /// The password step is one too on the Mac (cubic on #112): its code field shows what was
+    /// typed.
     static func covers(_ step: TwoStepModel.Step, appActive: Bool) -> Bool {
-        !appActive && (step == .scan || step == .recoveryCodes)
+        guard !appActive else { return false }
+        switch step {
+        case .scan, .recoveryCodes, .password: return true
+        case .loading, .loadFailed, .overview, .reauth: return false
+        }
     }
 
     /// ⛔ NOT PAST THE CODES: they are never shown again. Nor mid-request: the answer would land
@@ -75,6 +81,9 @@ struct TwoStepView: View {
                 .padding(DistrictSpacing.gutter)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // ⛔ COVERED FOR VoiceOver TOO (cubic on #112): the cover hides pixels, this hides
+            // the secret from the accessibility tree while the app is not active.
+            .accessibilityHidden(Self.covers(model.step, appActive: appActive))
             .overlay {
                 if Self.covers(model.step, appActive: appActive) {
                     cover
