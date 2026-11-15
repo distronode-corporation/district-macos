@@ -59,6 +59,8 @@ not copied: they are shared.
 | 10 | `CallDisplay.transcribesLive`, the call screen's live pane and the two accessibility identifiers | `6ac8f70` | `App/Sources/Features/Calls/`, `App/Sources/Accessibility/A11yID.swift` |
 | 11 | Dialler design A: `DialPlan`, `DialPlan+Countries`, `DialerCountryMemory`, `DialerEntry`, `DialerCopy`, the country list and the number field (both rewritten for AppKit), the strings and the two identifiers | `e23c4fc` | `App/Sources/Features/Dialer/`, `App/Sources/Accessibility/A11yID.swift` |
 | 11 | Tests: `DialPlanTests`, `DialerCountryTests`, `DialerDestinationLineTests`, the dialler half of `A11ySpokenFormTests` | `e23c4fc` | `App/Tests/` |
+| 12 | Account deletion: `DeleteAccountModel`, `DeleteAccountView` (in `MacSheetChrome`), `ReauthSheetController` (its window from `WebAuthLoginController.makeSession`), the Account row, `SessionModel.finishDeletedAccount`, `AppContainer.forgetDeletedAccount`, the strings and identifiers | `80f622b` | `App/Sources/Features/Account/`, `App/Sources/Accessibility/A11yID+DeleteAccount.swift` |
+| 12 | Tests: `DeleteAccountModelTests`, `ReauthSheetControllerTests` | `80f622b` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -106,6 +108,13 @@ digits for the country) only keeps Call off while the operator types, and is sai
 stop (the field loses focus, Return, or a refused Call), with the web's sentence; the next
 keystroke clears it. Mac-only tests: `MacDialerCountryPickerTests` and the `test_MAC_DIALER_*`
 cases.
+
+Wave 12 (account deletion, then two-step verification) is ported from district-ios `80f622b`
+(#114) and `885b84b` (#119), at the French of the 3.4.0 sign-off (`1cdd029`). ⛔ The one thing
+the Mac cannot copy is the re-authentication window's session: district-ios builds the
+`ASWebAuthenticationSession` and its completion handler inline in a `@MainActor` type, which on
+the Mac traps when the window closes (build 20012), so `WebAuthSheet` takes its session from
+`WebAuthLoginController.makeSession`. Mac-only tests: `MacDeleteAccountTests`.
 
 Wave 9 adds Mac-only tests with no iOS original: `MacSchedulingTests` (the two scheduling
 tables' order and cells, the navigator a table row opens through, the settings hub's
@@ -451,7 +460,7 @@ section with none is the iPad's screen with only the adaptations in "How a file 
 | 13 | Scheduling | 9 | Both hand-offs (the scheduler, a calendar provider's consent) open the default browser where iOS uses a Safari sheet. |
 | 14 | Support | 7 | None (reporting a message or a call came in Wave 5). |
 | 15 | Workspace settings | 8 | The persona audition has no loudspeaker request (no earpiece). |
-| 16 | Account | 5 | "Ring on this computer" added (Wave 6); devices are Wave 5, with platform names and dates where the iPad prints the wire values. |
+| 16 | Account | 5, 12 | "Ring on this computer" added (Wave 6); devices are Wave 5, with platform names and dates where the iPad prints the wire values. Delete account is a sheet in the app (Wave 12), as on iOS. |
 
 Across every section: no CallKit or VoIP push (the Mac rings over the telemetry socket
 while the app runs, window or no window). App links and notification clicks open their

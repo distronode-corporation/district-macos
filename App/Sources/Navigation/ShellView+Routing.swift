@@ -81,7 +81,7 @@ extension ShellView {
     /// browser tab.
     func receiveLink(_ url: URL) {
         guard recentLinks.admit(url, at: Date()) else { return }
-        guard let outcome = AppLinkResolver.resolve(url) else { return }
+        guard let outcome = AppLinkRouting.outcome(for: url) else { return }
         switch outcome {
         case .openInBrowser:
             // ⚠️ THE URL AS DELIVERED, query and fragment included.

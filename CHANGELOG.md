@@ -28,6 +28,32 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   and Lithuania check a prefix against libphonenumber's number patterns; modelling every
   country's pattern is left out. The line under the field shows the whole number before Call.
 
+### Added
+
+- Account deletion in the app (App Store Guideline 5.1.1(v)), on DistrictCore 8.4.2's
+  `NativeReauthRepository`, ported from district-ios #114 (`80f622b`). Account, Delete account
+  opens a sheet that says what is deleted (the profile, the settings and every workspace the
+  person owns, whose subscriptions are cancelled at once) and what is kept (workspaces they
+  belong to but do not own). A fresh re-authentication comes first: a fresh sign-in at Google,
+  Microsoft or Apple in the sign-in window (`/auth/native/reauth`, PKCE and `state` as at sign-in,
+  the installation id sent only as its SHA-256), or the password, with the authenticator code
+  when two-step verification is on. The typed email address then deletes. Every refusal has a
+  sentence saying what to do; a block the service answers (a subscription it could not cancel)
+  is shown under "Your account was not deleted."; a delete lost in transport or answered in a way
+  this build cannot read says it cannot tell, and a 401 never claims the account was kept. The
+  final button is single-flight and is not the sheet's default button, so Return never deletes.
+  After the deletion the Mac forgets the session, the push token and the workspace choice, and
+  ends the ringing, with no revoke and no push or presence unregister (the account is gone);
+  the sign-in screen says the account was deleted, and when vendor-held support data is still
+  being erased. The row no longer opens the deletion page; its address stays as the store
+  listings' data-deletion URL. On the Mac the sheet is drawn in `MacSheetChrome` (Cancel takes
+  Esc, Continue takes Return) and the re-authentication window is built by
+  `WebAuthLoginController.makeSession`, whose completion handler is not main-actor isolated.
+  36 strings from district-ios in English and French (the 3.4.0 sign-off's French), with "click"
+  where iOS says "tap"; the French needs the next release's sign-off.
+  `DeleteAccountModelTests` (17) and `ReauthSheetControllerTests` (7) from district-ios, and
+  `MacDeleteAccountTests` (4).
+
 ### Changed
 
 - The contact block confirmation's accessibility identifier is `district-contact-block-confirm`,
@@ -36,6 +62,12 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   `district-contact-confirm-unblock`. Nothing a user sees or hears changes.
 - CI: the public hygiene check for issue and pull request text is pinned to v1.4.0 (#105, #106),
   and four GitHub Actions take their minor updates (#108).
+- DistrictCore `exactVersion` 8.6.0 (from 8.3.0). 8.4.2 brings account deletion and 8.5.0 the
+  two-step verification settings; the rest of 8.4 to 8.6 is additive. swift-asn1 stays 1.7.3,
+  which 8.6.0's `Package.resolved` records too. ⚠️ 8.6.0 resolves the Studio's Integrations link
+  (`/dashboard/district/studio/integrations`) to a Studio destination, for an app that draws that
+  screen; this one does not, so `AppLinkRouting.outcome(for:)` keeps sending it to the browser,
+  as before (`test_MAC_STUDIOLINK_05`).
 
 ## [3.3.0] - 2026-11-06
 
