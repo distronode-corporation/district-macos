@@ -1,19 +1,23 @@
 import DistrictNetwork
 import Foundation
 
-/// A transport that holds its FIRST request until ``release()``, then answers from a queue.
+/// A transport that holds one request (the first, unless told otherwise) until ``release()``,
+/// and answers from a queue.
 ///
 /// ⛔ FOR SINGLE-FLIGHT TESTS THAT PROVE AN OVERLAP. Two `async let` calls may run one after
-/// the other and pass with no guard at all; holding the first request on the wire makes the
-/// second call start while the first is provably in flight (cubic on #111).
+/// the other and pass with no guard at all; holding a request on the wire makes the second call
+/// start while the first is provably in flight (cubic on #111).
 final class HeldTransport: HTTPTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var responses: [HTTPResponse]
     private var requests: [HTTPRequest] = []
     private var held: CheckedContinuation<Void, Never>?
     private var released = false
+    private let heldRequest: Int
 
-    init(responses: [(status: Int, body: String)]) {
+    /// - Parameter heldRequest: which request to hold, counting from 1.
+    init(responses: [(status: Int, body: String)], holding heldRequest: Int = 1) {
+        self.heldRequest = heldRequest
         self.responses = responses.map {
             HTTPResponse(statusCode: $0.status, headers: ["Content-Type": "application/json"], body: Data($0.body.utf8))
         }
@@ -39,11 +43,11 @@ final class HeldTransport: HTTPTransport, @unchecked Sendable {
 
     func send(_ request: HTTPRequest, followRedirects: Bool) async throws -> HTTPResponse {
         _ = followRedirects
-        let first: Bool = lock.withLock {
+        let hold: Bool = lock.withLock {
             requests.append(request)
-            return requests.count == 1
+            return requests.count == heldRequest
         }
-        if first {
+        if hold {
             await withCheckedContinuation { continuation in
                 let resumeNow: Bool = lock.withLock {
                     if released {

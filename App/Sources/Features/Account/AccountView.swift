@@ -63,6 +63,9 @@ struct AccountView: View {
     /// The deletion sheet (``DeleteAccountView``), while it is open.
     @State private var deleting = false
 
+    /// The two-step verification sheet (``TwoStepView``), while it is open.
+    @State private var twoStep = false
+
     /// "Ring on this computer". ⚠️ MAC ONLY; see ``RingHereToggle``.
     let live: DesktopLive
 
@@ -84,6 +87,7 @@ struct AccountView: View {
                 deviceCard
                 availabilityCard
                 ringHereCard
+                securityCard
                 accountCard
                 footer
             }
@@ -285,6 +289,34 @@ struct AccountView: View {
         // session the rest of its own run depends on. Identified so a case can ASSERT
         // it is present without being able to press it.
         .accessibilityIdentifier(A11yID.Account.signOut)
+    }
+
+    // ── Security ─────────────────────────────────────────────────────────────
+
+    /// ⚠️ ITS OWN CARD, NOT BESIDE DELETION: see the account card's ⚠️ below. ⚠️ HERE AND NOT IN
+    /// THE SETTINGS WINDOW, which holds only what belongs to this Mac (``SettingsView``); two-step
+    /// verification belongs to the account.
+    ///
+    /// ⚠️ THE ROW SAYS NOTHING ABOUT ON OR OFF. The status is read when the sheet opens, so the
+    /// Account screen makes no call for it and never shows a stale answer.
+    private var securityCard: some View {
+        card(title: TwoStepCopy.cardTitle) {
+            Button { twoStep = true } label: {
+                DistrictListRow(
+                    title: TwoStepCopy.title,
+                    subtitle: TwoStepCopy.rowSubtitle,
+                    trailing: { glyph("chevron.right") }
+                )
+            }
+            .buttonStyle(.plain)
+            // ⚠️ NOT WHILE A SIGN-OUT IS ENDING THE SESSION, as the deletion row.
+            .disabled(session.isBusy)
+            .sheet(isPresented: $twoStep) {
+                TwoStepView(container: container)
+                    .macSheetSize(width: 480, height: 560)
+            }
+            .accessibilityIdentifier(A11yID.Account.twoStep)
+        }
     }
 
     // ── Your account ─────────────────────────────────────────────────────────
