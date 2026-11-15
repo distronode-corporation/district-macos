@@ -103,8 +103,8 @@ final class SuperviseReviewTests: XCTestCase {
         XCTAssertNil(stack.supervisor)
     }
 
-    /// ⛔ A SESSION THAT ENDS ENDS A SUPERVISION; THE KEYPAD'S CALL ENDS ON SIGN-OUT ONLY (Sean,
-    /// 2026-11-06), never on `unavailable` and never on a workspace switch.
+    /// ⛔ A SESSION THAT ENDS ENDS A SUPERVISION; THE KEYPAD'S CALL ENDS ON SIGN-OUT ONLY
+    /// (2026-11-06), never on `unavailable` and never on a workspace switch.
     func testTheTeardownRules() {
         XCTAssertTrue(CallTeardown.endsSupervision(.signedOut("Signed out.")))
         XCTAssertTrue(CallTeardown.endsSupervision(.unavailable("Try again.")))

@@ -34,7 +34,7 @@ extension CallsRepository: SuperviseServing {}
 /// rebuilt around the call finds this model again through ``CallStack/supervisor``, and sleep,
 /// quit and sign-out end it through ``endForSystem()``.
 ///
-/// ⛔ A COLLEAGUE'S OWN SOFTPHONE CALL OFFERS LISTEN ONLY (Sean, 2026-11-05): the session is
+/// ⛔ A COLLEAGUE'S OWN SOFTPHONE CALL OFFERS LISTEN ONLY (2026-11-05): the session is
 /// built from the row's `receptionistOnCall`, so `mayWhisper` and `mayTakeOver` are false there.
 /// The routes' 409 `call_has_no_receptionist` stays the fallback.
 @MainActor

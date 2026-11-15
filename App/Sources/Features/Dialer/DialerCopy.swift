@@ -65,7 +65,7 @@ extension DialerModel {
     /// the button already names the country while the digits are being typed.
     ///
     /// ⛔ A +1 TOLL-FREE NUMBER RINGS NO ONE COUNTRY, AND THE LINE SAYS SO, as the web
-    /// dialler does (`ringsNoCountry`; Sean, 2026-11-04, GitLab #2). ``DialPlan`` keeps the
+    /// dialler does (`ringsNoCountry`, 2026-11-04). ``DialPlan`` keeps the
     /// +1 country on the button for 800, 833 … 888, because the flag is where the next digits
     /// are read, but "Rings Canada" under a 1-800 number would claim a country it does not have.
     /// So do the web's other no-country codes, 500, 600, 700, 710 and 900 (``DialPlan/nanpNoCountry``).
@@ -105,7 +105,7 @@ extension DialerModel {
     /// that moment, and a number still being typed is not a mistake.
     ///
     /// ⛔ A WRONG LENGTH IS SAID ONLY ONCE THE OPERATOR STOPS (`lengthChecked`: the field
-    /// lost focus or Return was pressed), as the web dialler does (MR !102). Every
+    /// lost focus or Return was pressed), as the web dialler does. Every
     /// ten-digit number passes through eight and nine digits on the way, so a sentence
     /// said while typing would flash on every number; until then Call is simply off. The
     /// next keystroke clears it (``DialerModel/onEntryChange(_:)``). `+4165550123` (eight

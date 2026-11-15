@@ -18,8 +18,8 @@ struct DistrictRowSlotKey: LayoutValueKey {
 /// ⚠️ MAC ONLY. The iPad (district-ios `4777c40`) always puts the trailing slot beside the
 /// text, in an `HStack` where the badges are sized first and the text truncates. In a Mac
 /// list column, where a row is about 400pt wide, that cut the very thing the row is for:
-/// "P..." and "Sean De..." beside four channel badges in the Inbox, and "Oct 3, 2026 at
-/// 12:..." beside two chips in Support (Sean's first build, 20019). So:
+/// "P..." and "Contact Na..." beside four channel badges in the Inbox, and "Oct 3, 2026 at
+/// 12:..." beside two chips in Support (the first signed build, 20019). So:
 ///
 /// - **Beside** whenever the title (and the subtitle too, with `subtitleMustFit`) fits in
 ///   full next to the trailing slot. That is the iPad's row, and most rows.

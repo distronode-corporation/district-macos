@@ -158,7 +158,7 @@ final class SuperviseModelTests: XCTestCase {
     }
 
     /// ⛔ THE MICROPHONE IS ASKED BEFORE THE SERVER: a refusal asks nothing and keeps listening,
-    /// with Sean's sentence for a microphone that cannot be used.
+    /// with the approved sentence for a microphone that cannot be used.
     func test_MAC_SUPERVISE_08_aRefusedMicrophoneAsksNoTakeover() async throws {
         media = FakeSuperviseMedia(microphone: FakeMicrophoneAccess(status: .denied))
         let model = try makeModel()
@@ -216,8 +216,8 @@ final class SuperviseModelTests: XCTestCase {
         XCTAssertEqual(server.requests, ["monitor cmh1live0001 macos"])
     }
 
-    /// ⛔ ON A COLLEAGUE'S OWN SOFTPHONE CALL, LISTEN STAYS AND THE NOTE AND TAKE OVER GO (Sean,
-    /// 2026-11-05), with « Votre réceptionniste ne participe pas à cet appel ».
+    /// ⛔ ON A COLLEAGUE'S OWN SOFTPHONE CALL, LISTEN STAYS AND THE NOTE AND TAKE OVER GO
+    /// (2026-11-05), with « Votre réceptionniste ne participe pas à cet appel ».
     func test_MAC_SUPERVISE_12_aColleaguesOwnCallOffersListenOnly() async throws {
         let model = try makeModel(receptionistOnCall: false)
         XCTAssertFalse(model.state.receptionistOnCall)
@@ -272,7 +272,7 @@ final class SuperviseModelTests: XCTestCase {
         XCTAssertEqual(server.requests, ["whisper Offer the Tuesday slot."])
     }
 
-    /// The route's limit is checked here, with Sean's sentence, and nothing is sent.
+    /// The route's limit is checked here, with the approved sentence, and nothing is sent.
     func test_MAC_SUPERVISE_16_aNoteOverTheLimitIsRefusedLocally() async throws {
         let model = try makeModel()
         model.draft = String(repeating: "a", count: SuperviseCopy.whisperLimit + 1)

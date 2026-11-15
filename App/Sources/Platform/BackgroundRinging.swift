@@ -10,7 +10,7 @@ import ServiceManagement
 /// `API_UNAVAILABLE(macos)` and CallKit's `CXProvider` has no native macOS availability
 /// (measured on the macOS 26.2 SDK, district-macos PR #37), so a quit app cannot be
 /// launched by a call push. The ring stays on the telemetry socket, which needs the
-/// process alive. So (Sean's "Menu bar + loud alert"):
+/// process alive. So the design is "Menu bar + loud alert":
 ///
 ///   * **Closing the window does not quit.** The process, and with it ``DesktopLive``'s
 ///     socket and presence, keeps running behind the menu bar item, and a call rings as it

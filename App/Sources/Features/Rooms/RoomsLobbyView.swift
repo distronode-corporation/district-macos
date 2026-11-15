@@ -280,7 +280,7 @@ struct MeetingRow: View {
     ///
     /// ⚠️ MAC ONLY: ONLY WHEN THERE ARE MINUTES TO READ. The iPad (district-ios `4777c40`)
     /// offers it on every row, so it sat directly under "No minutes were saved for this
-    /// meeting." (Sean's first build, 20019). The list's `summaryPreview` is null exactly
+    /// meeting." (the first signed build, 20019). The list's `summaryPreview` is null exactly
     /// when the meeting has no summary (see ``MeetingSummary``), so the row hides the
     /// button then. The cost, accepted: a meeting whose minutes failed to generate can
     /// still hold a transcript the list cannot see, and that transcript is no longer

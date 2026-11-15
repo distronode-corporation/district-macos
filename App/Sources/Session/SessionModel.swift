@@ -155,7 +155,7 @@ final class SessionModel {
         incoming?.sessionChanged(next)
         language?.sessionChanged(next)
         // ⛔ A LIVE SUPERVISION ENDS WHEN THE SESSION DOES, AND THE KEYPAD'S CALL ON SIGN-OUT ONLY
-        // (Sean, 2026-11-06). A sign-out pressed in the app has already ended both through
+        // (2026-11-06). A sign-out pressed in the app has already ended both through
         // ``DesktopLive/signOut()``; this is the session that ended, or must sign in again,
         // without one. ``CallTeardown`` holds the two rules.
         let callStack = container.callStack

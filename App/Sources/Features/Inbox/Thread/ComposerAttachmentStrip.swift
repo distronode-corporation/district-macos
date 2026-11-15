@@ -10,7 +10,7 @@ import SwiftUI
 /// attachment: a 96pt thumbnail over a "Remove" button was the tallest thing in the box.
 ///
 /// ⛔ HELD IMAGES ARE DRAWN, DIMMED AND MARKED HELD, EACH WITH ITS OWN REMOVE (max review, #95;
-/// Sean, "Dimmed chips with Remove"). They sit in the draft on a channel that cannot carry them
+/// the maintainers, "Dimmed chips with Remove"). They sit in the draft on a channel that cannot carry them
 /// (``ThreadContent/heldAttachments``), and nothing showed them, so the operator could neither
 /// see nor drop what the draft was keeping. VoiceOver hears the channel they are not sent on.
 /// They draw on any channel, a thread with no SMS reply included, and a switch to SMS makes
