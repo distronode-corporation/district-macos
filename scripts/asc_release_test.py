@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,8 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import asc_release  # noqa: E402
+
+ROOT = Path(__file__).resolve().parent.parent
 
 CHANGELOG = """# Changelog
 
@@ -700,6 +703,76 @@ class SubmitPerLocaleTests(unittest.TestCase):
         )
         self.assertIn("EXIT 1", out)
         self.assertFalse([w for w in client.writes() if w[1].startswith("/appStoreVersionLocalizations/")])
+
+
+class CommittedChangelogTests(unittest.TestCase):
+    """The real CHANGELOG.md and release-notes/, through the lane's own functions.
+
+    The other tests use a fixture CHANGELOG, so they cannot see a released section that grew
+    past what App Store Connect accepts. This reads every released `## [x.y(.z)]` section the
+    way `whats-new` (and `whats-new --direct`, the GitHub Release's notes) does and fails
+    here, in CI, instead of at submission or publish time.
+    """
+
+    CHANGELOG_PATH = ROOT / "CHANGELOG.md"
+
+    # Versions released before this repository wrote What's New in any language but English.
+    # They have no release-notes/<locale>/<version>.txt, and none will be added after the
+    # fact, so only their English is checked. The test below fails if one of them gains a
+    # language file, so the list can only shrink.
+    ENGLISH_ONLY = frozenset({"1.0"})
+
+    def released_versions(self) -> list[str]:
+        text = self.CHANGELOG_PATH.read_text(encoding="utf-8")
+        return re.findall(r"^## \[(\d+\.\d+(?:\.\d+)?)\]", text, flags=re.MULTILINE)
+
+    def lane(self, build):
+        """Run one of the lane's builders; a refusal fails the test with the lane's message."""
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err):
+                return build()
+        except SystemExit:
+            self.fail(err.getvalue().strip())
+
+    def test_the_changelog_has_released_versions(self) -> None:
+        self.assertIn("1.0", self.released_versions())
+
+    def test_every_released_section_is_valid_store_text(self) -> None:
+        for version in self.released_versions():
+            with self.subTest(version=version):
+                english = self.lane(lambda: asc_release.direct_notes(self.CHANGELOG_PATH, version))
+                self.assertTrue(english.strip())
+                self.assertLessEqual(len(english), asc_release.WHATS_NEW_LIMIT)
+
+    def test_every_released_version_has_notes_in_every_language(self) -> None:
+        for version in self.released_versions():
+            if version in self.ENGLISH_ONLY:
+                continue
+            with self.subTest(version=version):
+                notes = self.lane(lambda: asc_release.ReleaseNotes(self.CHANGELOG_PATH, version))
+                self.assertTrue(notes.english, version)
+                self.assertLessEqual(len(notes.english), asc_release.WHATS_NEW_LIMIT, version)
+                self.assertTrue(notes.translations, f"{version} has no notes in any other language")
+                for locale, text in notes.translations.items():
+                    self.assertTrue(text, f"{locale}/{version}")
+                    self.assertLessEqual(len(text), asc_release.WHATS_NEW_LIMIT, f"{locale}/{version}")
+
+    def test_the_english_only_list_is_exact(self) -> None:
+        released = set(self.released_versions())
+        self.assertLessEqual(self.ENGLISH_ONLY, released, "the list names a version the CHANGELOG lacks")
+        root = asc_release.NOTES_ROOT
+        for version in sorted(self.ENGLISH_ONLY):
+            with self.subTest(version=version):
+                found = sorted(root.glob(f"*/{version}.txt")) + sorted(root.glob(f"*/{version}{asc_release.STORE_SUFFIX}.txt"))
+                self.assertEqual(found, [], f"{version} has notes now; drop it from the list")
+
+    def test_every_language_file_belongs_to_a_released_version(self) -> None:
+        released = set(self.released_versions())
+        for path in sorted(asc_release.NOTES_ROOT.glob("*/*.txt")):
+            version = path.stem.removesuffix(asc_release.STORE_SUFFIX)
+            with self.subTest(path=f"{path.parent.name}/{path.name}"):
+                self.assertIn(version, released, f"{path.parent.name}/{path.name} has no CHANGELOG section")
 
 
 if __name__ == "__main__":
