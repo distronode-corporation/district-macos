@@ -8,6 +8,9 @@
 /// The Account screen.
 enum AccountCopy {}
 
+/// The account deletion sheet (``DeleteAccountView``) and the sign-in screen's sentence after it.
+enum DeleteAccountCopy {}
+
 /// The Mac's Settings window (District AI > Settings) and the Developer ID build's update
 /// commands.
 enum AppSettingsCopy {}
