@@ -261,18 +261,24 @@ final class TwoStepGuardTests: XCTestCase {
 }
 
 /// A sign-in window that stays up until the test closes it.
+///
+/// ⚠️ EVERY WINDOW OPENED IS KEPT AND CLOSED, so a regression that opens a second one fails the
+/// `opened == 1` assertion instead of hanging the test on a lost continuation (cubic on #112).
 @MainActor
 private final class SignInWindowGate {
     private(set) var opened = 0
-    private var waiting: CheckedContinuation<SSOReauthOutcome, Never>?
+    private var waiting: [CheckedContinuation<SSOReauthOutcome, Never>] = []
 
     func open() async -> SSOReauthOutcome {
         opened += 1
-        return await withCheckedContinuation { waiting = $0 }
+        return await withCheckedContinuation { waiting.append($0) }
     }
 
     func close(with outcome: SSOReauthOutcome) {
-        waiting?.resume(returning: outcome)
-        waiting = nil
+        let all = waiting
+        waiting = []
+        for continuation in all {
+            continuation.resume(returning: outcome)
+        }
     }
 }

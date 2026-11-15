@@ -148,6 +148,9 @@ final class MacTwoStepTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: file.path), "sources are not beside this test")
         let code = try SourceComments.stripped(String(contentsOf: file, encoding: .utf8))
         XCTAssertFalse(code.contains(".textSelection("))
-        XCTAssertTrue(code.contains(".privacySensitive()"))
+        // ⚠️ SCOPED TO `TwoStepSecretText` (cubic on #112): the QR image is privacy-sensitive too.
+        let start = try XCTUnwrap(code.range(of: "struct TwoStepSecretText: View {"))
+        let end = try XCTUnwrap(code.range(of: "struct TwoStepParagraph: View {"))
+        XCTAssertTrue(code[start.upperBound ..< end.lowerBound].contains(".privacySensitive()"))
     }
 }
