@@ -287,7 +287,7 @@ struct SchedulingHubView: View {
             // a share sheet is a nicety where the copy button is the guarantee.
             if let url = URL(string: link) {
                 // ⚠️ MAC: STYLED AS ITS SIBLING. Left to the platform, a `ShareLink` is a small
-                // grey capsule beside the bordered Copy link (Sean's first build, 20019).
+                // grey capsule beside the bordered Copy link (the first signed build, 20019).
                 ShareLink(SchedulingCopy.share, item: url)
                     .buttonStyle(.districtSecondary)
             }

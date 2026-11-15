@@ -12,7 +12,7 @@ import SwiftUI
 /// and gets the whole detail column. A `NavigationSplitView`'s column count is fixed when
 /// it is built, and hiding the middle column has no public API.
 ///
-/// ⛔ ON A MAC THE SWAP COSTS TWO THINGS, both seen in Sean's first build (20019) and both
+/// ⛔ ON A MAC THE SWAP COSTS TWO THINGS, both seen in the first signed build (20019) and both
 /// measured on the live `NSSplitView` and `NSToolbar` (PORTING.md, "The sidebar on a Mac"):
 ///
 /// - **The sidebar's visibility means different columns in the two.** The shell reset it

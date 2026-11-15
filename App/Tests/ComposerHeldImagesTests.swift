@@ -210,7 +210,7 @@ final class ComposerHeldImagesTests: XCTestCase {
 
     /// ⛔ HELD IMAGES ARE NAMED FOR VOICEOVER WITH THE CHANNEL THEY ARE NOT SENT ON, in both
     /// languages, and Remove drops one, recounts the sentence and writes the draft (max review;
-    /// Sean, "Dimmed chips with Remove"). On a thread with no SMS reply, too.
+    /// the maintainers, "Dimmed chips with Remove"). On a thread with no SMS reply, too.
     func testAHeldChipIsNamedAndItsRemoveUpdatesTheDraft() async throws {
         let transport = ParityTransport()
         transport.on(.get, "/timeline", 200, ParityFixtures.timeline)

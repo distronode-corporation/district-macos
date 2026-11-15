@@ -56,7 +56,7 @@ final class LaunchSmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["Sign in"].waitForExistence(timeout: 30), "no AXButton 'Sign in' (XCUITest)")
         // ⚠️ THE PRESS NEEDS THIS RUNNER TRUSTED FOR ACCESSIBILITY, which a hosted GitHub
         // runner is not (CI 38857464008: AXIsProcessTrusted() false, every AXUIElement call
-        // empty). On a Mac that trusts it (the iMac's QA host), it runs in full.
+        // empty). On a Mac that trusts it (a QA Mac), it runs in full.
         try XCTSkipUnless(AXIsProcessTrusted(), "this runner is not trusted for Accessibility; AXPress not checked")
         guard let found = AXProbe.waitForButton("Sign in", timeout: 30) else {
             XCTFail("no AXButton 'Sign in': " + (AXProbe.pid().map(AXProbe.report(pid:)) ?? "no app"))

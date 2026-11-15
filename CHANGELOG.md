@@ -10,11 +10,17 @@ Store and the direct download.
 `scripts/asc_release.py` sends that section and nothing else (never `[Unreleased]`, never
 the development history), and refuses one over 4000 characters. Write it for App Store
 readers: what changed for them, with no Sparkle, direct-download or build details. Detail
-for this repository goes under `[Unreleased]` or the history below. App Store Connect
-takes no release notes for a platform's first version, so 1.0's section is checked but
-not sent.
+for this repository goes under `[Unreleased]` until the version is on sale, then under
+`## <version> in detail` below the version's section, which the lane never reads, or in the
+history below. App Store Connect takes no release notes for a platform's first version, so
+1.0's section is checked but not sent.
 
 ## [Unreleased]
+
+What 3.3.1 ships, in detail, until it is on sale. The `[3.3.1]` section below is its App
+Store What's New, which the release lane sends verbatim, so these entries move to a
+`## 3.3.1 in detail` section under it after the release, as the entries for 1.0 to 3.3.0
+have.
 
 ### Known limits
 
@@ -22,6 +28,43 @@ not sent.
   equals the trunk prefix (Russia's `800 555 35 35` typed without its `8`). Only Belarus, the UK
   and Lithuania check a prefix against libphonenumber's number patterns; modelling every
   country's pattern is left out. The line under the field shows the whole number before Call.
+
+### Changed
+
+- The contact block confirmation's accessibility identifier is `district-contact-block-confirm`,
+  Android's and iOS's string, so one test plan addresses the same button in all three apps
+  (#103). It was `district-contact-confirm-block` through 3.3.0; the unblock confirmation keeps
+  `district-contact-confirm-unblock`. Nothing a user sees or hears changes.
+- CI: the public hygiene check for issue and pull request text is pinned to v1.4.0 (#105, #106),
+  and four GitHub Actions take their minor updates (#108).
+
+## [3.3.1] - 2026-11-15
+
+- Small improvements behind the scenes. Nothing changes in how District AI looks or works.
+
+## [3.3.0] - 2026-11-06
+
+- Live calls: see your receptionist's calls in progress and listen in. The caller does not
+  hear you. Send your receptionist a note during the call and see whether it was used, take
+  over the call yourself, and hand it back when you are done. Viewers can listen only.
+- The Inbox answers WhatsApp, Messenger and Instagram customers on their own channel, so a
+  WhatsApp customer is no longer answered by SMS.
+- Messenger and Instagram conversations are in the Inbox, and you can answer them.
+- Assign a conversation to a teammate with Assign… in the toolbar or a row's menu. Each row
+  shows who it is assigned to, and Assigned to me shows yours.
+- When WhatsApp allows only a template, the reply box offers your approved templates, with
+  their variables and a preview before you send.
+- When Messenger or Instagram no longer accepts a reply, the reply box says why and turns
+  Send off, keeping your text. A human agent reply shows its badge.
+- Images you attached stay in the draft when you switch to a channel that sends text only.
+- The dial screen has a country button with a searchable list. Numbers format as you type
+  them, and before you call, the line under the field shows the whole number and the
+  country it rings.
+
+## 3.3.0 in detail
+
+What 3.3.0 shipped, for this repository. Not release notes: the lane reads only the
+`[3.3.0]` section above.
 
 ### Added
 
@@ -67,12 +110,12 @@ not sent.
   window replaces the reply box with the approved templates (variables, preview,
   `sendWhatsAppTemplate`) in one two-step sheet, and an open one names its sender. The alert push
   register declares `metaChannels`. 25 new strings in English and French, the French reviewed
-  (Sean's sign-off, 2026-11-05). The held-images sentences then replace the three "removed" ones
+  (signed off 2026-11-05). The held-images sentences then replace the three "removed" ones
   with four new strings (`inbox.attachments_held_*`, `inbox.attachments_switch_to_sms`), the
-  French reviewed too (Sean's sign-off, 2026-11-05, "Approve all").
+  French reviewed too (signed off 2026-11-05).
   The composer's three bindings move verbatim to `ComposerBar+Support.swift` for SwiftLint's
   `file_length`.
-  The max review's findings (Sean, "All except 9"): an image that finishes uploading after a
+  The max review's findings, all but the ninth: an image that finishes uploading after a
   switch to a text-only channel, or is handed over after one, is held rather than lost, and Send
   and the channel picker wait for an upload; held images show in the reply box as dimmed chips
   with Held under them, each with Remove (which updates the saved draft), and VoiceOver names the
@@ -82,7 +125,7 @@ not sent.
   is already past. After an assignment the Inbox closes only the conversation that was assigned,
   once a list read that applies hides it, and the open reply is written before any close (the
   filter's too). Three new strings (`inbox.attachment_held`, `inbox.attachment_held_by_email`,
-  `inbox.attachment_held_on`), the French reviewed (Sean's sign-off, 2026-11-06, "Approve all 3").
+  `inbox.attachment_held_on`), the French reviewed (signed off 2026-11-06).
   A blank reply box deletes the saved draft only once the draft has been read, so removing an
   image or clearing the box after a failed read cannot delete a reply nobody has seen; a save
   that lands counts as read, since the server then holds only this composer's text. A draft
@@ -129,7 +172,7 @@ not sent.
   Canada" or "Rings United States" under the field. It says what the web dialler says, "Rings
   +1 800 555 0100. This number does not belong to one country. Check it before you call." (and
   the web's French), new key `dialer_m.rings_no_country`, the same change as district-ios
-  (Sean, 2026-11-04, GitLab #2). As on the web it is said from 8 digits with the `1` (Call
+  (2026-11-04). As on the web it is said from 8 digits with the `1` (Call
   still off, the number ungrouped until whole). The button keeps its +1 country. The dial
   screen's 12 French strings are marked reviewed.
 - Dialler: three cases Seer found in district-core-rust #63's port of `DialPlan`, which
@@ -150,108 +193,28 @@ not sent.
   disabled Call button says a wrong length, as the entry above promises: a disabled button
   never ran `placeCall()`, so its refusal branch was unreachable. `DialPlan` stays identical to
   district-ios's; pinned by `DialPlanTests` (`test_MAC_DIALER_09` to `11`).
-- 3.1.0 (visual QA): Cancel and Save on Edit working hours, Edit date overrides and the three
-  event-type forms sit at the sheet's bottom trailing edge, the save rightmost, as on every
-  other sheet; they sat at the leading edge (`SchedulingWriteButtons`). Pinned by
-  `MacSheetFitTests.testTheSchedulingFormButtonsAreTrailing`.
-- The GitHub Release's notes are the direct download's again, not the Mac App Store's.
-  `release-publish.sh notes` read English through the store's reader, which prefers
-  `release-notes/en-US/<version>-mas.txt`, so the 3.0.2 Release opened with the store's "District
-  AI is now in Canadian French" (shipped to direct-download users in 3.0.0). It now asks
-  `asc_release.py whats-new --direct`, which prints the CHANGELOG section and nothing else.
-  Tested in `scripts/release-publish.test.sh` (new, run by CI) and `asc_release_test.py`.
-- 3.0.3 (tests only): `MacDesktopLiveSessionTests` 03 and 04 wait for the socket's close
-  instead of asserting it the moment `stop()` or `signOut()` returns. DistrictLive's runner
-  fires the close in a task of its own, so the assertion raced it and failed CI now and then
-  (main run 38858412617 on 2026-10-16, and the Sentry 9.30.1 pull request #69). The app's
-  behaviour is unchanged.
-- 3.0.3: a room or a persona preview that ends on its own no longer shows LiveKit's own
-  text. A meeting whose room was deleted read "You were disconnected from this room. (Room
-  deleted)", and the preview "The preview ended without being stopped here. Room deleted":
-  the SDK's English error description passed through as the reason, English on a French
-  screen too. A failed join showed the SDK's message the same way. The banner and the
-  preview now always say the catalog's sentence (`rooms.state_dropped`,
-  `rooms.state_failed`, `settings.preview_dropped`), and `RoomEngine` logs the SDK's text
-  (`Logger`, category `Rooms`), as the call screens have done since 3.0.1. The two
-  catalog entries that carried the reason (`rooms.state_dropped_because`,
-  `settings.preview_dropped_because`) are removed; no string is added. Tested in
-  `RoomEndWordingTests` and `PersonaPreviewStateTests`.
-- 3.0.2: APNs delivery to the Mac can be diagnosed from the Mac itself. No APNs alert has
-  ever reached the QA iMac, with the app running or quit: APNs answered 200 to every one
-  (production, `com.distronode.district`), and apsd logged none arriving (2026-10-15 and
-  10-16, 3.0.0 and 3.0.1). The app's push lifecycle is now logged under subsystem
-  `com.distronode.district`, category `push`, at the default level, so `log show` keeps it.
-  The log covers the authorization answer, the APNs registration, the token's length (never
-  the token), the service's answer to the register, APNs and authorization failures (domain
-  and code), the unregister on sign-out, and each push the running app receives (its `type`
-  only). The cause of the non-delivery is not fixed here; it is still being traced.
-- An answered call joins before its microphone starts. The softphone joined with LiveKit's
-  concurrent microphone mode (`ConnectOptions(enableMicrophone: true)`), which starts Core
-  Audio on the SDK's one serial WebRTC queue while the join builds its peer connections on
-  that same queue. A slow start (VoiceProcessingIO building its aggregate device, about 5 s
-  on the first answer after a launch) held the join past its 10 s transport wait: the server
-  saw the session start and never become active, and the call ended "the call could not be
-  connected" (3.0.1 build 20058, 2026-10-16, 05:46:05Z). `LiveKitCallEngine.connect` now
-  joins with nothing published (`LiveKitCallRoom`) and then calls `setMicrophone(enabled: true)`
-  once; `CallJoinGate` still holds the reducers' unmute until that publish is done, so a call
-  still has exactly one microphone track. A microphone that cannot start after the join no
-  longer ends anything: the call stays connected and shows muted, and Unmute tries again.
-  3.0.0 joined the same way. Tested at the engine seam (`CallRoom`,
-  `LiveKitCallEngineJoinTests`).
-- The end screen no longer shows LiveKit's own text. A caller hanging up read "Call ended ·
-  Room deleted" (the SDK's English error description, passed through as the end reason), and
-  a failed join could show the SDK's message the same way. `InCallCopy.word(for:)` now always
-  says the catalog's sentence for both (`wordRemoteEnded`, `wordFailed`, English and French);
-  the SDK's text goes to the log (`Logger`, category `Call`). No new strings.
 
-### Added
+## [3.1.0]
 
-- New ticket on District Desk, as on iPhone and iPad (district-ios #37): a New ticket button
-  in the Desk toolbar, and File > New Ticket, open the form that raises a ticket on a
-  customer's behalf (a walk-in, an email), as Android, Linux and Windows already offer. It
-  is offered on the same rule as theirs: a role that may write, a desk that is on and a
-  queue that loaded (`DeskModel.canStartTicket`). The menu command is enabled wherever Desk
-  is offered to a role that may write; it opens Desk and then the form once the desk has
-  loaded, and nothing if the desk turns out to be off or unreadable. A failed submit is now
-  said in the form rather than on the queue behind it.
-- A live transcript on a call in progress, as on iPhone and iPad: a call's screen shows the
-  conversation as it happens, then the full transcript in the same place once the call
-  ends. It rides the telemetry socket the Mac already holds for ringing, as one
-  subscription per watched call, sent again on every reconnect and renewal; the socket
-  keeps the workspace's events, which ringing needs. With Ring on this computer off,
-  watching a call runs that socket without ringing, and it stops when no call is watched.
-  ⚠️ When the assistant fails mid-call (`agent_error`) the pane says "Reconnecting…" rather
-  than "Call ended", also when a snapshot says so (`endedReason`), and goes live again if a
-  fresh assistant takes the call. After `not_live` the screen keeps hearing the call (its
-  `call_started` and `call_updated` status, its end) with no subscription, and subscribes
-  again only when a signal or a load of the call row shows it in progress, at most once
-  per 30 s, never on a timer. A
-  second screen on a call already watched sends the subscribe again, for the fresh snapshot
-  it needs.
-- Read a text file into a knowledge document, as on Windows (and district-ios #38).
-  Knowledge's add form has a Read a text file button that fills the title (when it is
-  empty) and the text from a plain text file (.txt or .md) of up to 1 MB. Nothing is added
-  until Add document. The same files are refused for the same reasons as on Windows: too
-  large, empty, no text, or not plain text by its bytes (UTF-8, or UTF-16 with its mark, is
-  read). `KnowledgeFileReader` is iOS's file unchanged.
-- Sign in with Apple (Mac App Store build) asks for the authenticator code when the account
-  has one turned on: a sheet takes the 6-digit code or a recovery code, keeps the sheet open
-  for a wrong code, and sends a timed-out step back to the Apple button. The Developer ID
-  build has no native Apple door, so it never shows the sheet.
-- App links and notification clicks open the right section, as on iPhone and iPad. A
-  `www.distronode.com/dashboard/district/...` link (through `onOpenURL` or a continued
-  browsing-web `NSUserActivity`; `applinks:www.distronode.com` was already in both
-  entitlements files) opens its section, switching workspace when the link names another
-  one, and a page this app does not draw opens in the default browser. Clicking a message
-  notification opens its conversation beside the Inbox and refreshes the list; clicking a
-  call notification opens the call log. `AppLinkRouting` and `PushRouting` are iOS's,
-  driven by DistrictCore's `AppLinkResolver` and `PushDeepLinks`; the scheduling link cases
-  of `SchedulingRoutingTests` are ported with them.
+- When you decline a call, this Mac tells the assistant right away: once everyone it rang
+  has declined, the assistant takes the caller's message instead of letting it ring on.
+- If you decline a call on another device and everyone else it rang declines it too, it
+  stops ringing on this Mac and shows "Call ended · declined".
+- District Desk is now simply the Desk.
+- Text fields have a clearer edge. The Desk name field and the To field of a new message
+  now say what goes in them.
+- In French, working hours read as « 9 h » and « 13 h 30 » when you edit them.
+- Phone numbers now tells a viewer once, not twice, who can change numbers.
+
+## 3.1.0 in detail
+
+What 3.1.0 shipped, for this repository. Not release notes: the lane reads only the
+`[3.1.0]` section above.
 
 ### Changed
 
-- 3.1.0: a person's Decline is reported to the server (Sean's decision, 2026-10-24, GitLab
-  #2 note 4083623386), so once everyone rung has declined the ring ends at once and the
+- A person's Decline is reported to the server (decided
+  2026-10-24), so once everyone rung has declined the ring ends at once and the
   receptionist takes a message instead of waiting out the ring. DistrictCore 8.0.0
   (district-core-swift ab36d31, tag 8.0.0), pinned by its tag; swift-asn1 stays 1.7.3 (8.0.0's
   `Package.resolved` records it). The ring panel's Decline and the notification's Decline,
@@ -271,8 +234,88 @@ not sent.
   for a call this app never rang (the app was quit, or the socket missed the ring) sends
   nothing; that ring ends by the server's timeout. No string is added. Tested in
   `MacIncomingCallModelTests` and `MacRingCancelTests`.
+
+### Fixed
+
+- Visual QA: Cancel and Save on Edit working hours, Edit date overrides and the three
+  event-type forms sit at the sheet's bottom trailing edge, the save rightmost, as on every
+  other sheet; they sat at the leading edge (`SchedulingWriteButtons`). Pinned by
+  `MacSheetFitTests.testTheSchedulingFormButtonsAreTrailing`.
+- The GitHub Release's notes are the direct download's again, not the Mac App Store's.
+  `release-publish.sh notes` read English through the store's reader, which prefers
+  `release-notes/en-US/<version>-mas.txt`, so the 3.0.2 Release opened with the store's "District
+  AI is now in Canadian French" (shipped to direct-download users in 3.0.0). It now asks
+  `asc_release.py whats-new --direct`, which prints the CHANGELOG section and nothing else.
+  Tested in `scripts/release-publish.test.sh` (new, run by CI) and `asc_release_test.py`.
+
+## [3.0.3] - 2026-10-22
+
+- Call outcomes have clearer labels: "Callback requested", "Passed to a person" and
+  "Information only".
+- When a meeting room or a persona preview ends on its own, District AI says so in plain
+  words, never with a technical message.
+- In French, a workflow run says why a team notification did not go out (for example, no
+  team member has the app on a device that can receive notifications), where it said
+  « Autre ».
+
+## 3.0.3 in detail
+
+What 3.0.3 shipped, for this repository. Not release notes: the lane reads only the
+`[3.0.3]` section above.
+
+### Changed
+
 - Crash reporting runs on Sentry 9.30.1 (was 9.29.2), the same as District AI for iOS.
-- 3.0.2, the Apple batch after 3.0.1 (the 3.0.1 visual QA's MEDIUM and LOW findings, the
+- DistrictCore 7.0.3 (district-core-swift 6b32120, tag 7.0.3), pinned by its tag: the i18n
+  contracts from the service. A call's Outcome reads the portal's disposition labels
+  (`callback` "Callback requested" « Rappel demandé », `escalated` "Passed to a person"
+  « Transmis à une personne », `info` "Information only", `booked` « Rendez-vous pris » in
+  French), and in French a workflow action's team-push and signing reasons (`no-devices`,
+  `no-message`, `push-lookup-failed`, `push-not-delivered`, `signing-unavailable`) read their
+  own label where they read « Autre ». swift-asn1 stays 1.7.3.
+
+### Fixed
+
+- Tests only: `MacDesktopLiveSessionTests` 03 and 04 wait for the socket's close
+  instead of asserting it the moment `stop()` or `signOut()` returns. DistrictLive's runner
+  fires the close in a task of its own, so the assertion raced it and failed CI now and then
+  (main run 38858412617 on 2026-10-16, and the Sentry 9.30.1 pull request #69). The app's
+  behaviour is unchanged.
+- A room or a persona preview that ends on its own no longer shows LiveKit's own
+  text. A meeting whose room was deleted read "You were disconnected from this room. (Room
+  deleted)", and the preview "The preview ended without being stopped here. Room deleted":
+  the SDK's English error description passed through as the reason, English on a French
+  screen too. A failed join showed the SDK's message the same way. The banner and the
+  preview now always say the catalog's sentence (`rooms.state_dropped`,
+  `rooms.state_failed`, `settings.preview_dropped`), and `RoomEngine` logs the SDK's text
+  (`Logger`, category `Rooms`), as the call screens have done since 3.0.1. The two
+  catalog entries that carried the reason (`rooms.state_dropped_because`,
+  `settings.preview_dropped_because`) are removed; no string is added. Tested in
+  `RoomEndWordingTests` and `PersonaPreviewStateTests`.
+
+## [3.0.2] - 2026-10-16
+
+- Text on coloured badges, avatars and District Desk chips has more contrast and is easier
+  to read.
+- Section and field labels are in sentence case, no longer in spaced-out capitals.
+- Text fields have a clear edge and easier-to-read placeholder text, and a field whose label
+  is shown above it no longer repeats that label inside.
+- An empty Calls, Contacts or Inbox list fills its column instead of showing a grey band.
+- Revoke key, Revoke access and Delete webhook look like destructive actions instead of
+  plain text.
+- In Working hours, the Edit working hours and Edit date overrides buttons say what they do
+  and no longer look like tabs.
+- In French, a call's length is never split across two lines, the intelligence dossier's
+  headings are in French, and the Inbox search prompt fits its field.
+
+## 3.0.2 in detail
+
+What 3.0.2 shipped, for this repository. Not release notes: the lane reads only the
+`[3.0.2]` section above.
+
+### Changed
+
+- The Apple batch after 3.0.1 (the 3.0.1 visual QA's MEDIUM and LOW findings, the
   queued contrast and type items, and the French notes from the 3.0.1 round):
   - Every tinted badge clears WCAG AA. A badge's label (and an avatar's initials, and a
     desk chip's) is drawn in a chip ink, its tone moved a fifth of the way towards
@@ -301,6 +344,130 @@ not sent.
   - Sign in, Decline, Answer and the app's icon buttons carry a plain accessibility
     label, so AXDescription names them for AppleScript and other AX clients, not only
     AXAttributedDescription. VoiceOver and the visible text are unchanged.
+- DistrictCore 7.0.2 (district-core-swift 5d03f80, tag 7.0.2), pinned by its tag: the i18n
+  contracts from the service (in French, the number status `in-use` reads « Actif »,
+  the research keys `estimatedValue`, `person` and `callerIntel` take the portal's headings
+  « Évaluation DGI », « Profil du contact » and « Renseignements sur l'appelant », the skip
+  reasons `email-misconfigured` and `ses-missing` have labels, and the error
+  `sending_domain_provider_changed` its sentence), and a French call length that never
+  breaks (« 1 min 5 s », every space U+00A0). swift-asn1 stays 1.7.3. district-ios
+  names the same release.
+
+### Fixed
+
+- APNs delivery to the Mac can be diagnosed from the Mac itself. No APNs alert has
+  ever reached the QA Mac, with the app running or quit: APNs answered 200 to every one
+  (production, `com.distronode.district`), and apsd logged none arriving (2026-10-15 and
+  10-16, 3.0.0 and 3.0.1). The app's push lifecycle is now logged under subsystem
+  `com.distronode.district`, category `push`, at the default level, so `log show` keeps it.
+  The log covers the authorization answer, the APNs registration, the token's length (never
+  the token), the service's answer to the register, APNs and authorization failures (domain
+  and code), the unregister on sign-out, and each push the running app receives (its `type`
+  only). The cause of the non-delivery is not fixed here; it is still being traced.
+
+## [3.0.1]
+
+- When a call is answered on another device, this Mac stops ringing and says so.
+- Answering a call shows the call screen and keeps it while you are connected, instead of
+  "Call ended".
+- Answering a call no longer starts your microphone twice.
+- Quitting District AI no longer signs you out the next time you open it.
+- Once you are signed out, this Mac stops receiving that account's notifications.
+- The open call or contact beside the list is wider and easier to read, and the labels on a
+  selected row stay readable.
+- A more compact reply box in conversations: Command-Return sends the message.
+
+## 3.0.1 in detail
+
+What 3.0.1 shipped, for this repository. Not release notes: the lane reads only the
+`[3.0.1]` section above.
+
+### Changed
+
+- DistrictCore 7.0.1 (district-core-swift d7bf46d, tag 7.0.1), pinned by its tag. 3.0.1 was
+  built and reviewed against the 7.0.1 pull request's head, 1972dc9, by revision; the tag's
+  tree is the same tree, so nothing in the app changes.
+
+### Fixed
+
+- An answered call joins before its microphone starts. The softphone joined with LiveKit's
+  concurrent microphone mode (`ConnectOptions(enableMicrophone: true)`), which starts Core
+  Audio on the SDK's one serial WebRTC queue while the join builds its peer connections on
+  that same queue. A slow start (VoiceProcessingIO building its aggregate device, about 5 s
+  on the first answer after a launch) held the join past its 10 s transport wait: the server
+  saw the session start and never become active, and the call ended "the call could not be
+  connected" (3.0.1 build 20058, 2026-10-16, 05:46:05Z). `LiveKitCallEngine.connect` now
+  joins with nothing published (`LiveKitCallRoom`) and then calls `setMicrophone(enabled: true)`
+  once; `CallJoinGate` still holds the reducers' unmute until that publish is done, so a call
+  still has exactly one microphone track. A microphone that cannot start after the join no
+  longer ends anything: the call stays connected and shows muted, and Unmute tries again.
+  3.0.0 joined the same way. Tested at the engine seam (`CallRoom`,
+  `LiveKitCallEngineJoinTests`).
+- The end screen no longer shows LiveKit's own text. A caller hanging up read "Call ended ·
+  Room deleted" (the SDK's English error description, passed through as the end reason), and
+  a failed join could show the SDK's message the same way. `InCallCopy.word(for:)` now always
+  says the catalog's sentence for both (`wordRemoteEnded`, `wordFailed`, English and French);
+  the SDK's text goes to the log (`Logger`, category `Call`). No new strings.
+
+### Release process
+
+- The Mac App Store can have its own What's New for a version:
+  `release-notes/<locale>/<version>-mas.txt`, English in `release-notes/en-US/`, replaces the
+  CHANGELOG section and every `<version>.txt` for the store when it exists, in every language
+  or none (a missing language stops the run before anything is written). The GitHub Release
+  keeps the CHANGELOG section. 3.0.1 uses it: Mac 3.0.0 never reached the store, so store
+  readers go from 2.0.1 to 3.0.1, and their notes open with what 3.0.0 brought. `whats-new`
+  and `submit` print which source they used.
+
+## [3.0.0]
+
+District AI is now in Canadian French.
+
+- Calls ring with the window closed: District AI stays in the menu bar (Open District AI,
+  Open at Login, Quit) and keeps ringing. Open at Login is off until you turn it on.
+- See a call's transcript live while it is in progress, then the full transcript in the same
+  place once it ends.
+- Raise a ticket on a customer's behalf from District Desk, with the New ticket button or
+  File > New Ticket.
+- Knowledge: Read a text file fills a new document's title and text from a plain text file
+  (.txt or .md, up to 1 MB). Nothing is added until you click Add document.
+- If your account has an authenticator app turned on, Sign in with Apple asks for its code.
+- Clicking a notification opens the right place: a message opens its conversation, a call
+  opens the call log.
+
+## 3.0.0 in detail
+
+What 3.0.0 shipped, for this repository. Not release notes: the lane reads only the
+`[3.0.0]` section above.
+
+### Added
+
+- New ticket on District Desk, as on iPhone and iPad (district-ios #37): a New ticket button
+  in the Desk toolbar, and File > New Ticket, open the form that raises a ticket on a
+  customer's behalf (a walk-in, an email), as Android, Linux and Windows already offer. It
+  is offered on the same rule as theirs: a role that may write, a desk that is on and a
+  queue that loaded (`DeskModel.canStartTicket`). The menu command is enabled wherever Desk
+  is offered to a role that may write; it opens Desk and then the form once the desk has
+  loaded, and nothing if the desk turns out to be off or unreadable. A failed submit is now
+  said in the form rather than on the queue behind it.
+- Read a text file into a knowledge document, as on Windows (and district-ios #38).
+  Knowledge's add form has a Read a text file button that fills the title (when it is
+  empty) and the text from a plain text file (.txt or .md) of up to 1 MB. Nothing is added
+  until Add document. The same files are refused for the same reasons as on Windows: too
+  large, empty, no text, or not plain text by its bytes (UTF-8, or UTF-16 with its mark, is
+  read). `KnowledgeFileReader` is iOS's file unchanged.
+- App links and notification clicks open the right section, as on iPhone and iPad. A
+  `www.distronode.com/dashboard/district/...` link (through `onOpenURL` or a continued
+  browsing-web `NSUserActivity`; `applinks:www.distronode.com` was already in both
+  entitlements files) opens its section, switching workspace when the link names another
+  one, and a page this app does not draw opens in the default browser. Clicking a message
+  notification opens its conversation beside the Inbox and refreshes the list; clicking a
+  call notification opens the call log. `AppLinkRouting` and `PushRouting` are iOS's,
+  driven by DistrictCore's `AppLinkResolver` and `PushDeepLinks`; the scheduling link cases
+  of `SchedulingRoutingTests` are ported with them.
+
+### Changed
+
 - Calls ring with the window closed. Closing the window no longer quits District AI: it
   stays in the menu bar (Open District AI, Open at Login, Quit) and its telemetry socket
   keeps ringing. `SessionModel` checks the session and starts the ringing when the app
@@ -351,29 +518,11 @@ not sent.
   the Overview and settings rows, the report's Done and the block confirmations carry
   identifiers that are the same in every language, and `StoreCopyTests` scans the
   catalog's French too.
-- DistrictCore 7.0.3 (district-core-swift 6b32120, tag 7.0.3), pinned by its tag: the i18n
-  contracts from monorepo ac4071d14. A call's Outcome reads the portal's disposition labels
-  (`callback` "Callback requested" « Rappel demandé », `escalated` "Passed to a person"
-  « Transmis à une personne », `info` "Information only", `booked` « Rendez-vous pris » in
-  French), and in French a workflow action's team-push and signing reasons (`no-devices`,
-  `no-message`, `push-lookup-failed`, `push-not-delivered`, `signing-unavailable`) read their
-  own label where they read « Autre ». swift-asn1 stays 1.7.3.
-- DistrictCore 7.0.2 (district-core-swift 5d03f80, tag 7.0.2), pinned by its tag: the i18n
-  contracts from monorepo ecf098046 (in French, the number status `in-use` reads « Actif »,
-  the research keys `estimatedValue`, `person` and `callerIntel` take the portal's headings
-  « Évaluation DGI », « Profil du contact » and « Renseignements sur l'appelant », the skip
-  reasons `email-misconfigured` and `ses-missing` have labels, and the error
-  `sending_domain_provider_changed` its sentence), and a French call length that never
-  breaks (« 1 min 5 s », every space U+00A0). swift-asn1 stays 1.7.3. district-ios
-  names the same release.
-- DistrictCore 7.0.1 (district-core-swift d7bf46d, tag 7.0.1), pinned by its tag. 3.0.1 was
-  built and reviewed against the 7.0.1 pull request's head, 1972dc9, by revision; the tag's
-  tree is the same tree, so nothing in the app changes.
 - DistrictCore 7.0.0 (district-core-swift 1292c25), the release of the three betas below
   with the reviewed v3.0 French in the core's catalog: in French, a cancelled-bookings
   view reads « Annulés » and the scheduling team roles « Administrateur » and « Membre ».
   English is unchanged.
-- DistrictCore 7.0.0-beta.3: the contracts from monorepo 43eed5fd6 (French API errors,
+- DistrictCore 7.0.0-beta.3: the contracts from the service (French API errors,
   masculine desk statuses), the billing currency, and the portal's four booking webhook
   events. Billing amounts come from its `BillingMoneyFormat`: English exactly as before
   ("$249.00"), French naming the currency (« 249,00 $ CA », « 249,00 $ US »); the five
@@ -385,21 +534,6 @@ not sent.
   sentences come from its catalogs, every request
   sends `Accept-Language` (`en`), and errors are shown through `ApiError.localizedMessage`
   (the same sentence in English).
-- DistrictCore 6.0.0: 5.0.0 (the live transcript's models, ops and reducer, and `send` on
-  the socket adapter) plus `CodeExchangeResult.mfaRequired`, the Apple door's authenticator
-  code step.
-- DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
-  new District Studio link section is not used here.
-- The settings hub groups the receptionist's settings under District Studio, in the web's
-  order, and the Voice screen is called Voice everywhere, its title before the read lands
-  included. The [2.0] notes below say so for App Store readers.
-- Release notes per language: What's New for every App Store localization other than English
-  comes from `release-notes/<locale>/<version>.txt`, as on district-android, and a
-  localization with no notes in its language stops the submission rather than showing
-  English.
-- The repository meets the public-repo standard: a Scorecard badge, the README and
-  SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
-  requests get dependency review, and a test uses a fictional email address.
 - The catalogs carry their reviewed Canadian French (fr-CA): 1,753 entries in
   `l10n/macos.toml`, `l10n/push.toml` and `l10n/infoplist.toml`, regenerated into `Copy.swift`
   and the `fr-CA.lproj` strings, so `FR_COMPLETE` is true.
@@ -424,19 +558,26 @@ not sent.
 
 ### Release process
 
-- The Mac App Store can have its own What's New for a version:
-  `release-notes/<locale>/<version>-mas.txt`, English in `release-notes/en-US/`, replaces the
-  CHANGELOG section and every `<version>.txt` for the store when it exists, in every language
-  or none (a missing language stops the run before anything is written). The GitHub Release
-  keeps the CHANGELOG section. 3.0.1 uses it: Mac 3.0.0 never reached the store, so store
-  readers go from 2.0.1 to 3.0.1, and their notes open with what 3.0.0 brought. `whats-new`
-  and `submit` print which source they used.
 - The release guard requires the Canadian French: `DISTRICT_FRENCH` is `"YES"` for both
   lanes in `release.yml` (and for CI's own check of both targets), so
   `scripts/check-bundle-l10n.sh` refuses an app lacking `fr-CA.lproj`'s two tables, and
   any other French `.lproj` in `Contents/Resources` (`fr.lproj`, `fr_CA.lproj`,
   `fr-FR.lproj`, any case) is refused. Sparkle's own `fr.lproj`, under
   `Contents/Frameworks`, is not this app's French and is not checked.
+
+## [2.0.1] - 2026-10-13
+
+### Fixed
+
+- The Billing page names your plan ("Voice Pro") instead of its internal key ("VoicePro").
+
+## 2.0.1 in detail
+
+What 2.0.1 shipped, for this repository. Not release notes: the lane reads only the
+`[2.0.1]` section above.
+
+### Release process
+
 - Submitting a version with no App Store Connect record of its own renames the platform's one
   editable version (a rejected version that was never approved, as Mac 1.0 is) rather than
   creating a second one, which App Store Connect refuses, and only upwards. A review
@@ -444,101 +585,6 @@ not sent.
   items marked resolved, then submitted again) instead of being reported as already
   submitted; when Apple refuses, the run stops with Apple's words and the App Store
   Connect step to take.
-- The Developer ID build can be published: `publish.yml` (called by `release.yml` on an
-  approved tag, or dispatched for a tag built earlier) makes it an immutable GitHub
-  Release with its Sparkle signature, checksums and provenance attestation, and adds it
-  to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
-  publishes nothing.
-
-## [3.3.0] - 2026-11-06
-
-- Live calls: see your receptionist's calls in progress and listen in. The caller does not
-  hear you. Send your receptionist a note during the call and see whether it was used, take
-  over the call yourself, and hand it back when you are done. Viewers can listen only.
-- The Inbox answers WhatsApp, Messenger and Instagram customers on their own channel, so a
-  WhatsApp customer is no longer answered by SMS.
-- Messenger and Instagram conversations are in the Inbox, and you can answer them.
-- Assign a conversation to a teammate with Assign… in the toolbar or a row's menu. Each row
-  shows who it is assigned to, and Assigned to me shows yours.
-- When WhatsApp allows only a template, the reply box offers your approved templates, with
-  their variables and a preview before you send.
-- When Messenger or Instagram no longer accepts a reply, the reply box says why and turns
-  Send off, keeping your text. A human agent reply shows its badge.
-- Images you attached stay in the draft when you switch to a channel that sends text only.
-- The dial screen has a country button with a searchable list. Numbers format as you type
-  them, and before you call, the line under the field shows the whole number and the
-  country it rings.
-
-## [3.1.0]
-
-- When you decline a call, this Mac tells the assistant right away: once everyone it rang
-  has declined, the assistant takes the caller's message instead of letting it ring on.
-- If you decline a call on another device and everyone else it rang declines it too, it
-  stops ringing on this Mac and shows "Call ended · declined".
-- District Desk is now simply the Desk.
-- Text fields have a clearer edge. The Desk name field and the To field of a new message
-  now say what goes in them.
-- In French, working hours read as « 9 h » and « 13 h 30 » when you edit them.
-- Phone numbers now tells a viewer once, not twice, who can change numbers.
-
-## [3.0.3] - 2026-10-22
-
-- Call outcomes have clearer labels: "Callback requested", "Passed to a person" and
-  "Information only".
-- When a meeting room or a persona preview ends on its own, District AI says so in plain
-  words, never with a technical message.
-- In French, a workflow run says why a team notification did not go out (for example, no
-  team member has the app on a device that can receive notifications), where it said
-  « Autre ».
-
-## [3.0.2] - 2026-10-16
-
-- Text on coloured badges, avatars and District Desk chips has more contrast and is easier
-  to read.
-- Section and field labels are in sentence case, no longer in spaced-out capitals.
-- Text fields have a clear edge and easier-to-read placeholder text, and a field whose label
-  is shown above it no longer repeats that label inside.
-- An empty Calls, Contacts or Inbox list fills its column instead of showing a grey band.
-- Revoke key, Revoke access and Delete webhook look like destructive actions instead of
-  plain text.
-- In Working hours, the Edit working hours and Edit date overrides buttons say what they do
-  and no longer look like tabs.
-- In French, a call's length is never split across two lines, the intelligence dossier's
-  headings are in French, and the Inbox search prompt fits its field.
-
-## [3.0.1]
-
-- When a call is answered on another device, this Mac stops ringing and says so.
-- Answering a call shows the call screen and keeps it while you are connected, instead of
-  "Call ended".
-- Answering a call no longer starts your microphone twice.
-- Quitting District AI no longer signs you out the next time you open it.
-- Once you are signed out, this Mac stops receiving that account's notifications.
-- The open call or contact beside the list is wider and easier to read, and the labels on a
-  selected row stay readable.
-- A more compact reply box in conversations: Command-Return sends the message.
-
-## [3.0.0]
-
-District AI is now in Canadian French.
-
-- Calls ring with the window closed: District AI stays in the menu bar (Open District AI,
-  Open at Login, Quit) and keeps ringing. Open at Login is off until you turn it on.
-- See a call's transcript live while it is in progress, then the full transcript in the same
-  place once it ends.
-- Raise a ticket on a customer's behalf from District Desk, with the New ticket button or
-  File > New Ticket.
-- Knowledge: Read a text file fills a new document's title and text from a plain text file
-  (.txt or .md, up to 1 MB). Nothing is added until you click Add document.
-- If your account has an authenticator app turned on, Sign in with Apple asks for its code.
-- Clicking a notification opens the right place: a message opens its conversation, a call
-  opens the call log.
-
-## [2.0.1] - 2026-10-13
-
-### Fixed
-
-- The Billing page names your plan ("Voice Pro") instead of its internal key ("VoicePro").
 
 ## [2.0] - 2026-10-08
 
@@ -562,6 +608,58 @@ District Studio, Voice and live call transcripts come to the Mac.
 - If your account has an authenticator app turned on, Sign in with Apple now asks for its
   code, as the website does. Enter the 6-digit code, or one of your recovery codes. A wrong
   code can be typed again, and if the step times out, start again with Sign in with Apple.
+
+## 2.0 in detail
+
+What 2.0 shipped, for this repository. Not release notes: the lane reads only the
+`[2.0]` section above.
+
+### Added
+
+- A live transcript on a call in progress, as on iPhone and iPad: a call's screen shows the
+  conversation as it happens, then the full transcript in the same place once the call
+  ends. It rides the telemetry socket the Mac already holds for ringing, as one
+  subscription per watched call, sent again on every reconnect and renewal; the socket
+  keeps the workspace's events, which ringing needs. With Ring on this computer off,
+  watching a call runs that socket without ringing, and it stops when no call is watched.
+  ⚠️ When the assistant fails mid-call (`agent_error`) the pane says "Reconnecting…" rather
+  than "Call ended", also when a snapshot says so (`endedReason`), and goes live again if a
+  fresh assistant takes the call. After `not_live` the screen keeps hearing the call (its
+  `call_started` and `call_updated` status, its end) with no subscription, and subscribes
+  again only when a signal or a load of the call row shows it in progress, at most once
+  per 30 s, never on a timer. A
+  second screen on a call already watched sends the subscribe again, for the fresh snapshot
+  it needs.
+- Sign in with Apple (Mac App Store build) asks for the authenticator code when the account
+  has one turned on: a sheet takes the 6-digit code or a recovery code, keeps the sheet open
+  for a wrong code, and sends a timed-out step back to the Apple button. The Developer ID
+  build has no native Apple door, so it never shows the sheet.
+
+### Changed
+
+- DistrictCore 6.0.0: 5.0.0 (the live transcript's models, ops and reducer, and `send` on
+  the socket adapter) plus `CodeExchangeResult.mfaRequired`, the Apple door's authenticator
+  code step.
+- DistrictCore 4.0.0. Nothing changes in the app: this Mac build handles no web links, so the
+  new District Studio link section is not used here.
+- The settings hub groups the receptionist's settings under District Studio, in the web's
+  order, and the Voice screen is called Voice everywhere, its title before the read lands
+  included. The [2.0] notes below say so for App Store readers.
+- Release notes per language: What's New for every App Store localization other than English
+  comes from `release-notes/<locale>/<version>.txt`, as on district-android, and a
+  localization with no notes in its language stops the submission rather than showing
+  English.
+- The repository meets the public-repo standard: a Scorecard badge, the README and
+  SECURITY.md describe the real release state, CodeQL runs one at a time per ref, pull
+  requests get dependency review, and a test uses a fictional email address.
+
+### Release process
+
+- The Developer ID build can be published: `publish.yml` (called by `release.yml` on an
+  approved tag, or dispatched for a tag built earlier) makes it an immutable GitHub
+  Release with its Sparkle signature, checksums and provenance attestation, and adds it
+  to the appcast in distronode-corporation/updates. A `dry_run` checks all of it and
+  publishes nothing.
 
 ## [1.0] - 2026-10-04
 

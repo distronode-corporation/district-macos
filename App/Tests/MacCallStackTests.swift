@@ -141,7 +141,7 @@ final class MacAudioDevicePickerTests: XCTestCase {
         AudioDeviceChoice(id: id, name: name, isDefault: id == AudioDeviceChoice.systemDefaultId)
     }
 
-    /// ⛔ LIVEKIT LISTS THE SYSTEM DEFAULT AS A DEVICE WITH THE ID `default` (measured on the
+    /// ⛔ LIVEKIT LISTS THE SYSTEM DEFAULT AS A DEVICE WITH THE ID `default` (measured on an
     /// iMac), so the picker must not offer the default twice.
     func test_MAC_DEVICES_01_theDefaultIsOfferedOnceAndStoredAsEmpty() {
         let entries = AudioDevicePickers.entries(

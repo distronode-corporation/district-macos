@@ -1,0 +1,1 @@
+- De petites améliorations en coulisses. Rien ne change dans l'apparence ni dans le fonctionnement de District AI.

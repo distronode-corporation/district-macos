@@ -240,7 +240,7 @@ struct DistrictRowDivider: View {
 ///
 /// ⚠️ MAC ONLY: INITIALS COME FROM LETTERS, AND A NAME WITH NONE GETS THE PERSON GLYPH.
 /// The iPad (district-ios `4777c40`) takes the first character of each word, so a caller
-/// known only by number drew "+" and one with no caller ID a lone "·" (Sean's first build,
+/// known only by number drew "+" and one with no caller ID a lone "·" (the first signed build,
 /// 20019). A number is not a name, so it gets the silhouette Contacts and Messages draw for
 /// someone unnamed. ``initials(for:)`` decides it; `DistrictAvatarTests` pins it.
 struct DistrictAvatar: View {
