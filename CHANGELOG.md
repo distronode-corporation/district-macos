@@ -17,10 +17,9 @@ history below. App Store Connect takes no release notes for a platform's first v
 
 ## [Unreleased]
 
-What 3.3.1 ships, in detail, until it is on sale. The `[3.3.1]` section below is its App
-Store What's New, which the release lane sends verbatim, so these entries move to a
-`## 3.3.1 in detail` section under it after the release, as the entries for 1.0 to 3.3.0
-have.
+What main holds since 3.3.0, in detail. When a version is released, its `## [x.y]` section
+is the App Store What's New, which the release lane sends verbatim, and these entries move
+to a `## x.y in detail` section under it, as the entries for 1.0 to 3.3.0 have.
 
 ### Known limits
 
@@ -37,10 +36,6 @@ have.
   `district-contact-confirm-unblock`. Nothing a user sees or hears changes.
 - CI: the public hygiene check for issue and pull request text is pinned to v1.4.0 (#105, #106),
   and four GitHub Actions take their minor updates (#108).
-
-## [3.3.1] - 2026-11-15
-
-- Small improvements behind the scenes. Nothing changes in how District AI looks or works.
 
 ## [3.3.0] - 2026-11-06
 
