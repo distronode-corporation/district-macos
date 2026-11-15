@@ -54,6 +54,30 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   where iOS says "tap"; the French needs the next release's sign-off.
   `DeleteAccountModelTests` (17) and `ReauthSheetControllerTests` (7) from district-ios, and
   `MacDeleteAccountTests` (5).
+- Two-step verification settings, on DistrictCore 8.5.0's `TwoStepSettingsRepository`, ported
+  from district-ios #119 (`885b84b`). Account, Two-step verification (a Security card above Your
+  account) opens a sheet that says whether it is on, since when and how many recovery codes are
+  left. Turning it on or off starts with the same fresh re-authentication as account deletion,
+  for the `2fa-change` action (a fresh sign-in at Google, Microsoft or Apple, or the password
+  with the authenticator code when it is on; no passkeys). Turning it on then shows the new
+  secret as a QR code and a copyable key (with a button that hands the `otpauth://` link to an
+  authenticator app on this Mac), asks for the app's code, and shows the recovery codes once,
+  with Copy all and a warning that they are not shown again. An account with no password turns
+  it off after a provider sign-in, which the website cannot do. Every refusal has a sentence in
+  both languages, the core's own for its `MFA_*`, `mfa_code_invalid`, `rate_limited` and
+  `browser_session_required` codes; a confirm or a disable whose answer is lost says it cannot
+  tell and reads the status again. Each call is single-flight. The secret and the codes are
+  never logged (the model and its enrolment redact `print` and `dump`), are copied to this Mac
+  only (`.currentHostOnly`, so never Universal Clipboard, with the concealed and transient
+  markers a clipboard history skips) and cleared after two minutes unless something else was
+  copied since, are covered while the app is not active (`NSApplication`'s, since the scene
+  phase stays active behind another app), and are dropped when the sheet closes. On the Mac the
+  sheet is drawn in `MacSheetChrome`: Back, Close (Esc) and the step's own button (Return) are
+  its bottom row, and Close and Esc are off over the recovery codes and mid-request. It lives on
+  Account, not in the Settings window, which holds only what belongs to this Mac. 40 strings from
+  district-ios in English and French, with "this Mac" where iOS says "this device"; the French
+  needs the next release's sign-off. `TwoStepModelTests` (15) and `TwoStepGuardTests` (10) from
+  district-ios, and `MacTwoStepTests` (4).
 
 ### Changed
 
