@@ -63,6 +63,58 @@ final class MacDeleteAccountTests: XCTestCase {
         XCTAssertFalse(code.contains("openURL"), "no hand-off to the browser from Account")
         XCTAssertEqual(code.components(separatedBy: "accountDeletionURL").count - 1, 1, "declared, never opened")
     }
+
+    /// ⛔ EVERY BUTTON IN THE SHEET'S BOTTOM ROW HAS THE PALETTE'S LARGE TREATMENT (visual QA,
+    /// #111): no bare system button (a small grey pill in dark mode) and no ghost text button.
+    func test_MAC_DELETE_05_theButtonRowIsOneHeightAndTreatment() throws {
+        try FooterButtons.assertStyled("DeleteAccountView.swift", until: "private var failureLine", expected: 4)
+    }
+}
+
+/// The bottom row of a sheet drawn in ``MacSheetChrome``: each `Button(` from its `buttons`
+/// property to `endMarker` (the first declaration after the row, in comment-stripped source)
+/// takes a palette style, and none is a ghost.
+enum FooterButtons {
+    static func assertStyled(
+        _ name: String,
+        until endMarker: String,
+        expected: Int,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        let url = URL(fileURLWithPath: "\(file)")
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/Features/Account/\(name)")
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: url.path), "sources are not beside this test")
+        let code = try SourceComments.stripped(String(contentsOf: url, encoding: .utf8))
+        let start = try XCTUnwrap(code.range(of: "private var buttons: some View {"), file: file, line: line)
+        let end = try XCTUnwrap(
+            code.range(of: endMarker, range: start.upperBound ..< code.endIndex),
+            file: file,
+            line: line
+        )
+        // ⚠️ The default style's modifier name ends in `Button(` too: renamed before splitting.
+        let block = String(code[start.upperBound ..< end.lowerBound])
+            .replacingOccurrences(of: ".macSheetDefaultButton()", with: ".macSheetDefaultStyle")
+        let buttons = block.components(separatedBy: "Button(").dropFirst()
+        XCTAssertEqual(buttons.count, expected, "\(name): the row's buttons", file: file, line: line)
+        let styles = [
+            ".buttonStyle(.districtSecondary)",
+            ".buttonStyle(.districtDestructive)",
+            ".macSheetDefaultStyle",
+        ]
+        for button in buttons {
+            let head = String(button.prefix(400))
+            XCTAssertTrue(
+                styles.contains { head.contains($0) },
+                "\(name): an unstyled button: \(head.prefix(80))",
+                file: file,
+                line: line
+            )
+        }
+        XCTAssertFalse(block.contains(".districtGhost"), "\(name): a ghost button in the row", file: file, line: line)
+    }
 }
 
 /// Comment-stripped source, so a test reads the code and not what the comments say about it.

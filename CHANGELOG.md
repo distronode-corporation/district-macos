@@ -47,12 +47,13 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   the sign-in screen says the account was deleted, and when vendor-held support data is still
   being erased. The row no longer opens the deletion page; its address stays as the store
   listings' data-deletion URL. On the Mac the sheet is drawn in `MacSheetChrome` (Cancel takes
-  Esc, Continue takes Return) and the re-authentication window is built by
+  Esc, Continue takes Return; every button in its bottom row is the palette's, one height, so
+  Cancel is no small grey system pill in dark mode) and the re-authentication window is built by
   `WebAuthLoginController.makeSession`, whose completion handler is not main-actor isolated.
   36 strings from district-ios in English and French (the 3.4.0 sign-off's French), with "click"
   where iOS says "tap"; the French needs the next release's sign-off.
   `DeleteAccountModelTests` (17) and `ReauthSheetControllerTests` (7) from district-ios, and
-  `MacDeleteAccountTests` (4).
+  `MacDeleteAccountTests` (5).
 
 ### Changed
 

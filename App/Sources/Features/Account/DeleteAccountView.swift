@@ -172,6 +172,12 @@ struct DeleteAccountView: View {
     /// Cancel (Esc) on every step, then the step's own: Back and Continue (Return) for the
     /// password, and the red Delete my account last.
     ///
+    /// ⛔ ONE HEIGHT AND ONE TREATMENT FOR EVERY BUTTON IN THE ROW (visual QA, #111). A bare
+    /// Cancel is drawn by macOS as a small bezel pill, grey in dark mode, beside the large
+    /// palette buttons, and a ghost Back as plain text; Cancel and Back take
+    /// ``ButtonStyle/districtSecondary``, the primary ``View/macSheetDefaultButton()``, and the
+    /// delete ``ButtonStyle/districtDestructive``. `MacDeleteAccountTests` pins it.
+    ///
     /// ⛔ DELETE IS NOT THE DEFAULT BUTTON. Return in the email field must never delete an
     /// account; it takes a click on the button that says so.
     @ViewBuilder
@@ -182,11 +188,12 @@ struct DeleteAccountView: View {
         }
         if case .password = model.step {
             Button(DeleteAccountCopy.back, action: model.back)
-                .buttonStyle(.districtGhost)
+                .buttonStyle(.districtSecondary)
                 .disabled(model.busy)
                 .accessibilityIdentifier(A11yID.DeleteAccount.back)
         }
         Button(DeleteAccountCopy.cancel) { dismiss() }
+            .buttonStyle(.districtSecondary)
             .keyboardShortcut(.cancelAction)
             .disabled(model.busy)
             .accessibilityIdentifier(A11yID.DeleteAccount.cancel)
