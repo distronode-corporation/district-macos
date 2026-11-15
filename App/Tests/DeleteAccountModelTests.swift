@@ -252,32 +252,41 @@ final class DeleteAccountModelTests: XCTestCase {
 
     // MARK: - Single flight
 
-    /// ⛔ TWO TAPS BEFORE A RE-RENDER SEND ONE DELETE.
+    /// ⛔ TWO CLICKS BEFORE A RE-RENDER SEND ONE DELETE. The first is held on the wire, so the
+    /// second provably starts while it is in flight.
     func testTwoConcurrentDeletesSendOneRequest() async {
-        let transport = SettingsTransport(responses: [(200, Self.deletedBody), (200, Self.deletedBody)])
+        let transport = HeldTransport(responses: [(200, Self.deletedBody), (200, Self.deletedBody)])
         let harness = Harness(transport, sso: .proved(expiresInSeconds: 300))
         await harness.model.reauthenticate(with: .google)
         harness.model.confirmation = "you@example.test"
 
-        async let first: Void = harness.model.delete()
-        async let second: Void = harness.model.delete()
-        _ = await (first, second)
+        let first = Task { await harness.model.delete() }
+        await waitUntil { transport.requestCount == 1 }
+        await harness.model.delete()
+        XCTAssertEqual(transport.requestCount, 1, "the second click sends nothing while the first is in flight")
+        transport.release()
+        await first.value
 
-        XCTAssertEqual(transport.requests.count, 1)
+        XCTAssertEqual(transport.requestCount, 1)
         XCTAssertEqual(harness.deletions.count, 1)
     }
 
     func testTwoConcurrentPasswordTriesSendOne() async {
-        let transport = SettingsTransport(responses: [(200, Self.proof), (200, Self.proof)])
+        let transport = HeldTransport(responses: [(200, Self.proof), (200, Self.proof)])
         let model = Harness(transport).model
         model.usePassword()
         model.password = "pw"
 
-        async let first: Void = model.submitPassword()
-        async let second: Void = model.submitPassword()
-        _ = await (first, second)
+        let first = Task { await model.submitPassword() }
+        await waitUntil { transport.requestCount == 1 }
+        model.password = "pw"
+        await model.submitPassword()
+        XCTAssertEqual(transport.requestCount, 1, "the second try sends nothing while the first is in flight")
+        transport.release()
+        await first.value
 
-        XCTAssertEqual(transport.requests.count, 1)
+        XCTAssertEqual(transport.requestCount, 1)
+        XCTAssertEqual(model.step, .confirm)
     }
 
     func testNothingIsSentBeforeTheStepAllowsIt() async {

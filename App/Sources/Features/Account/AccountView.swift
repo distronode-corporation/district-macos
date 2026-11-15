@@ -317,6 +317,9 @@ struct AccountView: View {
             )
         }
         .buttonStyle(.plain)
+        // ⚠️ NOT WHILE A SIGN-OUT IS ENDING THE SESSION, as the sign-out row itself (cubic on
+        // #111): a re-authentication would race the revoke.
+        .disabled(session.isBusy)
         .sheet(isPresented: $deleting) {
             DeleteAccountView(container: container, session: session)
                 .macSheetSize(width: 480, height: 520)

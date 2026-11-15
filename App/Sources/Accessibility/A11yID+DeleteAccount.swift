@@ -1,8 +1,9 @@
 /// The in-app account deletion sheet (Account, Delete account).
 ///
-/// ⚠️ district-ios's STRINGS, so one test plan addresses the same controls in both apps. No
-/// Kotlin twin yet: Android still hands deletion to its page. If it gains the same flow, the
-/// three should share these strings.
+/// ⚠️ EVERY IDENTIFIER HERE IS COPIED UNCHANGED FROM district-ios's `A11yID.DeleteAccount`, so
+/// one test plan addresses the same controls in both apps. No Kotlin twin yet: Android still
+/// hands deletion to its page. If it gains the same flow, the three apps should share these
+/// strings.
 extension A11yID {
     enum DeleteAccount {
         static let sheet = "district-delete-account-sheet"
