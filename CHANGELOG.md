@@ -19,7 +19,7 @@ history below. App Store Connect takes no release notes for a platform's first v
 
 What main holds since 3.3.0, in detail. When a version is released, its `## [x.y]` section
 is the App Store What's New, which the release lane sends verbatim, and these entries move
-to a `## x.y in detail` section under it, as the entries for 1.0 to 3.3.0 have.
+to a `## x.y in detail` section under it, as earlier releases' entries have.
 
 ### Known limits
 
