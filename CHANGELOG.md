@@ -28,6 +28,61 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   and Lithuania check a prefix against libphonenumber's number patterns; modelling every
   country's pattern is left out. The line under the field shows the whole number before Call.
 
+### Added
+
+- Account deletion in the app (App Store Guideline 5.1.1(v)), on DistrictCore 8.4.2's
+  `NativeReauthRepository`, ported from district-ios #114 (`80f622b`). Account, Delete account
+  opens a sheet that says what is deleted (the profile, the settings and every workspace the
+  person owns, whose subscriptions are cancelled at once) and what is kept (workspaces they
+  belong to but do not own). A fresh re-authentication comes first: a fresh sign-in at Google,
+  Microsoft or Apple in the sign-in window (`/auth/native/reauth`, PKCE and `state` as at sign-in,
+  the installation id sent only as its SHA-256), or the password, with the authenticator code
+  when two-step verification is on. The typed email address then deletes. Every refusal has a
+  sentence saying what to do; a block the service answers (a subscription it could not cancel)
+  is shown under "Your account was not deleted."; a delete lost in transport or answered in a way
+  this build cannot read says it cannot tell, and a 401 never claims the account was kept. The
+  final button is single-flight and is not the sheet's default button, so Return never deletes.
+  After the deletion the Mac forgets the session, the push token and the workspace choice, and
+  ends the ringing, with no revoke and no push or presence unregister (the account is gone);
+  the sign-in screen says the account was deleted, and when vendor-held support data is still
+  being erased. The row no longer opens the deletion page; its address stays as the store
+  listings' data-deletion URL. On the Mac the sheet is drawn in `MacSheetChrome` (Cancel takes
+  Esc, Continue takes Return; every button in its bottom row is the palette's, one height, so
+  Cancel is no small grey system pill in dark mode) and the re-authentication window is built by
+  `WebAuthLoginController.makeSession`, whose completion handler is not main-actor isolated.
+  36 strings from district-ios in English and French (the 3.4.0 sign-off's French), with "click"
+  where iOS says "tap"; the French needs the next release's sign-off.
+  `DeleteAccountModelTests` (17) and `ReauthSheetControllerTests` (7) from district-ios, and
+  `MacDeleteAccountTests` (5).
+- Two-step verification settings, on DistrictCore 8.5.0's `TwoStepSettingsRepository`, ported
+  from district-ios #119 (`885b84b`). Account, Two-step verification (a Security card above Your
+  account) opens a sheet that says whether it is on, since when and how many recovery codes are
+  left. Turning it on or off starts with the same fresh re-authentication as account deletion,
+  for the `2fa-change` action (a fresh sign-in at Google, Microsoft or Apple, or the password
+  with the authenticator code when it is on; no passkeys). Turning it on then shows the new
+  secret as a QR code and a copyable key (with a button that hands the `otpauth://` link to an
+  authenticator app on this Mac), asks for the app's code, and shows the recovery codes once,
+  with Copy all and a warning that they are not shown again. An account with no password turns
+  it off after a provider sign-in, which the website cannot do. Every refusal has a sentence in
+  both languages, the core's own for its `MFA_*`, `mfa_code_invalid`, `rate_limited` and
+  `browser_session_required` codes; a confirm or a disable whose answer is lost says it cannot
+  tell and reads the status again. Each call is single-flight. The secret and the codes are
+  never logged (the model and its enrolment redact `print` and `dump`), are copied to this Mac
+  only (`.currentHostOnly`, so never Universal Clipboard, with the concealed and transient
+  markers a clipboard history skips) and cleared after two minutes or when the app quits,
+  whichever is first, unless something else was copied since, are not selectable (where iOS's
+  are: a ⌘C would bypass all of that), are covered, for VoiceOver too, while the app is not
+  active (`NSApplication`'s, since the scene phase stays active behind another app; the password
+  step is covered too), and are dropped when the sheet closes, including from an answer that
+  lands after it went. Open in an authenticator app opens only an `otpauth://` link. On the Mac the
+  sheet is drawn in `MacSheetChrome`: Back, Close (Esc) and the step's own button (Return) are
+  its bottom row, all the palette's and one height, and Close and Esc are off over the recovery codes and mid-request. It lives on
+  Account, not in the Settings window, which holds only what belongs to this Mac. 40 strings from
+  district-ios in English and French, with "this Mac" where iOS says "this device"; the French
+  needs the next release's sign-off. `TwoStepModelTests` (15) and `TwoStepGuardTests` (10) from
+  district-ios (their single-flight cases hold the first request on the wire), and
+  `MacTwoStepTests` (10).
+
 ### Changed
 
 - The contact block confirmation's accessibility identifier is `district-contact-block-confirm`,
@@ -36,6 +91,12 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   `district-contact-confirm-unblock`. Nothing a user sees or hears changes.
 - CI: the public hygiene check for issue and pull request text is pinned to v1.4.0 (#105, #106),
   and four GitHub Actions take their minor updates (#108).
+- DistrictCore `exactVersion` 8.6.0 (from 8.3.0). 8.4.2 brings account deletion and 8.5.0 the
+  two-step verification settings; the rest of 8.4 to 8.6 is additive. swift-asn1 stays 1.7.3,
+  which 8.6.0's `Package.resolved` records too. ⚠️ 8.6.0 resolves the Studio's Integrations link
+  (`/dashboard/district/studio/integrations`) to a Studio destination, for an app that draws that
+  screen; this one does not, so `AppLinkRouting.outcome(for:)` keeps sending it to the browser,
+  as before (`test_MAC_STUDIOLINK_05`).
 
 ## [3.3.0] - 2026-11-06
 

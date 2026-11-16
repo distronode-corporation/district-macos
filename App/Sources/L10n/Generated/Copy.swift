@@ -11,6 +11,9 @@ extension AccountCopy {
     /// `account.delete_account`
     internal static var deleteAccount: String { AppL10n.copyLocale == .frCA ? "Supprimer le compte" : "Delete account" }
 
+    /// `account.delete_account_subtitle`
+    internal static var deleteAccountSubtitle: String { AppL10n.copyLocale == .frCA ? "Supprimez votre compte et ses données pour de bon. Vous confirmez d'abord qu'il s'agit bien de vous." : "Delete your account and its data for good. You confirm it is you first." }
+
     /// `account.devices`
     internal static var devices: String { AppL10n.copyLocale == .frCA ? "Appareils" : "Devices" }
 
@@ -21,9 +24,6 @@ extension AccountCopy {
 
     /// `account.opaque_id_install_cleared`
     internal static var opaqueIdInstallCleared: String { AppL10n.copyLocale == .frCA ? "Un identifiant opaque propre à cette installation. Il est effacé quand vous supprimez l'application et n'identifie aucun matériel." : "An opaque id for this install. It is cleared when you delete the app, and it identifies no hardware." }
-
-    /// `account.request_deletion_account_its`
-    internal static var requestDeletionAccountIts: String { AppL10n.copyLocale == .frCA ? "Demander la suppression de votre compte et de ses données. S'ouvre hors de l'application." : "Request deletion of your account and its data. Opens in your browser." }
 
     /// `account.see_where_are_signed`
     internal static var seeWhereAreSigned: String { AppL10n.copyLocale == .frCA ? "Voyez où votre compte est connecté et déconnectez un appareil que vous n'avez plus." : "See where you are signed in, and sign out a device you no longer have." }
@@ -789,6 +789,115 @@ extension ContactsCopy {
 
     /// `contacts.website`
     internal static var website: String { AppL10n.copyLocale == .frCA ? "Site" : "Website" }
+}
+
+extension DeleteAccountCopy {
+    /// `delete_account.back`
+    internal static var back: String { AppL10n.copyLocale == .frCA ? "Retour" : "Back" }
+
+    /// `delete_account.cancel`
+    internal static var cancel: String { AppL10n.copyLocale == .frCA ? "Annuler" : "Cancel" }
+
+    /// `delete_account.cannot_be_undone`
+    internal static var cannotBeUndone: String { AppL10n.copyLocale == .frCA ? "Cette action est irréversible." : "This cannot be undone." }
+
+    /// `delete_account.confirm_intro`
+    internal static var confirmIntro: String { AppL10n.copyLocale == .frCA ? "Connectez-vous de nouveau comme d'habitude. Vous aurez ensuite quelques minutes pour supprimer le compte." : "Sign in again the way you usually do. You then have a few minutes to delete the account." }
+
+    /// `delete_account.confirm_it_is_you`
+    internal static var confirmItIsYou: String { AppL10n.copyLocale == .frCA ? "Confirmez qu'il s'agit bien de vous" : "Confirm it is you" }
+
+    /// `delete_account.continue_button`
+    internal static var continueButton: String { AppL10n.copyLocale == .frCA ? "Continuer" : "Continue" }
+
+    /// `delete_account.continue_with`
+    internal static func continueWith(_ provider: String) -> String {
+        AppL10n.copyLocale == .frCA ? "Continuer avec \(provider)" : "Continue with \(provider)"
+    }
+
+    /// `delete_account.deleted`
+    internal static var deleted: String { AppL10n.copyLocale == .frCA ? "Votre compte a été supprimé." : "Your account was deleted." }
+
+    /// `delete_account.deleted_erasure_pending`
+    internal static var deletedErasurePending: String { AppL10n.copyLocale == .frCA ? "Votre compte a été supprimé. Des données de soutien conservées par un fournisseur sont encore en cours d'effacement." : "Your account was deleted. Support data held by a provider is still being erased." }
+
+    /// `delete_account.deleting`
+    internal static var deleting: String { AppL10n.copyLocale == .frCA ? "Suppression…" : "Deleting…" }
+
+    /// `delete_account.email_label`
+    internal static var emailLabel: String { AppL10n.copyLocale == .frCA ? "Votre adresse courriel" : "Your email address" }
+
+    /// `delete_account.error_email_mismatch`
+    internal static var errorEmailMismatch: String { AppL10n.copyLocale == .frCA ? "Ce n'est pas l'adresse courriel de ce compte. Tapez-la exactement, puis réessayez. Rien n'a été supprimé." : "That is not this account's email address. Type it exactly, then try again. Nothing was deleted." }
+
+    /// `delete_account.error_no_password`
+    internal static var errorNoPassword: String { AppL10n.copyLocale == .frCA ? "Ce compte n'a aucun mot de passe. Confirmez qu'il s'agit bien de vous avec Google, Microsoft ou Apple, selon votre mode de connexion." : "This account has no password. Confirm it is you with Google, Microsoft or Apple, whichever you sign in with." }
+
+    /// `delete_account.error_not_confirmed`
+    internal static var errorNotConfirmed: String { AppL10n.copyLocale == .frCA ? "Nous n'avons pas pu confirmer qu'il s'agit bien de vous pour l'instant. Réessayez dans un instant." : "We could not confirm it is you right now. Try again in a moment." }
+
+    /// `delete_account.error_offline_not_confirmed`
+    internal static var errorOfflineNotConfirmed: String { AppL10n.copyLocale == .frCA ? "Vous semblez être hors ligne, et rien n'a été confirmé. Vérifiez votre connexion et réessayez." : "You appear to be offline, so nothing was confirmed. Check your connection and try again." }
+
+    /// `delete_account.error_offline_outcome_unknown`
+    internal static var errorOfflineOutcomeUnknown: String { AppL10n.copyLocale == .frCA ? "La connexion a échoué avant que nous recevions une réponse, et nous ne savons pas si votre compte a été supprimé. Vérifiez votre connexion, puis fermez cette fenêtre et reconnectez-vous pour vérifier." : "The connection failed before we heard back, so we cannot tell whether your account was deleted. Check your connection, then close this and sign in again to check." }
+
+    /// `delete_account.error_outcome_unknown`
+    internal static var errorOutcomeUnknown: String { AppL10n.copyLocale == .frCA ? "Nous n'avons pas pu lire la réponse, et nous ne savons pas si votre compte a été supprimé. Fermez cette fenêtre et reconnectez-vous pour vérifier." : "We could not read the answer, so we cannot tell whether your account was deleted. Close this and sign in again to check." }
+
+    /// `delete_account.error_proof_expired`
+    internal static var errorProofExpired: String { AppL10n.copyLocale == .frCA ? "Votre confirmation a expiré avant la suppression du compte. Confirmez de nouveau qu'il s'agit bien de vous." : "Your confirmation ran out before the account was deleted. Confirm it is you again." }
+
+    /// `delete_account.error_sheet_did_not_open`
+    internal static var errorSheetDidNotOpen: String { AppL10n.copyLocale == .frCA ? "La fenêtre de connexion n'a pas pu s'ouvrir. Réessayez." : "The sign-in window could not open. Try again." }
+
+    /// `delete_account.error_sign_in_not_verified`
+    internal static var errorSignInNotVerified: String { AppL10n.copyLocale == .frCA ? "Cette connexion n'a pas pu être vérifiée, et rien n'a été confirmé. Réessayez." : "That sign-in could not be verified, so nothing was confirmed. Try again." }
+
+    /// `delete_account.error_too_many_attempts`
+    internal static var errorTooManyAttempts: String { AppL10n.copyLocale == .frCA ? "Trop de tentatives. Attendez une minute, puis réessayez." : "Too many attempts. Wait a minute, then try again." }
+
+    /// `delete_account.error_try_again_shortly`
+    internal static var errorTryAgainShortly: String { AppL10n.copyLocale == .frCA ? "Un problème est survenu de notre côté. Réessayez dans un instant." : "Something went wrong on our side. Try again in a moment." }
+
+    /// `delete_account.error_wrong_account`
+    internal static var errorWrongAccount: String { AppL10n.copyLocale == .frCA ? "Nous n'avons pas pu confirmer qu'il s'agit bien de vous. Dans la fenêtre de connexion, utilisez le compte connecté à cette application, puis réessayez." : "We could not confirm it is you. In the sign-in window, use the account this app is signed in to, then try again." }
+
+    /// `delete_account.error_wrong_code`
+    internal static var errorWrongCode: String { AppL10n.copyLocale == .frCA ? "Ce code n'est pas valide, ou il a déjà été utilisé. Entrez le code le plus récent." : "That code is not valid, or it has already been used. Enter the newest code." }
+
+    /// `delete_account.error_wrong_password`
+    internal static var errorWrongPassword: String { AppL10n.copyLocale == .frCA ? "Ce mot de passe n'est pas le bon. Vérifiez-le et réessayez." : "That password is not correct. Check it and try again." }
+
+    /// `delete_account.last_step`
+    internal static var lastStep: String { AppL10n.copyLocale == .frCA ? "Dernière étape" : "Last step" }
+
+    /// `delete_account.not_deleted`
+    internal static var notDeleted: String { AppL10n.copyLocale == .frCA ? "Votre compte n'a pas été supprimé." : "Your account was not deleted." }
+
+    /// `delete_account.password_label`
+    internal static var passwordLabel: String { AppL10n.copyLocale == .frCA ? "Votre mot de passe" : "Your password" }
+
+    /// `delete_account.submit`
+    internal static var submit: String { AppL10n.copyLocale == .frCA ? "Supprimer mon compte" : "Delete my account" }
+
+    /// `delete_account.subscriptions_cancelled`
+    internal static var subscriptionsCancelled: String { AppL10n.copyLocale == .frCA ? "Les abonnements des espaces de travail dont vous êtes propriétaire sont annulés sur-le-champ." : "The subscriptions of the workspaces you own are cancelled at once." }
+
+    /// `delete_account.title`
+    internal static var title: String { AppL10n.copyLocale == .frCA ? "Supprimer votre compte" : "Delete your account" }
+
+    /// `delete_account.type_email`
+    internal static var typeEmail: String { AppL10n.copyLocale == .frCA ? "Tapez l'adresse courriel de votre compte pour confirmer. Rien n'est supprimé avant que vous cliquiez sur Supprimer mon compte." : "Type your account's email address to confirm. Nothing is deleted until you click Delete my account." }
+
+    /// `delete_account.use_password`
+    internal static var usePassword: String { AppL10n.copyLocale == .frCA ? "Utiliser mon mot de passe" : "Use my password" }
+
+    /// `delete_account.what_is_deleted`
+    internal static var whatIsDeleted: String { AppL10n.copyLocale == .frCA ? "Votre profil d'utilisateur, vos réglages et tous les espaces de travail dont vous êtes propriétaire sont supprimés pour de bon." : "Your user profile, your settings and all workspaces where you are the owner are deleted for good." }
+
+    /// `delete_account.what_is_kept`
+    internal static var whatIsKept: String { AppL10n.copyLocale == .frCA ? "Les espaces de travail dont vous êtes membre sans en être propriétaire sont conservés. Vous n'en faites plus partie, et leurs propriétaires gardent leurs données." : "Workspaces you belong to but do not own are kept. You are removed from them, and their owners keep their data." }
 }
 
 extension DeskCopy {
@@ -5850,6 +5959,141 @@ extension SupportCopy {
 
     /// `support.write_unrepeatable`
     internal static var writeUnrepeatable: String { AppL10n.copyLocale == .frCA ? "Rien ne sera renvoyé d'ici. Le serveur n'a pas confirmé la réception; l'envoi a donc peut-être déjà abouti. Rouvrez la demande pour vérifier." : "This will not be sent again from here. The answer did not come back, so it may already have gone through. Reopen the request to check." }
+}
+
+extension TwoStepCopy {
+    /// `two_step.card_title`
+    internal static var cardTitle: String { AppL10n.copyLocale == .frCA ? "Sécurité" : "Security" }
+
+    /// `two_step.close`
+    internal static var close: String { AppL10n.copyLocale == .frCA ? "Fermer" : "Close" }
+
+    /// `two_step.code_prompt`
+    internal static var codePrompt: String { AppL10n.copyLocale == .frCA ? "Entrez ensuite le code à 6 chiffres que votre application d'authentification affiche pour District AI." : "Then enter the 6-digit code your authenticator app shows for District AI." }
+
+    /// `two_step.codes_done`
+    internal static var codesDone: String { AppL10n.copyLocale == .frCA ? "Je les ai enregistrés" : "I have saved them" }
+
+    /// `two_step.codes_left`
+    internal static func codesLeft(_ count: Int) -> String {
+        if AppL10n.copyLocale == .frCA {
+            if count == 0 || count == 1 {
+                return "\(count) code de récupération restant."
+            }
+            return "\(count) codes de récupération restants."
+        }
+        if count == 1 {
+            return "1 recovery code left."
+        }
+        return "\(count) recovery codes left."
+    }
+
+    /// `two_step.codes_none`
+    internal static var codesNone: String { AppL10n.copyLocale == .frCA ? "Il ne reste aucun code de récupération. Désactivez puis réactivez la vérification en deux étapes pour en obtenir de nouveaux." : "No recovery codes are left. Turn two-step verification off and on again to get new ones." }
+
+    /// `two_step.codes_title`
+    internal static var codesTitle: String { AppL10n.copyLocale == .frCA ? "Enregistrez vos codes de récupération" : "Save your recovery codes" }
+
+    /// `two_step.codes_warning`
+    internal static var codesWarning: String { AppL10n.copyLocale == .frCA ? "Chaque code permet une seule connexion si vous perdez votre application d'authentification. Enregistrez-les maintenant en lieu sûr. Ils ne seront plus affichés." : "Each code signs you in once if you lose your authenticator app. Save them somewhere safe now. They will not be shown again." }
+
+    /// `two_step.confirm_button`
+    internal static var confirmButton: String { AppL10n.copyLocale == .frCA ? "Activer la vérification en deux étapes" : "Turn on two-step verification" }
+
+    /// `two_step.copied`
+    internal static var copied: String { AppL10n.copyLocale == .frCA ? "Copié" : "Copied" }
+
+    /// `two_step.copy_all`
+    internal static var copyAll: String { AppL10n.copyLocale == .frCA ? "Tout copier" : "Copy all" }
+
+    /// `two_step.copy_key`
+    internal static var copyKey: String { AppL10n.copyLocale == .frCA ? "Copier la clé" : "Copy key" }
+
+    /// `two_step.error_load`
+    internal static var errorLoad: String { AppL10n.copyLocale == .frCA ? "Impossible de lire l'état de la vérification en deux étapes pour l'instant. Réessayez dans un moment." : "Two-step verification could not be read right now. Try again in a moment." }
+
+    /// `two_step.error_offline_load`
+    internal static var errorOfflineLoad: String { AppL10n.copyLocale == .frCA ? "Vous semblez être hors ligne. Vérifiez votre connexion et réessayez." : "You appear to be offline. Check your connection and try again." }
+
+    /// `two_step.error_offline_nothing_changed`
+    internal static var errorOfflineNothingChanged: String { AppL10n.copyLocale == .frCA ? "Vous semblez être hors ligne, donc rien n'a été modifié. Vérifiez votre connexion et réessayez." : "You appear to be offline, so nothing was changed. Check your connection and try again." }
+
+    /// `two_step.error_outcome_unknown_off`
+    internal static var errorOutcomeUnknownOff: String { AppL10n.copyLocale == .frCA ? "Nous n'avons pas reçu de réponse et ne savons pas si la vérification en deux étapes a été désactivée. Cet écran affiche maintenant son état." : "We did not hear back, so we cannot tell whether two-step verification was turned off. This screen now shows what is on." }
+
+    /// `two_step.error_outcome_unknown_on`
+    internal static var errorOutcomeUnknownOn: String { AppL10n.copyLocale == .frCA ? "Nous n'avons pas reçu de réponse et ne savons pas si la vérification en deux étapes a été activée. Cet écran affiche maintenant son état. Si elle est activée, désactivez-la puis réactivez-la pour obtenir des codes de récupération à enregistrer." : "We did not hear back, so we cannot tell whether two-step verification was turned on. This screen now shows what is on. If it is on, turn it off and on again to get recovery codes you can save." }
+
+    /// `two_step.error_proof_expired`
+    internal static var errorProofExpired: String { AppL10n.copyLocale == .frCA ? "Votre confirmation a expiré avant que la modification soit faite. Confirmez de nouveau qu'il s'agit bien de vous." : "Your confirmation ran out before the change was made. Confirm it is you again." }
+
+    /// `two_step.error_try_again`
+    internal static var errorTryAgain: String { AppL10n.copyLocale == .frCA ? "Un problème est survenu de notre côté. Rien n'a été modifié. Réessayez dans un moment." : "Something went wrong on our side. Nothing was changed. Try again in a moment." }
+
+    /// `two_step.key_label`
+    internal static var keyLabel: String { AppL10n.copyLocale == .frCA ? "Clé" : "Key" }
+
+    /// `two_step.no_password_note`
+    internal static var noPasswordNote: String { AppL10n.copyLocale == .frCA ? "Ce compte n'a pas de mot de passe. Pour désactiver cette option, confirmez qu'il s'agit bien de vous avec Google, Microsoft ou Apple." : "This account has no password, so confirm it is you with Google, Microsoft or Apple to turn this off." }
+
+    /// `two_step.off_explain`
+    internal static var offExplain: String { AppL10n.copyLocale == .frCA ? "Lorsqu'elle est activée, la connexion demande aussi un code à 6 chiffres d'une application d'authentification, et votre mot de passe seul ne suffit plus." : "When it is on, signing in also asks for a 6-digit code from an authenticator app, so your password alone is not enough." }
+
+    /// `two_step.on_since`
+    internal static func onSince(_ date: String) -> String {
+        AppL10n.copyLocale == .frCA ? "Activée depuis le \(date)." : "On since \(date)."
+    }
+
+    /// `two_step.open_authenticator`
+    internal static var openAuthenticator: String { AppL10n.copyLocale == .frCA ? "Ouvrir dans une application d'authentification" : "Open in an authenticator app" }
+
+    /// `two_step.open_failed`
+    internal static var openFailed: String { AppL10n.copyLocale == .frCA ? "Aucune application de ce Mac ne l'a ouvert. Balayez le code QR depuis un autre appareil, ou entrez la clé à la main." : "No app on this Mac opened it. Scan the QR code from another device, or enter the key by hand." }
+
+    /// `two_step.qr_label`
+    internal static var qrLabel: String { AppL10n.copyLocale == .frCA ? "Code QR pour votre application d'authentification" : "QR code for your authenticator app" }
+
+    /// `two_step.qr_unreadable`
+    internal static var qrUnreadable: String { AppL10n.copyLocale == .frCA ? "Le code QR n'a pas pu être affiché. Entrez plutôt la clé à la main." : "The QR code could not be shown. Enter the key by hand instead." }
+
+    /// `two_step.reauth_intro_off`
+    internal static var reauthIntroOff: String { AppL10n.copyLocale == .frCA ? "Connectez-vous de nouveau comme d'habitude. La vérification en deux étapes est désactivée dès que c'est fait." : "Sign in again the way you usually do. Two-step verification turns off as soon as you do." }
+
+    /// `two_step.reauth_intro_on`
+    internal static var reauthIntroOn: String { AppL10n.copyLocale == .frCA ? "Connectez-vous de nouveau comme d'habitude. Vous ajouterez ensuite District AI à votre application d'authentification." : "Sign in again the way you usually do. You then add District AI to your authenticator app." }
+
+    /// `two_step.retry`
+    internal static var retry: String { AppL10n.copyLocale == .frCA ? "Réessayer" : "Try again" }
+
+    /// `two_step.row_subtitle`
+    internal static var rowSubtitle: String { AppL10n.copyLocale == .frCA ? "Demander un code d'une application d'authentification à chaque connexion." : "Ask for a code from an authenticator app each time you sign in." }
+
+    /// `two_step.scan_intro`
+    internal static var scanIntro: String { AppL10n.copyLocale == .frCA ? "Balayez ce code QR avec votre application d'authentification, ou entrez à la main la clé ci-dessous." : "Scan this QR code with your authenticator app, or enter the key below by hand." }
+
+    /// `two_step.scan_title`
+    internal static var scanTitle: String { AppL10n.copyLocale == .frCA ? "Ajoutez District AI à votre application d'authentification" : "Add District AI to your authenticator app" }
+
+    /// `two_step.status_off`
+    internal static var statusOff: String { AppL10n.copyLocale == .frCA ? "Désactivée" : "Off" }
+
+    /// `two_step.status_on`
+    internal static var statusOn: String { AppL10n.copyLocale == .frCA ? "Activée" : "On" }
+
+    /// `two_step.title`
+    internal static var title: String { AppL10n.copyLocale == .frCA ? "Vérification en deux étapes" : "Two-step verification" }
+
+    /// `two_step.turn_off`
+    internal static var turnOff: String { AppL10n.copyLocale == .frCA ? "Désactiver" : "Turn off" }
+
+    /// `two_step.turn_on`
+    internal static var turnOn: String { AppL10n.copyLocale == .frCA ? "Activer" : "Turn on" }
+
+    /// `two_step.turned_off`
+    internal static var turnedOff: String { AppL10n.copyLocale == .frCA ? "La vérification en deux étapes est désactivée." : "Two-step verification is off." }
+
+    /// `two_step.turned_on`
+    internal static var turnedOn: String { AppL10n.copyLocale == .frCA ? "La vérification en deux étapes est activée." : "Two-step verification is on." }
 }
 
 extension VoiceStudioCopy {

@@ -377,6 +377,27 @@ final class SessionModel {
         setPhase(.signedOut(SessionCopy.signedOut))
     }
 
+    /// After the service deleted the account: everything ``signOut()`` clears on this Mac, with
+    /// none of its calls to the service, then the sign-in screen saying so. Ported from
+    /// district-ios.
+    ///
+    /// ⛔ NO PUSH UNREGISTER, NO PRESENCE UNREGISTER AND NO REVOKE. All three authenticate as an
+    /// account that no longer exists; the service removed its rows with it. See
+    /// ``AppContainer/forgetDeletedAccount()``. The phase ends the ringing and any call the way a
+    /// session the server ended does (``setPhase(_:)``, ``DesktopLive/sessionEnded()``), which
+    /// withdraws nothing.
+    ///
+    /// ⚠️ `externalErasurePending` IS THE SERVICE'S OWN FLAG: the account is deleted either way,
+    /// and the sentence says so before it says what is still being erased.
+    func finishDeletedAccount(externalErasurePending: Bool) async {
+        await container.forgetDeletedAccount()
+        push.forget()
+        selection.setSelectedWorkspaceId(nil)
+        setPhase(.signedOut(
+            externalErasurePending ? DeleteAccountCopy.deletedErasurePending : DeleteAccountCopy.deleted
+        ))
+    }
+
     // ── Wording ──────────────────────────────────────────────────────────────
 
     /// ⚠️ ONE MAPPING, IN ONE PLACE, and the sentences themselves live in

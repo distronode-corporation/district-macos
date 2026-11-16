@@ -100,6 +100,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         return .terminateLater
     }
 
+    /// ⛔ A TWO-STEP SECRET OR RECOVERY CODES COPIED IN THE LAST TWO MINUTES GO WITH THE APP: the
+    /// timer that would clear them dies with the process (``TwoStepSecret/expireOnQuit()``).
+    func applicationWillTerminate(_ notification: Notification) {
+        TwoStepSecret.expireOnQuit()
+    }
+
     func adopt(registrar: PushRegistrar) {
         self.registrar = registrar
         if let token = earlyToken {

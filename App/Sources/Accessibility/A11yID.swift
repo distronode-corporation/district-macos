@@ -216,6 +216,8 @@ enum A11yID {
         static let delete = "district-account-delete"
         /// ⚠️ MAC ONLY: "Ring on this computer".
         static let ringHere = "district-account-ring-here"
+        /// Opens the two-step verification sheet.
+        static let twoStep = "district-account-two-step"
     }
 
     /// The workspace-settings hub. Mirrors Android's

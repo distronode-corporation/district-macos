@@ -6,7 +6,7 @@ import XCTest
 /// cases, all of them, now that the Mac routes app links (``AppLinkRouting``).
 final class SchedulingRoutingTests: XCTestCase {
     private func outcome(_ path: String, query: String = "") -> AppLinkOutcome? {
-        AppLinkResolver.resolve(URL(string: "https://www.distronode.com\(path)\(query)")!)
+        AppLinkRouting.outcome(for: URL(string: "https://www.distronode.com\(path)\(query)")!)
     }
 
     private func destination(_ path: String) -> AppLinkDestination? {
@@ -200,6 +200,24 @@ final class SchedulingRoutingTests: XCTestCase {
         XCTAssertEqual(AppLinkRouting.action(for: value, selectedWorkspaceId: "ws_1", role: .client).tab, .overview)
         XCTAssertEqual(outcome("/dashboard/district/studio/integrations"), .openInBrowser)
         XCTAssertEqual(outcome("/dashboard/district/studio/video"), .openInBrowser)
+    }
+
+    /// ⛔ DistrictCore 8.6.0 RESOLVES THE INTEGRATIONS PAGE TO A STUDIO DESTINATION, for an app
+    /// that draws it (district-ios 3.4.0). This one does not, so it still opens the browser,
+    /// and a caller that skipped ``AppLinkRouting/outcome(for:)`` lands on the hub, never nowhere.
+    func test_MAC_STUDIOLINK_05_theIntegrationsPageStillOpensTheBrowser() throws {
+        let url = try XCTUnwrap(URL(string: "https://www.distronode.com/dashboard/district/studio/integrations"))
+        guard case let .destination(core)? = AppLinkResolver.resolve(url) else {
+            return XCTFail("the core resolves the integrations page to a destination since 8.6.0")
+        }
+        XCTAssertEqual(core.studioArea, .integrations)
+        XCTAssertEqual(AppLinkRouting.outcome(for: url), .openInBrowser)
+        XCTAssertEqual(
+            AppLinkRouting.action(for: core, selectedWorkspaceId: "ws_1", role: .agency).route,
+            .workspaceSettings(workspaceId: "ws_1", role: .agency, section: .hub)
+        )
+        let knowledge = try XCTUnwrap(URL(string: "https://www.distronode.com/dashboard/district/studio/knowledge"))
+        XCTAssertEqual(AppLinkRouting.outcome(for: knowledge), AppLinkResolver.resolve(knowledge), "others unchanged")
     }
 
     // MARK: - The gate

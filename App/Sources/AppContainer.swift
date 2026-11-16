@@ -315,6 +315,18 @@ final class AppContainer {
         await signOutCoordinator.drainPendingRevoke()
     }
 
+    /// The local half of a sign-out, for an account the service has just DELETED.
+    ///
+    /// ⛔ NO REVOKE AND NO OUTBOX ENTRY. The account is gone, and a missing account is a revoked
+    /// session on the service, so there is nothing left to end there; a revoke that came back
+    /// 503 would write an outbox entry retried on every launch for a credential that no longer
+    /// exists. The keychain session and pending slots are cleared by
+    /// ``TokenRefreshCoordinator/forget()``; an outbox entry from an EARLIER sign-out stays,
+    /// since it names another session.
+    func forgetDeletedAccount() async {
+        await coordinator.forget()
+    }
+
     // MARK: - Credential closures
 
     /// ⛔ Only `.available` carries a token; every other outcome sends NO Authorization

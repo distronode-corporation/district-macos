@@ -29,6 +29,21 @@ import Foundation
 /// ``DistrictSection`` for a screen that does not exist, in order to give the browser
 /// case somewhere to go, is exactly the mistake the ⛔ on ``DistrictSection`` refuses.
 enum AppLinkRouting {
+    /// What a URL means TO THIS APP: the core's answer, with the pages this app does not draw
+    /// sent to the browser.
+    ///
+    /// ⛔ THE STUDIO'S INTEGRATIONS PAGE OPENS IN THE BROWSER, AS IT DID BEFORE DistrictCore 8.6.0.
+    /// From 8.6.0 the resolver answers `/dashboard/district/studio/integrations` with a Studio
+    /// destination (district-ios 3.4.0 draws that screen), and its note says an app with no
+    /// integrations screen must route it to the web page itself. This app has none, so the
+    /// link is ``AppLinkOutcome/openInBrowser`` here, before any route is chosen.
+    static func outcome(for url: URL) -> AppLinkOutcome? {
+        guard let outcome = AppLinkResolver.resolve(url) else { return nil }
+        guard case let .destination(destination) = outcome else { return outcome }
+        let integrations = destination.section == .studio && destination.studioArea == .integrations
+        return integrations ? .openInBrowser : outcome
+    }
+
     /// ⚠️ TOTAL RATHER THAN OPTIONAL, UNLIKE ``PushRouting/action(for:selectedWorkspaceId:)``.
     /// A push can resolve to "do nothing" (wait, drop); a link that got this far was
     /// claimed by the entitlement, delivered by the OS, matched by the resolver AND
@@ -178,7 +193,7 @@ enum AppLinkRouting {
     ///
     /// ⛔ THE WEB'S STUDIO IS THIS APP'S SETTINGS HUB, so no area is the hub and each area
     /// is the hub's own row for it (see ``SettingsHubView/groups``). The core has already
-    /// sent every area this app cannot draw (`integrations`, `video`) to the browser.
+    /// sent `video` to the browser, and ``outcome(for:)`` sends `integrations`.
     ///
     /// ⛔ A SCREEN ``RouteGate`` HIDES FROM THIS ROLE LANDS ON THE HUB INSTEAD. A viewer
     /// sharing a persona link would otherwise open a screen whose first read answers 403;
@@ -194,6 +209,9 @@ enum AppLinkRouting {
         case .callHandling: .calls
         case .skills: .capabilities
         case .knowledge: .knowledge
+        // ⚠️ NEVER REACHED: ``outcome(for:)`` sends the integrations page to the browser. The
+        // hub is the honest surface, one level up, should a caller skip it.
+        case .integrations: .hub
         }
         let route = Route.workspaceSettings(workspaceId: workspaceId, role: role, section: section)
         if case .hidden = RouteGate.gate(for: route, role: role) {
