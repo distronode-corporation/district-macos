@@ -82,6 +82,30 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   needs the next release's sign-off. `TwoStepModelTests` (15) and `TwoStepGuardTests` (10) from
   district-ios (their single-flight cases hold the first request on the wire), and
   `MacTwoStepTests` (10).
+- The setup wizard in the app, on DistrictCore's `SetupWizardRepository`, `WorkspaceRepository`
+  and `CallHandlingRepository`, ported from district-ios #120 and #127. Finish setting up on the
+  Overview now opens the web's six steps in a sheet, in the web's order and words, resuming on the
+  first step still to do: find your business (with a draft read from the owner's website), your
+  number, your receptionist (name, greeting, voice), what callers should know (time zone, opening
+  hours, address, services and common questions, each with Use on calls), calls, people and
+  bookings (who answers first, caller profiles), and test and go live (a test call to the owner's
+  mobile and the forwarding check). Buying a number stays on the web, and is offered only on the
+  United States App Store storefront (Guideline 3.1.3(f)): there an owner who holds none opens the
+  setup page in the default browser, and the wizard reads its state again when the app is active
+  again; on any other storefront, and in the direct download, which has none, the step says new
+  numbers cannot be purchased in this app, with no link. The same re-read follows the Skills page
+  (the email identity and the transfer number) and the Integrations page (a calendar sign-in).
+  Every step saves as it goes, so Finish later loses nothing saved; one step write at a time, and
+  no move while one is in flight. A member who is not the owner, and a workspace from before the
+  wizard, are told why, never shown an error. On the Mac the sheet is drawn in `MacSheetChrome`:
+  Back, Skip and Finish later (Esc) are its bottom row, one height and treatment, and Done
+  (Return) closes a finished or refused wizard. 215 strings: 214 from district-ios in English and
+  French (the 3.4.0 sign-off's French), with "click" where iOS says "tap" and "come back here"
+  where it says "close it"; the French needs the next release's sign-off, and
+  `setup.number_none_body_no_purchase` is new. The country and province pickers are drawn as
+  fields, not as macOS pop-up bars. `SetupWizardModelTests`, `SetupFlowTests`,
+  `SetupStepModelTests`, `SetupLaterStepModelTests` and `SetupBusinessFactsTests` from
+  district-ios, and `MacSetupWizardTests` (6).
 
 ### Changed
 

@@ -8,11 +8,11 @@ import SwiftUI
 /// dashboard or the site. So the card says
 /// what is left to do and what the button does, and the page it opens speaks for itself.
 ///
-/// ⛔ THE BUTTON NEVER USES `openURL`. `applinks:www.distronode.com` claims
-/// `/dashboard/district/*`, so asking the system to open that URL can route it straight
-/// back into this app: a relaunch loop with no user input in the cycle. iOS renders the
-/// page in an in-app Safari sheet; macOS has none, so the Mac names the default browser
-/// (``BrowserHandOff``), as Android's `launchExternally` names a browser package.
+/// ⛔ THE BUTTON OPENS THE WIZARD IN THE APP (``SetupWizardView``), as on iOS since 3.4.0.
+/// Until then it opened the web's console home in the default browser; the pages the wizard
+/// still hands to the web open the same way, from inside it (``SetupHandOff``), and never
+/// through `openURL`, because `applinks:www.distronode.com` claims `/dashboard/district/*`
+/// and the system could route them straight back here.
 ///
 /// ⚠️ ITS WORDS ARE THE CATALOG'S, in English or Canadian French, like the rest of the app.
 struct FinishSetupCard: View {
@@ -43,22 +43,6 @@ struct FinishSetupCard: View {
         .districtCardSurface()
         // ⛔ `.contain`, so the button keeps its own identifier and stays operable.
         .accessibilityElement(children: .contain)
-    }
-
-    /// Where the button goes: the District console home on the host this build talks to.
-    ///
-    /// ⚠️ DERIVED FROM THE CONTAINER'S BASE URL, never a literal, so a staging build hands
-    /// off to staging (the rule ``AppContainer/baseURL`` states). The path is
-    /// ``AppLinkResolver/pathPrefix``, the prefix the app already claims, so it names the
-    /// same page the association file does and cannot drift from it.
-    static func destination(baseURL: URL) -> URL? {
-        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else { return nil }
-        // ⛔ HTTPS ONLY, as on iOS (where `SFSafariViewController` traps on any other scheme).
-        guard components.scheme == "https" else { return nil }
-        components.path = AppLinkResolver.pathPrefix
-        components.query = nil
-        components.fragment = nil
-        return components.url
     }
 }
 

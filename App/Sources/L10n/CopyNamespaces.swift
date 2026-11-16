@@ -49,3 +49,6 @@ enum OverviewCopy {}
 
 /// The workspace header and picker.
 enum WorkspacesCopy {}
+
+/// The setup wizard (``SetupWizardView``) and its six steps.
+enum SetupCopy {}

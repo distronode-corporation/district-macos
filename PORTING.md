@@ -63,6 +63,8 @@ not copied: they are shared.
 | 12 | Tests: `DeleteAccountModelTests`, `ReauthSheetControllerTests` | `80f622b` | `App/Tests/` |
 | 12 | Two-step verification: `TwoStepModel` (unchanged), `TwoStepView` (in `MacSheetChrome`, covered on `NSApplication`'s resign-active), `TwoStepSecretCards` (`NSPasteboard` with `.currentHostOnly` and a two-minute clear, `NSImage`), the Account row, the strings and identifiers | `885b84b` | `App/Sources/Features/Account/`, `App/Sources/Accessibility/A11yID+TwoStep.swift` |
 | 12 | Tests: `TwoStepModelTests`, `TwoStepGuardTests`, `TwoStepTestSupport` | `885b84b` | `App/Tests/` |
+| 13 | The setup wizard: `SetupWizardModel`, `SetupFlow`, `SetupFacts`, `SetupPlaces` and the step models (unchanged), `SetupWizardView` (in `MacSheetChrome`), `SetupChrome` (the hand-offs in the default browser), the six step views, the Overview card opening it, the strings and identifiers | `c1ababc` | `App/Sources/Features/Setup/`, `App/Sources/Features/Overview/`, `App/Sources/Accessibility/A11yID+Setup.swift` |
+| 13 | Tests: `SetupWizardModelTests`, `SetupFlowTests`, `SetupStepModelTests`, `SetupLaterStepModelTests`, `SetupBusinessFactsTests`, `SetupTestSupport`, and the setup allowances in `StoreCopyTests` | `c1ababc` | `App/Tests/` |
 
 `4777c40` is district-ios commit `4777c40b032ecb437ede22060b71b754cebe6610` ("Adopt
 district-core-swift 2.0.0").
@@ -117,6 +119,23 @@ the Mac cannot copy is the re-authentication window's session: district-ios buil
 `ASWebAuthenticationSession` and its completion handler inline in a `@MainActor` type, which on
 the Mac traps when the window closes (build 20012), so `WebAuthSheet` takes its session from
 `WebAuthLoginController.makeSession`. Mac-only tests: `MacDeleteAccountTests`, `MacTwoStepTests`.
+
+Wave 13 (the setup wizard) is ported from district-ios #120 (`c1d76a7`) and #127 (`23f85fd`), as of `c1ababc`, at
+the French of the 3.4.0 sign-off (`1cdd029`). The models are copied unchanged. ⛔ The one
+deliberate difference is where the web's pages open: iOS opens buying a number, the Skills page
+and the Integrations page in an in-app Safari sheet and reads the wizard again when it closes;
+the Mac opens them in the default browser, named (`BrowserHandOff`), and reads the wizard again
+when the app becomes active after it, as the calendar connect does. So three sentences change:
+the number step says "come back here" where iOS says "close it", and the test call's consent
+heading and the stalled forwarding check say "click" where iOS says "tap". The sheet is drawn in
+`MacSheetChrome`: Back, Skip and Finish later (Esc) are its bottom row, one height and treatment
+(iOS draws Skip as a ghost button); the iOS keyboard toolbar's Done is dropped (a Mac keyboard
+has Return). Two more Mac differences: `SetupPicker`'s `Menu` takes the button menu style with
+no indicator, or macOS draws it as a grey pop-up bar; and `SetupCalendar.swift` holds iOS's
+Integrations rule for the booked calendar, because the Mac has no Integrations screen yet. ⛔ The
+setup page for buying a number is offered on the US storefront only (`SetupPurchase`, Sean
+2026-11-15, Guideline 3.1.3(f)); the iPhone app takes the same change. Mac-only tests:
+`MacSetupWizardTests`.
 
 Wave 9 adds Mac-only tests with no iOS original: `MacSchedulingTests` (the two scheduling
 tables' order and cells, the navigator a table row opens through, the settings hub's
