@@ -77,6 +77,7 @@ final class MacDeleteAccountTests: XCTestCase {
 enum FooterButtons {
     static func assertStyled(
         _ name: String,
+        in folder: String = "Account",
         until endMarker: String,
         expected: Int,
         file: StaticString = #filePath,
@@ -85,7 +86,7 @@ enum FooterButtons {
         let url = URL(fileURLWithPath: "\(file)")
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("Sources/Features/Account/\(name)")
+            .appendingPathComponent("Sources/Features/\(folder)/\(name)")
         try XCTSkipUnless(FileManager.default.fileExists(atPath: url.path), "sources are not beside this test")
         let code = try SourceComments.stripped(String(contentsOf: url, encoding: .utf8))
         let start = try XCTUnwrap(code.range(of: "private var buttons: some View {"), file: file, line: line)

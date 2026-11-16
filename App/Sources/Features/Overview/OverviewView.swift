@@ -44,6 +44,8 @@ struct OverviewView: View {
     @State private var isPickerPresented = false
     /// The owner mid-setup's card. ⚠️ Its own model: see the ⛔ on ``FinishSetupModel``.
     @State private var setup: FinishSetupModel
+    /// The workspace whose setup wizard is open, while it is.
+    @State private var wizardWorkspace: SetupWizardTarget?
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -79,6 +81,9 @@ struct OverviewView: View {
         .sheet(isPresented: $isPickerPresented) {
             WorkspacePickerSheet(workspaceSession: workspaceSession)
         }
+        // ⚠️ THE WIZARD RUNS IN THE APP (as on iOS since 3.4.0); the pages it hands to the web
+        // open in the default browser from inside it.
+        .setupWizardSheet($wizardWorkspace, container: container, workspaceSession: workspaceSession, card: setup)
         .navigationTitle(Tab.overview.label)
         // ⛔ `.contain` FIRST. See the long note in SignInView: an identifier on a
         // container is INHERITED, so applied alone it stamps every metric tile and
@@ -160,11 +165,14 @@ struct OverviewView: View {
     @ViewBuilder
     private func finishSetup(_ response: OverviewResponse) -> some View {
         let offered = setup.isOffered && setup.workspaceId == response.workspaceId
-        if offered, let url = FinishSetupCard.destination(baseURL: container.baseURL) {
-            // ⛔ THE DEFAULT BROWSER, NAMED, NOT `openURL`: the page is one this app claims.
-            // See ``BrowserHandOff`` and ``FinishSetupCard``.
-            FinishSetupCard(onOpen: { BrowserHandOff.open(url) })
-                .padding(.horizontal, DistrictSpacing.gutter)
+        if offered {
+            FinishSetupCard(onOpen: {
+                wizardWorkspace = SetupWizardTarget(
+                    workspaceId: response.workspaceId,
+                    workspaceName: workspaceSession.selectedEntry?.name ?? ""
+                )
+            })
+            .padding(.horizontal, DistrictSpacing.gutter)
         }
     }
 
