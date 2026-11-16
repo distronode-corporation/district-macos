@@ -99,7 +99,7 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   no move while one is in flight. A member who is not the owner, and a workspace from before the
   wizard, are told why, never shown an error. On the Mac the sheet is drawn in `MacSheetChrome`:
   Back, Skip and Finish later (Esc) are its bottom row, one height and treatment, and Done
-  (Return) closes a finished or refused wizard. 215 strings: 214 from district-ios in English and
+  (Return) closes a finished or refused wizard. 214 strings: 213 from district-ios in English and
   French (the 3.4.0 sign-off's French), with "click" where iOS says "tap" and "come back here"
   where it says "close it"; the French needs the next release's sign-off, and
   `setup.number_none_body_no_purchase` is new. The country and province pickers are drawn as

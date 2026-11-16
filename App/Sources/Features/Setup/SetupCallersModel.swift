@@ -87,7 +87,11 @@ final class SetupCallersModel {
 
     func addPeriod(to day: SetupWeekday) {
         guard var draft = hours[day], draft.intervals.count < SetupFacts.Limit.intervalsPerDay else { return }
-        let start = min((draft.intervals.map(\.close).max() ?? 9 * 60) + 60, 23 * 60)
+        let lastClose = draft.intervals.map(\.close).max() ?? 9 * 60
+        let start = min(lastClose + 60, 23 * 60)
+        // ⚠️ NO PERIOD THAT WOULD OVERLAP: a day already open past 23:00 has no room for an hour
+        // after it (cubic on #114).
+        guard start >= lastClose else { return }
         draft.intervals.append(SetupInterval(open: start, close: min(start + 60, 24 * 60)))
         hours[day] = draft
     }

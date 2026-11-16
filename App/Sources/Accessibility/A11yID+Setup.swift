@@ -88,11 +88,6 @@ extension A11yID {
             static let checkStatus = "district-setup-golive-check-status"
             static let summary = "district-setup-golive-summary"
             static let finish = "district-setup-golive-finish"
-
-            /// ⛔ A REAL CALL ON THE CARRIER ACCOUNT, OR THE WORKSPACE'S SETUP MARKED FINISHED, so
-            /// `UITestApp.forbiddenSurfaces` refuses them: only the loopback
-            /// `SetupWizardScreenshotTests` taps them.
-            static let forbiddenSurfaces: Set<String> = [callMe, startCheck, finish]
         }
     }
 }

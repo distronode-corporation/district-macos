@@ -6179,9 +6179,6 @@ extension SetupCopy {
     /// `setup.golive_unanswered_note`
     internal static var goliveUnansweredNote: String { AppL10n.copyLocale == .frCA ? "Ne répondez pas quand votre ligne d'affaires sonne. Laissez-la sonner jusqu'au renvoi." : "Do not answer when your business line rings. Let it ring until it forwards." }
 
-    /// `setup.handoff_returned`
-    internal static var handoffReturned: String { AppL10n.copyLocale == .frCA ? "Vérification des changements" : "Checking what changed" }
-
     /// `setup.loading`
     internal static var loading: String { AppL10n.copyLocale == .frCA ? "Chargement de votre configuration" : "Loading your setup" }
 

@@ -84,10 +84,12 @@ final class SetupReceptionistModel {
     func load() async {
         phase = .loading
         // ⚠️ ONE AFTER ANOTHER, NOT `async let`: see ``SetupGoLiveModel/load()``.
+        // ⚠️ THE OPTIONS ONLY AFTER A CONFIG THAT LOADED: a failed one is the step's answer (cubic
+        // on #114).
         let configResult = await workspaces.config(workspaceId: wizard.workspaceId)
-        let optionsResult = await workspaces.personaOptions(workspaceId: wizard.workspaceId)
         switch configResult {
         case let .success(config):
+            let optionsResult = await workspaces.personaOptions(workspaceId: wizard.workspaceId)
             adopt(config.aiPersona, options: try? optionsResult.get())
             phase = .ready
         case let .failure(error):

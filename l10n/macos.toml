@@ -16364,15 +16364,6 @@ screen = "setup.golive"
 state = "reviewed"
 id = { swift = "SetupCopy.goliveUnansweredNote" }
 
-[setup.handoff_returned]
-en = "Checking what changed"
-fr = "Vérification des changements"
-ctx = "label"
-screen = "setup"
-state = "reviewed"
-id = { swift = "SetupCopy.handoffReturned" }
-note = "Shown while the wizard reads its state again after a page opened in a sheet closes."
-
 [setup.loading]
 en = "Loading your setup"
 fr = "Chargement de votre configuration"

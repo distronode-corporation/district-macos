@@ -125,6 +125,9 @@ final class SetupWizardModel {
                 )
             }
             if response.setupProgress?.completedAt != nil {
+                // ⚠️ FINISHED ELSEWHERE (the web, another device): the draft kept here is dropped
+                // too, as after a finish here (cubic on #114).
+                store.clear(workspaceId: workspaceId)
                 phase = .finished
                 return
             }
@@ -156,6 +159,7 @@ final class SetupWizardModel {
         guard case let .success(response) = await repository.load(workspaceId: workspaceId) else { return }
         data = response
         if response.setupProgress?.completedAt != nil {
+            store.clear(workspaceId: workspaceId)
             phase = .finished
         } else if before == .todo, state(of: step) != .todo, active == step {
             active = SetupFlow.firstOpen(response.setupProgress)

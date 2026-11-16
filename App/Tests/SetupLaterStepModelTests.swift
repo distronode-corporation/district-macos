@@ -97,6 +97,19 @@ final class SetupLaterStepModelTests: SetupStepTestCase {
         XCTAssertEqual(model.hours[.mon]?.state, .notSet)
     }
 
+    /// ⚠️ ADD A PERIOD NEVER MAKES AN OVERLAP: a day open past 23:00 gets none (cubic on #114).
+    func testAddPeriodAddsNoOverlap() async {
+        let model = await SetupCallersModel(wizard: wizard(SetupTransport([:])))
+        model.hours[.mon] = SetupDayDraft(state: .open, intervals: [SetupInterval(open: 9 * 60, close: 17 * 60)])
+        model.addPeriod(to: .mon)
+        XCTAssertEqual(model.hours[.mon]?.intervals.map(\.open), [9 * 60, 18 * 60])
+        XCTAssertEqual(model.hours[.mon].map(SetupFacts.isValid), true)
+
+        model.hours[.tue] = SetupDayDraft(state: .open, intervals: [SetupInterval(open: 18 * 60, close: 24 * 60)])
+        model.addPeriod(to: .tue)
+        XCTAssertEqual(model.hours[.tue]?.intervals.count, 1, "no room after midnight's close")
+    }
+
     func testAnInvalidEntryIsNeverSent() async {
         let transport = SetupTransport([:])
         let model = await SetupCallersModel(wizard: wizard(transport))
@@ -181,8 +194,12 @@ final class SetupLaterStepModelTests: SetupStepTestCase {
     /// ⛔ A FAILED READ IS NOT A FORM OF DEFAULTS.
     func testAFailedCallHandlingReadIsARetry() async {
         let transport = SetupTransport([
-            SetupFixture.callHandlingRoute: [(500, "{\"error\":\"Boom\"}")],
+            SetupFixture.callHandlingRoute: [
+                (500, "{\"error\":\"Boom\"}"),
+                (200, SetupFixture.callHandling("app_first", ring: 25)),
+            ],
             SetupFixture.configRoute: [(200, SetupFixture.config())],
+            SetupFixture.connectionsRoute: [(200, SetupFixture.connections)],
         ])
         let model = await SetupCallsModel(
             wizard: wizard(transport),
@@ -193,6 +210,11 @@ final class SetupLaterStepModelTests: SetupStepTestCase {
         await model.load()
 
         guard case .failed = model.phase else { return XCTFail("got \(model.phase)") }
+        // ⚠️ AND THE RETRY READS AGAIN (cubic on #114).
+        await model.load()
+        guard case .ready = model.phase else { return XCTFail("got \(model.phase)") }
+        XCTAssertEqual(model.mode, "app_first")
+        XCTAssertEqual(model.ringSeconds, 25)
     }
 
     // MARK: - Step 6
@@ -235,7 +257,10 @@ final class SetupLaterStepModelTests: SetupStepTestCase {
         model.mobile = "+14165550123"
         transport.delay = .milliseconds(200)
 
+        // ⚠️ THE SECOND TAP ONLY ONCE THE FIRST IS IN FLIGHT (cubic on #114), so it provably
+        // overlaps it: the transport holds the answer for 200ms.
         async let first: Void = model.callMe()
+        await until { model.isCalling }
         async let second: Void = model.callMe()
         _ = await (first, second)
 

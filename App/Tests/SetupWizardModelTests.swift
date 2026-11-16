@@ -62,6 +62,47 @@ final class SetupWizardModelTests: XCTestCase {
         guard case .finished = model.phase else { return XCTFail("got \(model.phase)") }
     }
 
+    /// ⚠️ A WIZARD FINISHED ELSEWHERE DROPS THE DRAFT KEPT ON THIS MAC, at the open and after a
+    /// page handed to the web (cubic on #114).
+    func testAWizardFinishedElsewhereDropsTheDraft() async {
+        let defaults = SetupDefaults.fresh()
+        let store = SetupDraftStore(defaults: defaults)
+        let draft = SetupBusinessDraft(
+            businessName: "Old",
+            country: "CA",
+            subdivision: "ON",
+            city: "Toronto",
+            language: .fr
+        )
+        let finished = SetupFixture.setup(Array(repeating: "done", count: 6), completed: true)
+
+        store.save(draft, workspaceId: "ws_1")
+        let atOpen = SetupWizardModel(
+            repository: SetupWizardRepository(client: SetupTransport([SetupFixture.setupRoute: [(200, finished)]])
+                .client),
+            workspaceId: "ws_1",
+            workspaceName: "Northside Dental",
+            store: store
+        )
+        await atOpen.load()
+        guard case .finished = atOpen.phase else { return XCTFail("got \(atOpen.phase)") }
+        XCTAssertNil(store.load(workspaceId: "ws_1"), "dropped at the open")
+
+        store.save(draft, workspaceId: "ws_1")
+        let transport = SetupTransport([SetupFixture.setupRoute: [(200, SetupFixture.setup()), (200, finished)]])
+        let afterPage = SetupWizardModel(
+            repository: SetupWizardRepository(client: transport.client),
+            workspaceId: "ws_1",
+            workspaceName: "Northside Dental",
+            store: store
+        )
+        await afterPage.load()
+        XCTAssertNotNil(store.load(workspaceId: "ws_1"), "kept while setup is open")
+        await afterPage.refreshAfterHandOff()
+        guard case .finished = afterPage.phase else { return XCTFail("got \(afterPage.phase)") }
+        XCTAssertNil(store.load(workspaceId: "ws_1"), "dropped after the page finished it")
+    }
+
     /// ⛔ STEP 1 OPENS ON THE PERSONA'S LANGUAGE, not the app's, so step 3 cannot replace it unasked.
     func testStepOneOpensOnThePersonasLanguage() async {
         let transport = SetupTransport([SetupFixture.setupRoute: [(200, SetupFixture.setup())]])
