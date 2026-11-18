@@ -98,15 +98,15 @@ side by side, either one may answer a link or a notification.
 
 Every `.dmg` on Releases comes with `SHA256SUMS` and a build provenance attestation made by
 [`release.yml`](.github/workflows/release.yml) on a GitHub-hosted runner. To check a
-download, fetch the files of its release into an empty folder with the
+download, fetch the files of its release into a new, empty folder with the
 [GitHub CLI](https://cli.github.com), giving the release's tag (`v3.3.0` below; use the tag of
 the version you have):
 
 ```sh
-mkdir district-ai-verify && cd district-ai-verify
+cd "$(mktemp -d)" &&
 gh release download v3.3.0 --repo distronode-corporation/district-macos \
-  --pattern 'DistrictAI-*' --pattern SHA256SUMS
-shasum -a 256 -c SHA256SUMS
+  --pattern 'DistrictAI-*' --pattern SHA256SUMS &&
+shasum -a 256 -c SHA256SUMS &&
 gh attestation verify DistrictAI-*.dmg --repo distronode-corporation/district-macos
 ```
 
