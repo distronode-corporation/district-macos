@@ -6,20 +6,44 @@
 
 # District AI for Mac
 
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/distronode-corporation/district-macos/badge)](https://scorecard.dev/viewer/?uri=github.com/distronode-corporation/district-macos)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15871/badge)](https://www.bestpractices.dev/projects/15871)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/distronode-corporation/district-macos/badge)](https://scorecard.dev/viewer/?uri=github.com/distronode-corporation/district-macos)
 [![Latest release](https://img.shields.io/github/v/release/distronode-corporation/district-macos?label=release)](https://github.com/distronode-corporation/district-macos/releases/latest)
+[![License: Apache-2.0](https://img.shields.io/github/license/distronode-corporation/district-macos)](LICENSE)
+[![CI](https://github.com/distronode-corporation/district-macos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/distronode-corporation/district-macos/actions/workflows/ci.yml)
+
+The native Mac app for District AI, the AI voice receptionist from
+[Distronode](https://distronode.com) that answers a business's phone calls.
+
+<!-- HERO: a screenshot of the app, captured on the iMac, goes here (see docs/screenshots.md). -->
+
+**Quick start** on macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
+[Releases](https://github.com/distronode-corporation/district-macos/releases/latest) is the same
+build):
+
+```sh
+brew install distronode-corporation/tap/district-ai
+open -a "District AI"    # then sign in with your District AI account
+```
+
+Or get it from the Mac App Store:
 
 <a href="https://apps.apple.com/app/id6809297970?platform=mac"><img alt="Download on the Mac App Store" src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-mac-app-store/black/en-us" height="44"></a>
+
+**Links:** [Distronode](https://distronode.com) ·
+[project page](https://www.distronode.com/open-source/district-macos) ·
+[Distronode on GitHub](https://github.com/distronode-corporation) ·
+[CHANGELOG](CHANGELOG.md) · [ROADMAP](ROADMAP.md) ·
+[SECURITY-MODEL](SECURITY-MODEL.md) ·
+[GitLab mirror](https://gitlab.com/distronode-corporation/district-macos) (read-only mirror;
+issues and pull requests live on GitHub)
+
+## What it is
 
 The native macOS client for [District AI](https://www.distronode.com/district-ai), the AI
 receptionist service by Distronode. It matches the iPad app section for section: calls
 placed and answered on the Mac, the inbox, contacts, meeting rooms and the settings of a
 District AI workspace.
-
-**Links:** [project page](https://www.distronode.com/open-source/district-macos),
-[GitLab mirror](https://gitlab.com/distronode-corporation/district-macos) (read-only
-mirror; issues and pull requests live on GitHub), [CHANGELOG](CHANGELOG.md).
 
 **Status:** the release badge above names the current release, a signed, notarised download on
 [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) and through Homebrew
@@ -69,6 +93,41 @@ Mac reads English.
 **Install one, not both.** The two builds are the same app (one bundle identifier), so
 they share their settings, their saved session and the `districtai://` links; installed
 side by side, either one may answer a link or a notification.
+
+## Verify a download
+
+Every `.dmg` on Releases comes with `SHA256SUMS` and a build provenance attestation made by
+[`release.yml`](.github/workflows/release.yml) on a GitHub-hosted runner. To check a
+download (with the [GitHub CLI](https://cli.github.com)):
+
+```sh
+gh release download --repo distronode-corporation/district-macos \
+  --pattern 'DistrictAI-*' --pattern SHA256SUMS
+shasum -a 256 -c SHA256SUMS
+gh attestation verify DistrictAI-<version>-<build>.dmg --repo distronode-corporation/district-macos
+```
+
+The attestation names the workflow and the tag the `.dmg` was built from. The `.dmg` is
+also Developer ID signed and notarised, which macOS checks when you open it, and Sparkle
+checks every update against the EdDSA key built into the app before installing it. The Mac
+App Store build is checked by the App Store.
+
+## Uninstall
+
+Sign out first (Account, Sign out) if you want the session ended on the service as well:
+signing out revokes the app's refresh token. Then choose Quit from District AI's menu bar
+icon (closing the window keeps it running), and remove it:
+
+- **Homebrew:** `brew uninstall --cask district-ai` (add `--zap` to remove Sparkle's update
+  cache too).
+- **The `.dmg` or the Mac App Store:** drag District AI from Applications to the Trash.
+
+The app is sandboxed, so what it keeps on the Mac is in its container,
+`~/Library/Containers/com.distronode.district`; delete that folder to remove its settings
+too. Its session is in the keychain; if one is left there, the first launch of a new install
+wipes it and queues its revoke rather than use it. Your District AI account and workspace
+are on the service and are not touched; deleting the account in the app (Account, Delete
+account) is on `main` and listed under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md).
 
 ## Requirements
 
