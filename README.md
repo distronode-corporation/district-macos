@@ -98,25 +98,31 @@ side by side, either one may answer a link or a notification.
 
 Every `.dmg` on Releases comes with `SHA256SUMS` and a build provenance attestation made by
 [`release.yml`](.github/workflows/release.yml) on a GitHub-hosted runner. To check a
-download (with the [GitHub CLI](https://cli.github.com)):
+download, fetch the files of its release into an empty folder with the
+[GitHub CLI](https://cli.github.com), giving the release's tag (`v3.3.0` below; use the tag of
+the version you have):
 
 ```sh
-gh release download --repo distronode-corporation/district-macos \
+mkdir district-ai-verify && cd district-ai-verify
+gh release download v3.3.0 --repo distronode-corporation/district-macos \
   --pattern 'DistrictAI-*' --pattern SHA256SUMS
 shasum -a 256 -c SHA256SUMS
-gh attestation verify DistrictAI-<version>-<build>.dmg --repo distronode-corporation/district-macos
+gh attestation verify DistrictAI-*.dmg --repo distronode-corporation/district-macos
 ```
 
-The attestation names the workflow and the tag the `.dmg` was built from. The `.dmg` is
-also Developer ID signed and notarised, which macOS checks when you open it, and Sparkle
-checks every update against the EdDSA key built into the app before installing it. The Mac
-App Store build is checked by the App Store.
+The attestation names the workflow and the tag the `.dmg` was built from. To check a `.dmg`
+you already have, compare it with the line for its name in that release's `SHA256SUMS`, and
+give its own file name to `gh attestation verify`. The `.dmg` is also Developer ID signed and
+notarised, which macOS checks when you open it, and Sparkle checks every update against the
+EdDSA key built into the app before installing it. The Mac App Store build is checked by the
+App Store.
 
 ## Uninstall
 
 Sign out first (Account, Sign out), with the Mac online, if you want the session ended on the
-service as well: signing out revokes the app's refresh token, and a revoke the service could
-not be reached for is kept to send later. Then choose Quit from District AI's menu bar
+service as well: signing out revokes the app's refresh token. A revoke the service could not
+be reached for is kept and sent on the app's next launch, so if you remove the app before that,
+the session stays open on the service until it expires. Then choose Quit from District AI's menu bar
 icon (closing the window keeps it running), and remove it:
 
 - **Homebrew:** `brew uninstall --cask district-ai` (add `--zap` to remove Sparkle's update

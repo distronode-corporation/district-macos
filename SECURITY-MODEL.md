@@ -74,8 +74,7 @@ attacker who already controls the Mac or the user's account on it.
 ## Assurance case
 
 Each control is held by a test CI runs on every pull request
-([.github/workflows/ci.yml](.github/workflows/ci.yml)), a test the release workflow runs before
-it builds, a test in DistrictCore's CI at the pinned release, or, where no test can hold it,
+([.github/workflows/ci.yml](.github/workflows/ci.yml)), a test the release workflow runs, a test in DistrictCore's CI at the pinned release, or, where no test can hold it,
 says so. Weaknesses are mapped to the CWE Top 25 and the OWASP Top 10.
 
 | Weakness | How it is countered | Tests |
@@ -84,13 +83,13 @@ says so. Weaknesses are mapped to the CWE Top 25 and the OWASP Top 10.
 | Replay of a spent refresh token (CWE-294) | One refresh at a time; a quit waits for the rotated token to be stored. | core: `Tests/DistrictAuthCoreTests/TokenRefreshConcurrencyTests.swift` (`testNoTokenIsEverPresentedTwiceUnderRepeatedRaces`), `App/Tests/MacQuitRefreshTests.swift` (`test_MAC_QUIT_01_aQuitWaitsForTheRotatedTokenToBeStored`) |
 | A session surviving sign-out or an uninstall (CWE-613) | A refresh landing after sign-out writes nothing and is revoked; a fresh install wipes an old session. | core: `Tests/DistrictAuthCoreTests/SignOutRaceTests.swift` (`testARefreshLandingAfterSignOutWritesNothingAndRevokesItsSuccessor`), core: `FreshInstallTokenStoreTests.swift` (`testAnOwedWipeHidesTheOldSessionAndQueuesItsRevoke`) |
 | Cleartext storage of credentials (CWE-312, CWE-922) | Data-protection keychain, this device only, never synchronised. | Mechanism only: `App/Sources/KeychainTokenStore.swift`; the keychain group cannot be used by CI's ad-hoc build. |
-| Download of code without an integrity check (CWE-494) | Sparkle EdDSA signature against the key in the app; the placeholder key is refused by the app and by the release preflight; publishing checks the checksums, the Sparkle signature and the attestation. | `scripts/release-preflight.test.sh` ("the scaffold's placeholder is refused", run by `release.yml` before it builds), `scripts/release-publish.test.sh` and `scripts/appcast_test.py` (CI) |
+| Download of code without an integrity check (CWE-494) | Sparkle EdDSA signature against the key in the app; the placeholder key is refused by the app and by the release preflight; publishing checks the checksums, the Sparkle signature and the attestation. | `scripts/release-preflight.test.sh` ("the scaffold's placeholder is refused", run by `release.yml`'s App Store job on a tag, before it builds; the Developer ID job does not run it), `scripts/release-publish.test.sh` and `scripts/appcast_test.py` (CI) |
 | Debug code in a release (CWE-489) | The UI-test session hook compiles in Debug only, needs both its launch argument and a session payload, and `scripts/archive.sh` refuses an archive whose binary carries it. | `App/Tests/UITestSessionTests.swift` (`testTheArgumentAloneIsNotEnough`, `testNoArgumentMeansNoSessionEvenWithAValidPayloadPresent`) |
 | A server shape the client does not expect (CWE-20) | Strict decoding of the server's recorded responses. | core: `Tests/ContractFixtureTests/ContractFixtureTests.swift` (`testEveryImplementedFixturePassesTheStrictGate`) |
 | A request that misnames the client (CWE-20) | Every request that names the platform says `.macos`, pinned byte for byte. | `App/Tests/MacClientPlatformTests.swift` (`testCodeExchangeSendsMacosToTheTokenRoute`) |
 | Personal data in crash reports (CWE-532, OWASP A09) | No DSN, no reporting; `sendDefaultPii` false; tracing off. | Mechanism only: `App/Sources/Platform/DistrictSentry.swift`; `project.yml` ships the DSN empty. |
 | Committed secrets (CWE-798) | gitleaks over the full history on every push to `main` and every pull request, with `.gitleaks.toml`. | `.github/workflows/ci.yml` (**gitleaks**) |
-| Vulnerable and outdated components (OWASP A06) | Every package pinned `exactVersion`; dependency review on pull requests; the dependency graph; CodeQL over the workflows and the app's Swift; zizmor over the workflows. | `.github/workflows/ci.yml`, `codeql.yml`, `codeql-swift.yml` |
+| Vulnerable and outdated components (OWASP A06) | Every package pinned `exactVersion`; dependency review on pull requests (for a pull request from a fork, the Swift packages are not submitted to the dependency graph, so dependency review cannot see a change to them there); the dependency graph; CodeQL over the workflows and the app's Swift; zizmor over the workflows. | `.github/workflows/ci.yml`, `codeql.yml`, `codeql-swift.yml` |
 | Release credential theft (CWE-522) | No stored credential; per-run borrowing; publishing and submission need the maintainers' approval. | Mechanism only: `.github/workflows/release.yml`, `publish.yml` and `submit.yml`. |
 | Improper certificate validation (CWE-295) | App Transport Security's defaults. | Mechanism only. |
 
