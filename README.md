@@ -114,8 +114,9 @@ App Store build is checked by the App Store.
 
 ## Uninstall
 
-Sign out first (Account, Sign out) if you want the session ended on the service as well:
-signing out revokes the app's refresh token. Then choose Quit from District AI's menu bar
+Sign out first (Account, Sign out), with the Mac online, if you want the session ended on the
+service as well: signing out revokes the app's refresh token, and a revoke the service could
+not be reached for is kept to send later. Then choose Quit from District AI's menu bar
 icon (closing the window keeps it running), and remove it:
 
 - **Homebrew:** `brew uninstall --cask district-ai` (add `--zap` to remove Sparkle's update

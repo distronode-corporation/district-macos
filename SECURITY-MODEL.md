@@ -30,7 +30,8 @@ Where a test lives there, the table says "core:" before its path.
 | Actor | What they can do | What stops them |
 |---|---|---|
 | A web page or another app | Open a `districtai://` link or try to finish a sign-in it did not start. | Sign-in in `ASWebAuthenticationSession` with PKCE (S256) and a fresh `state` per attempt; a callback with a foreign `state` is refused without spending the code; a sign-in completes once, and a second completion is ignored. |
-| A thief of a refresh token, or a quit mid-refresh | Present a token that was already spent. | One refresh coordinator per process; a quit waits, up to a deadline, for a rotated token to be stored. |
+| A thief of a refresh token | Present it to the service directly. | Not an app control: the service treats a refresh token presented twice as stolen ([SECURITY.md](SECURITY.md#what-the-app-does-to-protect-you)), which this document assumes. The app's part is never to present one twice itself (next row). |
+| A quit or a race mid-refresh | Make the app present a spent token, which the service would treat as theft. | One refresh coordinator per process; a quit waits, up to a deadline, for a rotated token to be stored. |
 | A later install, or a sign-out racing a refresh | Inherit an old session, or keep a working token. | A fresh install wipes any session left in the keychain and queues its revoke; a refresh that lands after sign-out writes nothing and its successor is revoked. |
 | A tampered download or update | Install code this project did not build. | The `.dmg` is Developer ID signed and notarised, with checksums and a build provenance attestation; Sparkle verifies each update against the EdDSA key built into the app, and the app refuses updates while that key is the placeholder. |
 | Other programs on the Mac | Read the app's files. | The app is sandboxed in both builds; its files are in its own container. |
