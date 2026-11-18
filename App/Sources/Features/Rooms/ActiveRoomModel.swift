@@ -208,17 +208,20 @@ final class ActiveRoomModel: RoomAudio {
 
         joinGeneration &+= 1
         let generation = joinGeneration
+        // ⛔ `joining` BEFORE THE TEARDOWN AWAITS, so a second press cannot start a join
+        // whose claim this teardown would then release.
+        phase = .joining
+        joinFailure = nil
         await dropEngine()
         // ⛔ A STALE JOIN TOUCHES NOTHING: the phase and the claim are the leave's or yield's.
         guard generation == joinGeneration else { return }
-        phase = .joining
-        joinFailure = nil
         // ⛔ CLAIMED BEFORE THE PERMISSIONS AND THE TOKEN READ, NOT AFTER THE CONNECT.
         // Both of those await, and a dial tapped across either would otherwise find no
         // room and be allowed. ``release()`` gives it back on every exit.
         callStack.claimRoom(self)
-        await requestPermissions()
+        let granted = await askPermissions()
         guard generation == joinGeneration else { return }
+        permissions = granted
 
         let outcome = await fetchToken(roomName)
         guard generation == joinGeneration else { return }
@@ -239,10 +242,6 @@ final class ActiveRoomModel: RoomAudio {
     /// ⚠️ ASKED FOR SEPARATELY AND IN ORDER, because the two answers are not one
     /// outcome. `AVCaptureDevice.requestAccess` returns the current grant immediately
     /// when it has already been answered, so this is one path rather than two.
-    private func requestPermissions() async {
-        permissions = await askPermissions()
-    }
-
     private static func systemPermissions() async -> RoomPermissions {
         let microphone = await AVCaptureDevice.requestAccess(for: .audio)
         let camera = await AVCaptureDevice.requestAccess(for: .video)
