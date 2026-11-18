@@ -1,5 +1,6 @@
 @testable import DistrictMac
 import DistrictModel
+import DistrictNetwork
 import Foundation
 import XCTest
 
