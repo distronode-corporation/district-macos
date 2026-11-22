@@ -4,7 +4,8 @@ name: CI
 # format and lint (SwiftLint and SwiftFormat parse Swift without compiling it, so they
 # can inspect the app from Linux), no dashes, internal host names or GitLab URLs, the
 # licence files, no secrets anywhere in the history, and workflows that pass static
-# analysis. `app` builds both app targets with Xcode and runs the unit tests.
+# analysis. `app` builds both app targets with Xcode, runs the unit tests and prints the
+# app target's line coverage.
 # `dependency graph` submits the packages Xcode resolved to GitHub's dependency graph,
 # which cannot see them in an XcodeGen project.
 #
@@ -346,6 +347,8 @@ jobs:
 
       # ⚠️ THE STORE SCHEME ONLY: `DistrictMacDirect` has no test action (project.yml says
       # why), and the step above has already compiled it.
+      # `-enableCodeCoverage YES` here and on the DistrictMacTests step: the build is what
+      # instruments the code, and test-without-building only collects.
       - name: Build for testing
         run: |
           set -o pipefail
@@ -355,6 +358,7 @@ jobs:
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -clonedSourcePackagesDirPath SourcePackages \
+            -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
             2>&1 | tee xcodebuild-testing-DistrictMac.log | xcbeautify --renderer github-actions
@@ -370,6 +374,7 @@ jobs:
             -derivedDataPath DerivedData \
             -clonedSourcePackagesDirPath SourcePackages \
             -resultBundlePath DistrictMacTests.xcresult \
+            -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/App/AdHoc.entitlements" \
             2>&1 | tee xcodebuild-test.log | xcbeautify --renderer github-actions
@@ -399,6 +404,25 @@ jobs:
             echo "FATAL - expected at least $minimum DistrictMacTests, saw ${executed:-0}."
             exit 1
           fi
+
+      # The app target's line coverage from DistrictMacTests, printed with every target's
+      # for context. ⚠️ NO FLOOR YET: the number has to be measured on the runner first.
+      # A missing report or target is a warning, not a failure, until then.
+      - name: DistrictMacTests line coverage (xccov)
+        run: |
+          xcrun xccov view --report --only-targets --json DistrictMacTests.xcresult > coverage.json
+          python3 - <<'PY'
+          import json
+          report = json.load(open("coverage.json"))
+          targets = report["targets"] if isinstance(report, dict) else report
+          for t in sorted(targets, key=lambda t: t["name"]):
+              print(f'{t["name"]}: {100 * t["lineCoverage"]:.2f}% ({t["coveredLines"]}/{t["executableLines"]} lines)')
+          app = [t for t in targets if t["name"] == "District AI.app"]
+          if app:
+              print(f'app target line coverage - {100 * app[0]["lineCoverage"]:.2f}%')
+          else:
+              print("::warning::District AI.app is not in the coverage report")
+          PY
 
       # ⛔ THE SCREENSHOT CASE IS BUILT, NEVER RUN. It signs in to production on a minted
       # review session and runs only by hand on a Mac (docs/screenshots.md); it also skips
@@ -450,6 +474,7 @@ jobs:
           name: app-logs
           path: |
             xcodebuild*.log
+            coverage.json
             *.xcresult
           if-no-files-found: warn
           retention-days: 7
