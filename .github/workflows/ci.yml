@@ -5,7 +5,8 @@ name: CI
 # can inspect the app from Linux), no dashes, internal host names or GitLab URLs, the
 # licence files, no secrets anywhere in the history, and workflows that pass static
 # analysis. `app` builds both app targets with Xcode, runs the unit tests and prints the
-# app target's line coverage.
+# app target's line coverage. `repeatable` (main and dispatches) builds the store app
+# unsigned twice and compares the two products.
 # `dependency graph` submits the packages Xcode resolved to GitHub's dependency graph,
 # which cannot see them in an XcodeGen project.
 #
@@ -476,6 +477,79 @@ jobs:
             xcodebuild*.log
             coverage.json
             *.xcresult
+          if-no-files-found: warn
+          retention-days: 7
+
+  # Repeatable build: the store app (`DistrictMac`) built UNSIGNED, in Release, twice from
+  # clean on one runner, and every file in the two bundles compared (ci/repeatable-build.sh,
+  # which lists the expected differences; none yet).
+  # ⚠️ PUSHES TO MAIN AND DISPATCHES ONLY: two Release builds would hold one of the
+  # organisation's five macOS slots on every pull request.
+  # ⚠️ NON-BLOCKING until a first run on the runner has shown what, if anything, differs.
+  repeatable:
+    name: repeatable
+    if: ${{ github.event_name != 'pull_request' && (!github.event.repository.private || inputs.run_mac) }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same Xcode and XcodeGen pins and checks as `app`.
+      - name: Select Xcode
+        id: xcode
+        env:
+          XCODE_APP: /Applications/Xcode_26.3.app
+          XCODE_VERSION: "26.3"
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          have_all="$(xcodebuild -version)"
+          have="${have_all%%$'\n'*}"
+          echo "$have"
+          if [ "$have" != "Xcode $XCODE_VERSION" ]; then
+            echo "::error::expected Xcode $XCODE_VERSION at $XCODE_APP, got '$have'"
+            exit 1
+          fi
+          echo "version=$XCODE_VERSION" >>"$GITHUB_OUTPUT"
+
+      - name: Install XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o xcodegen.zip \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  xcodegen.zip" | shasum -a 256 -c -
+          unzip -q xcodegen.zip
+          sudo ./xcodegen/install.sh
+
+      - name: xcodegen generate
+        run: xcodegen generate --spec project.yml
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: SourcePackages
+          key: sourcepackages-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('project.yml') }}
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project DistrictMac.xcodeproj \
+            -scheme DistrictMac \
+            -clonedSourcePackagesDirPath SourcePackages
+
+      - name: Build twice and compare
+        run: ci/repeatable-build.sh DistrictMac 'generic/platform=macOS' 'Release/District AI.app'
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: repeatable
+          path: ${{ runner.temp }}/repeatable/
           if-no-files-found: warn
           retention-days: 7
 
