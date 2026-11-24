@@ -438,6 +438,8 @@ final class SessionModel {
             SessionCopy.storeUnavailable
         case .markerNotDurable:
             SessionCopy.markerNotDurable
+        case .sessionReplaced:
+            SessionCopy.sessionReplaced
         }
     }
 }

@@ -26,7 +26,7 @@ import Security
 ///
 /// ⛔ `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`: never restored to another Mac
 /// from a backup, and readable by a launch-at-login or background start.
-struct KeychainTokenStore: TokenStore {
+actor KeychainTokenStore: TokenStore {
     static let defaultService = "com.distronode.district.session"
 
     private static let sessionAccount = "native-session"
@@ -35,14 +35,20 @@ struct KeychainTokenStore: TokenStore {
 
     let service: String
 
-    init(service: String = KeychainTokenStore.defaultService) {
+    private let items: any KeychainItemBackend
+
+    init(
+        service: String = KeychainTokenStore.defaultService,
+        items: (any KeychainItemBackend)? = nil
+    ) {
         self.service = service
+        self.items = items ?? SecItemKeychainBackend(service: service)
     }
 
     // MARK: - Session
 
     func read() async throws -> PersistedSession? {
-        guard let data = try load(account: Self.sessionAccount) else { return nil }
+        guard let data = try items.load(account: Self.sessionAccount) else { return nil }
         let stored = try decode(data)
         return PersistedSession(
             refreshToken: stored.refreshToken,
@@ -58,20 +64,35 @@ struct KeychainTokenStore: TokenStore {
             deviceId: session.deviceId
         )
         let data = try JSONEncoder().encode(stored)
-        try save(data, account: Self.sessionAccount)
+        try items.save(data, account: Self.sessionAccount)
     }
 
     /// ⚠️ Clears the session AND the pending marker, never the revoke outbox: that entry
     /// outlives the session on purpose, so a sign-out whose revoke failed is retried.
     func clear() async throws {
-        try delete(account: Self.sessionAccount)
-        try delete(account: Self.pendingAccount)
+        try items.delete(account: Self.sessionAccount)
+        try items.delete(account: Self.pendingAccount)
+    }
+
+    /// ``clear()``, but only while the stored session is the one holding `refreshToken`.
+    ///
+    /// ⛔ AN UNDO OF ONE ADOPTION, NOT A WIPE OF WHATEVER IS STORED: a login can write its
+    /// own session while the undo is in progress, and an unconditional clear would sign
+    /// that login out at the next cold start. The compare and the delete happen inside
+    /// this actor with no suspension between them (every member's body is synchronous),
+    /// which is the one-step atomicity ``TokenStore/clear(ifHolding:)`` demands.
+    func clear(ifHolding refreshToken: String) async throws {
+        guard let data = try items.load(account: Self.sessionAccount) else { return }
+        let stored = try decode(data)
+        guard stored.refreshToken == refreshToken else { return }
+        try items.delete(account: Self.sessionAccount)
+        try items.delete(account: Self.pendingAccount)
     }
 
     // MARK: - Pending-refresh marker
 
     func pendingRefreshToken() async throws -> String? {
-        guard let data = try load(account: Self.pendingAccount) else { return nil }
+        guard let data = try items.load(account: Self.pendingAccount) else { return nil }
         guard let token = String(data: data, encoding: .utf8) else {
             throw KeychainTokenStoreError.unreadableItem
         }
@@ -79,17 +100,17 @@ struct KeychainTokenStore: TokenStore {
     }
 
     func markRefreshPending(_ refreshToken: String) async throws {
-        try save(Data(refreshToken.utf8), account: Self.pendingAccount)
+        try items.save(Data(refreshToken.utf8), account: Self.pendingAccount)
     }
 
     func clearRefreshPending() async throws {
-        try delete(account: Self.pendingAccount)
+        try items.delete(account: Self.pendingAccount)
     }
 
     // MARK: - Revoke outbox
 
     func pendingRevokeToken() async throws -> String? {
-        guard let data = try load(account: Self.revokeAccount) else { return nil }
+        guard let data = try items.load(account: Self.revokeAccount) else { return nil }
         guard let token = String(data: data, encoding: .utf8) else {
             throw KeychainTokenStoreError.unreadableItem
         }
@@ -97,70 +118,30 @@ struct KeychainTokenStore: TokenStore {
     }
 
     func markRevokePending(_ refreshToken: String) async throws {
-        try save(Data(refreshToken.utf8), account: Self.revokeAccount)
+        try items.save(Data(refreshToken.utf8), account: Self.revokeAccount)
     }
 
     func clearRevokePending() async throws {
-        try delete(account: Self.revokeAccount)
+        try items.delete(account: Self.revokeAccount)
+    }
+
+    /// Clear the outbox only while it still holds `refreshToken`.
+    ///
+    /// ⛔ THE ACKNOWLEDGEMENT OF ONE REVOKE, NOT A WIPE OF THE SLOT: two revokes can
+    /// overlap (a launch drain and a sign-out), and the older one's acceptance can arrive
+    /// after a newer token took the slot, so clearing unconditionally would drop a
+    /// credential the server is still honouring. Same actor-isolation atomicity as
+    /// ``clear(ifHolding:)``.
+    func clearRevokePending(ifHolding refreshToken: String) async throws {
+        guard let data = try items.load(account: Self.revokeAccount) else { return }
+        guard let token = String(data: data, encoding: .utf8) else {
+            throw KeychainTokenStoreError.unreadableItem
+        }
+        guard token == refreshToken else { return }
+        try items.delete(account: Self.revokeAccount)
     }
 
     // MARK: - Keychain plumbing
-
-    /// ⛔ `kSecUseDataProtectionKeychain` IS ON EVERY QUERY, the reads and deletes too: a
-    /// query without it searches the file keychain and finds nothing, which reads as "no
-    /// session" rather than as a misconfigured query.
-    private func query(account: String) -> [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecAttrSynchronizable as String: false,
-            kSecUseDataProtectionKeychain as String: true,
-        ]
-    }
-
-    private func load(account: String) throws -> Data? {
-        var request = query(account: account)
-        request[kSecReturnData as String] = true
-        request[kSecMatchLimit as String] = kSecMatchLimitOne
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(request as CFDictionary, &result)
-        switch status {
-        case errSecSuccess:
-            guard let data = result as? Data else { throw KeychainTokenStoreError.unreadableItem }
-            return data
-        case errSecItemNotFound:
-            return nil
-        default:
-            throw KeychainTokenStoreError.status(status)
-        }
-    }
-
-    private func save(_ data: Data, account: String) throws {
-        let attributes: [String: Any] = [
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-        ]
-
-        let updated = SecItemUpdate(query(account: account) as CFDictionary, attributes as CFDictionary)
-        if updated == errSecSuccess {
-            return
-        }
-        guard updated == errSecItemNotFound else { throw KeychainTokenStoreError.status(updated) }
-
-        var request = query(account: account)
-        request.merge(attributes) { _, new in new }
-        let added = SecItemAdd(request as CFDictionary, nil)
-        guard added == errSecSuccess else { throw KeychainTokenStoreError.status(added) }
-    }
-
-    private func delete(account: String) throws {
-        let status = SecItemDelete(query(account: account) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainTokenStoreError.status(status)
-        }
-    }
 
     private func decode(_ data: Data) throws -> StoredSession {
         do {
@@ -180,4 +161,83 @@ struct KeychainTokenStore: TokenStore {
 enum KeychainTokenStoreError: Error {
     case status(OSStatus)
     case unreadableItem
+}
+
+/// The three keychain calls ``KeychainTokenStore`` makes, as a seam so the store's
+/// compare-and-clear semantics can be tested where no keychain answers: an unsigned
+/// build (local or CI) gets `errSecMissingEntitlement` for every `SecItem` call, which
+/// is the documented behaviour the coordinator maps to "try again". The production
+/// conformer below is the same code the store used to hold inline; nothing about the
+/// items it writes changes.
+protocol KeychainItemBackend: Sendable {
+    func load(account: String) throws -> Data?
+    func save(_ data: Data, account: String) throws
+    func delete(account: String) throws
+}
+
+/// The production ``KeychainItemBackend``, byte for byte the plumbing the store held
+/// inline before the seam: same service, same accounts, same attributes, so items
+/// written by earlier versions of the app are found and kept exactly as before.
+struct SecItemKeychainBackend: KeychainItemBackend {
+    private let service: String
+
+    init(service: String) {
+        self.service = service
+    }
+
+    /// ⛔ `kSecUseDataProtectionKeychain` IS ON EVERY QUERY, the reads and deletes too: a
+    /// query without it searches the file keychain and finds nothing, which reads as "no
+    /// session" rather than as a misconfigured query.
+    private func query(account: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrSynchronizable as String: false,
+            kSecUseDataProtectionKeychain as String: true,
+        ]
+    }
+
+    func load(account: String) throws -> Data? {
+        var request = query(account: account)
+        request[kSecReturnData as String] = true
+        request[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(request as CFDictionary, &result)
+        switch status {
+        case errSecSuccess:
+            guard let data = result as? Data else { throw KeychainTokenStoreError.unreadableItem }
+            return data
+        case errSecItemNotFound:
+            return nil
+        default:
+            throw KeychainTokenStoreError.status(status)
+        }
+    }
+
+    func save(_ data: Data, account: String) throws {
+        let attributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+
+        let updated = SecItemUpdate(query(account: account) as CFDictionary, attributes as CFDictionary)
+        if updated == errSecSuccess {
+            return
+        }
+        guard updated == errSecItemNotFound else { throw KeychainTokenStoreError.status(updated) }
+
+        var request = query(account: account)
+        request.merge(attributes) { _, new in new }
+        let added = SecItemAdd(request as CFDictionary, nil)
+        guard added == errSecSuccess else { throw KeychainTokenStoreError.status(added) }
+    }
+
+    func delete(account: String) throws {
+        let status = SecItemDelete(query(account: account) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainTokenStoreError.status(status)
+        }
+    }
 }
