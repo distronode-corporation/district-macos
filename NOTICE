@@ -8,8 +8,7 @@ are trademarks of Distronode Corporation. They are not licensed under the Apache
 License 2.0: a build you distribute must use its own name, icon and bundle
 identifier.
 
-This project is not affiliated with or endorsed by Apple, LiveKit, Functional
-Software (Sentry) or the Sparkle project, whose platforms, SDKs and services the
-app uses.
+This project is not affiliated with or endorsed by Apple, LiveKit or the Sparkle
+project, whose platforms, SDKs and services the app uses.
 
 Third-party dependencies keep their own licences.

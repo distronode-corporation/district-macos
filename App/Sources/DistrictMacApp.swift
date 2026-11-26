@@ -30,9 +30,6 @@ struct DistrictMacApp: App {
     @State private var session: SessionModel
 
     init() {
-        // Before anything else can crash. A no-op unless the build carries a DSN.
-        DistrictSentry.startIfConfigured()
-
         // Before the container, so nothing it builds reads a string in the default
         // language before the device's is known: Canadian French on a Mac that puts French
         // first, English otherwise.

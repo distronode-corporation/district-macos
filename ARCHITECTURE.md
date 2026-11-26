@@ -12,7 +12,7 @@ App/Sources            SwiftUI app: screens, navigation, session, platform glue
 DistrictCore           district-core-swift: DistrictModel, DistrictAuthCore,
                        DistrictNetwork, DistrictData, DistrictCall, DistrictLive,
                        DistrictL10n (shared with district-ios, tested on Linux there)
-Sentry, LiveKit        crash reports; calls (WebRTC)
+LiveKit                calls (WebRTC)
 Sparkle                updates, DistrictMacDirect only
 ```
 
@@ -43,7 +43,7 @@ they share sources, resources, packages and settings, and both build
 | `Navigation/` | Routes, sidebar, the shell's columns and commands, push and app-link routing. |
 | `Features/` | One folder per area (Inbox, Calls, Scheduling, Settings, ...). |
 | `DesignSystem/` | Shared views, type, theme and layout helpers. |
-| `Platform/` | macOS glue: app delegate, push registration, menu bar, call engine (LiveKit), live telemetry, Sentry. |
+| `Platform/` | macOS glue: app delegate, push registration, menu bar, call engine (LiveKit), live telemetry. |
 | `Accessibility/` | Accessibility identifiers, shared with the UI tests. |
 | `L10n/` | App language, plus `Generated/Copy.swift` from `l10n/` by `scripts/gen-l10n.py`. |
 

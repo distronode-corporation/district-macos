@@ -109,6 +109,10 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
 
 ### Changed
 
+- Crash reporting is off in this build and returns after launch
+  ([#146](https://github.com/distronode-corporation/district-macos/issues/146)): the Sentry SDK
+  is removed from both builds. Its static XCFramework made two clean builds of the same commit
+  differ at the link, and its dynamic one adds about 47 MB.
 - Release builds are built with `Reproducible.xcconfig`, which turns off Objective-C selector
   stubs (`-fno-objc-msgsend-selector-stubs`) for every target, LiveKit's included. The release
   archive (`scripts/archive.sh`, both lanes) and CI's `repeatable` job pass the same file, so the

@@ -10,7 +10,7 @@ version: 2
 # does not delay security updates.
 #
 # ⚠️ There is deliberately no `swift` entry. The repository root holds no Package.swift:
-# the app's packages (district-core-swift, LiveKit, Sentry, Sparkle) are declared in
+# the app's packages (district-core-swift, LiveKit, Sparkle) are declared in
 # project.yml, which Dependabot cannot read, so an entry would only report "dependency
 # file not found" on every run. Those pins are bumped by hand.
 updates:

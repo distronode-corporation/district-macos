@@ -104,6 +104,9 @@ AUTH=(-allowProvisioningUpdates
   -authenticationKeyID "$ASC_KEY_ID"
   -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 
+# ⚠️ DORMANT WHILE CRASH REPORTING IS OFF (issue #146): the SDK is out of project.yml and
+# release.yml leaves SENTRY_PROJECT blank, so the DSN is unset and the dSYM upload is
+# skipped below. Kept for its return after launch.
 # ⛔ NEVER ECHOED. A blank DSN switches Sentry off entirely, and the notice says so,
 # because "no reports" and "unsymbolicated reports" look the same from outside.
 SENTRY_DSN="${SENTRY_DSN:-}"
