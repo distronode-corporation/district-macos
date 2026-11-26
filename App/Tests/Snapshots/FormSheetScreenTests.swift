@@ -50,7 +50,7 @@ final class FormSheetScreenTests: ScreenSnapshotCase {
         }
         return AnyView(CreateContactSheet(model: model)
             .macSheetSize(width: contactSize.width, height: contactSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - New desk ticket
@@ -89,7 +89,7 @@ final class FormSheetScreenTests: ScreenSnapshotCase {
         }
         return AnyView(DeskComposeSheet(model: model)
             .macSheetSize(width: ticketSize.width, height: ticketSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - Desk settings
@@ -117,7 +117,7 @@ final class FormSheetScreenTests: ScreenSnapshotCase {
     private static func deskSettings(_ app: SignedInApp, role: WorkspaceRole) -> AnyView {
         AnyView(DeskSettingsView(container: app.container, workspaceId: app.workspaceId, role: role, onDismiss: {})
             .macSheetSize(width: deskSettingsSize.width, height: deskSettingsSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - Meeting record
@@ -142,7 +142,7 @@ final class FormSheetScreenTests: ScreenSnapshotCase {
     private static func meetingRecord(_ app: SignedInApp) async -> AnyView {
         let model = RoomsLobbyModel(container: app.container, workspaceId: app.workspaceId, role: .agency)
         await model.openMeeting("meeting_contract_live")
-        return AnyView(MeetingRecordSheet(state: model.record, onClose: {}).districtTheme())
+        return AnyView(MeetingRecordSheet(state: model.record, onClose: {}).sheetPage().districtTheme())
     }
 
     // MARK: - One number's actions
@@ -191,7 +191,7 @@ final class FormSheetScreenTests: ScreenSnapshotCase {
         }
         return AnyView(NumberActionsSheet(model: model, number: number)
             .macSheetSize(width: numberSize.width, height: numberSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     /// Row `index` of `district-provider-numbers.json`: 0 is the workspace's own line, 1 a
@@ -233,6 +233,6 @@ final class FormSheetScreenTests: ScreenSnapshotCase {
             selection: WorkspaceSelectionStore(defaults: defaults)
         )
         await model.load()
-        return AnyView(WorkspacePickerSheet(workspaceSession: model).districtTheme())
+        return AnyView(WorkspacePickerSheet(workspaceSession: model).sheetPage().districtTheme())
     }
 }

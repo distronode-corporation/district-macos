@@ -88,6 +88,7 @@ final class SignInScreenTests: ScreenSnapshotCase {
     }
 
     private static func code(message: String?, isBusy: Bool) -> AnyView {
-        AnyView(MfaCodeSheet(message: message, isBusy: isBusy, submit: { _ in }, cancel: {}).districtTheme())
+        AnyView(MfaCodeSheet(message: message, isBusy: isBusy, submit: { _ in
+        }, cancel: {}).sheetPage().districtTheme())
     }
 }

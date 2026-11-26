@@ -55,7 +55,7 @@ final class CallScreenTests: ScreenSnapshotCase {
         }
         return AnyView(IncomingCallView(model: model, devices: app.container.callStack.devices)
             .frame(minWidth: 340, minHeight: 320)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     /// The panel's ringer and notification, which a snapshot neither plays nor posts.
@@ -120,7 +120,7 @@ final class CallScreenTests: ScreenSnapshotCase {
             controls: InertControls(),
             devices: app.container.callStack.devices
         )
-        .districtTheme())
+        .sheetPage().districtTheme())
     }
 
     /// Controls that do nothing: no button is pressed in a snapshot.

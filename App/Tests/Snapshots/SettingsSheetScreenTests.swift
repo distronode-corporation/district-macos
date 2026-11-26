@@ -78,7 +78,7 @@ final class SettingsSheetScreenTests: ScreenSnapshotCase {
         await action?(model)
         return AnyView(MessagingAccountSheet(model: model)
             .macSheetSize(width: accountSize.width, height: accountSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - Persona preview
@@ -104,7 +104,7 @@ final class SettingsSheetScreenTests: ScreenSnapshotCase {
         let form = try XCTUnwrap(persona.previewForm, "the recorded persona gave no preview form")
         return AnyView(PersonaPreviewView(container: app.container, workspaceId: app.workspaceId, form: form)
             .macSheetSize(width: previewSize.width, height: previewSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - Voice Studio leg editor
@@ -149,7 +149,7 @@ final class SettingsSheetScreenTests: ScreenSnapshotCase {
                     VoiceStudioLegEditor(model: model, session: session)
                         .padding(DistrictSpacing.gutter)
                 }
-                .districtTheme())
+                .sheetPage().districtTheme())
             }
         }
     }

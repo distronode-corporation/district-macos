@@ -78,7 +78,7 @@ final class InboxSheetScreenTests: ScreenSnapshotCase {
         }, { await action(model) })
         return AnyView(ComposeSheet(model: model, onSent: { _ in })
             .macSheetSize(width: composeSize.width, height: composeSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - Assign
@@ -95,8 +95,13 @@ final class InboxSheetScreenTests: ScreenSnapshotCase {
             }
         }
         // Assigned already: the tick on the operator's row.
-        try await assertView("assigned-en", rules: ScreenRules.loaded, size: Self.assignSize) { app in
-            Self.assign(app, current: Self.operatorEmail)
+        // Assigned already: the recorded list with this thread's owner, whom the roster no
+        // longer holds, kept and ticked.
+        let assigned: [FixtureTransport.Rule] = [
+            .get("/api/district/conversations", .fixture("mobile/district-conversations-assignee.json")),
+        ]
+        try await assertView("assigned-en", rules: assigned + ScreenRules.loaded, size: Self.assignSize) { app in
+            Self.assign(app, current: "contract@distronode.test")
         }
         // The assignment refused: the sheet stays up and says so.
         try await assertView(
@@ -133,28 +138,39 @@ final class InboxSheetScreenTests: ScreenSnapshotCase {
                 return false
             }, { await action(model) })
         }
-        return AnyView(ThreadAssignSheet(model: model, onAssigned: {}).districtTheme())
+        return AnyView(ThreadAssignSheet(model: model, onAssigned: {}).sheetPage().districtTheme())
     }
 
     // MARK: - WhatsApp templates
+
+    /// ⚠️ THE TEMPLATES ARE OFFERED ONLY ON A CLOSED WINDOW (the sheet opens from
+    /// ``WhatsAppClosedWindow``), and the recording's window is open, so it is answered closed.
+    private static let closedWindow: [FixtureTransport.Rule] = [
+        .get("/api/district/workspace/whatsapp/window", .edited("mobile/district-whatsapp-window.json") { body in
+            body["window"] = ["open": false, "expiresAt": NSNull()]
+        }),
+    ]
 
     func testWhatsAppTemplates() async throws {
         for locale in [L10nLocale.en, .frCA] {
             try await assertView(
                 Self.named("list", locale),
-                rules: ScreenRules.loaded,
+                rules: Self.closedWindow + ScreenRules.loaded,
                 locale: locale,
                 size: Self.templateSize
             ) { app in
-                Self.templates(app)
+                await Self.templates(app)
             }
         }
-        try await assertView("failed-en", rules: ScreenRules.failing, size: Self.templateSize) { app in
-            Self.templates(app)
+        let failed = Self.closedWindow + [.get("/api/district/workspace/whatsapp/templates", .status(500))]
+        try await assertView("failed-en", rules: failed + ScreenRules.loaded, size: Self.templateSize) { app in
+            await Self.templates(app)
         }
     }
 
-    private static func templates(_ app: SignedInApp) -> AnyView {
+    /// The template sheet over a WhatsApp thread whose window has been read closed, as the
+    /// thread reads it before offering the sheet.
+    private static func templates(_ app: SignedInApp) async -> AnyView {
         let model = ThreadModel(
             container: app.container,
             workspaceId: app.workspaceId,
@@ -162,7 +178,8 @@ final class InboxSheetScreenTests: ScreenSnapshotCase {
             threadKey: "addr:14165550177",
             replyTargets: [ReplyTarget(to: "+14165550177", channel: MessageChannel.whatsapp)]
         )
-        return AnyView(WhatsAppTemplateSheet(model: model).districtTheme())
+        await model.refreshWhatsAppWindow()
+        return AnyView(WhatsAppTemplateSheet(model: model).sheetPage().districtTheme())
     }
 
     // MARK: - Report
@@ -186,6 +203,6 @@ final class InboxSheetScreenTests: ScreenSnapshotCase {
     private static func report(_ app: SignedInApp, target: ReportTarget) -> AnyView {
         AnyView(ReportSheet(container: app.container, workspaceId: app.workspaceId, target: target)
             .macSheetSize(width: reportSize.width, height: reportSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 }

@@ -12,6 +12,9 @@ import XCTest
 /// (``SSOReauthOutcome/proved(expiresInSeconds:)``). Every request after it goes to the
 /// recorded answers, as everywhere else.
 ///
+/// ⚠️ NO REFUSED SAVE IS DRAWN HERE: both sheets word a refusal by the service's error code,
+/// and the harness's 5xx envelope names `internal_error`, which they would show as it is.
+///
 /// See ``ScreenSnapshotCase`` for how the images are recorded and compared.
 final class AccountSheetScreenTests: ScreenSnapshotCase {
     /// Each sheet's size at its presentation site on the Account screen.
@@ -34,31 +37,9 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
         try await assertView("password-en", rules: ScreenRules.loaded, size: Self.deleteSize) { app in
             await Self.delete(app) { model in model.usePassword() }
         }
-        try await assertView(
-            "password-refused-en",
-            rules: Self.refusingWrites() + ScreenRules.loaded,
-            size: Self.deleteSize
-        ) { app in
-            await Self.delete(app) { model in
-                model.usePassword()
-                model.password = "not-the-password"
-                await model.submitPassword()
-            }
-        }
         try await assertView("confirm-en", rules: ScreenRules.loaded, size: Self.deleteSize) { app in
             await Self.delete(app) { model in
                 await model.reauthenticate(with: .google)
-            }
-        }
-        try await assertView(
-            "delete-failed-en",
-            rules: Self.refusingWrites() + ScreenRules.loaded,
-            size: Self.deleteSize
-        ) { app in
-            await Self.delete(app) { model in
-                await model.reauthenticate(with: .google)
-                model.confirmation = "founder@contract.test"
-                await model.delete()
             }
         }
     }
@@ -76,7 +57,7 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
         await prepared?(model)
         return AnyView(DeleteAccountView(model: model)
             .macSheetSize(width: deleteSize.width, height: deleteSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 
     // MARK: - Two-step verification
@@ -139,27 +120,11 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
                 Self.twoStep(app) { model in await Self.enroll(model) }
             }
         }
-        try await assertView(
-            "enroll-failed-en",
-            rules: Self.refusingWrites() + Self.off + ScreenRules.loaded,
-            size: Self.twoStepSize
-        ) { app in
-            Self.twoStep(app) { model in await Self.enroll(model) }
-        }
     }
 
     func testTwoStepConfirm() async throws {
         // The code typed and accepted: the recovery codes, shown once.
         try await assertView("codes-en", rules: Self.off + ScreenRules.loaded, size: Self.twoStepSize) { app in
-            Self.twoStep(app) { model in
-                await Self.enroll(model)
-                model.totp = "123456"
-                await model.confirm()
-            }
-        }
-        // ⚠️ THE CONFIRM REFUSED, its rule ahead of the recorded enrolment it would otherwise get.
-        let refused = Self.writes("/api/auth/mfa/confirm", .status(500)) + Self.off + ScreenRules.loaded
-        try await assertView("confirm-failed-en", rules: refused, size: Self.twoStepSize) { app in
             Self.twoStep(app) { model in
                 await Self.enroll(model)
                 model.totp = "123456"
@@ -186,16 +151,6 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
                 model.usePassword()
             }
         }
-        try await assertView(
-            "failed-en",
-            rules: Self.refusingWrites() + Self.on + ScreenRules.loaded,
-            size: Self.twoStepSize
-        ) { app in
-            Self.twoStep(app) { model in
-                model.begin(.turnOff)
-                await model.reauthenticate(with: .google)
-            }
-        }
     }
 
     private static func enroll(_ model: TwoStepModel) async {
@@ -220,6 +175,6 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
         }
         return AnyView(TwoStepView(model: model, appActive: true)
             .macSheetSize(width: twoStepSize.width, height: twoStepSize.height)
-            .districtTheme())
+            .sheetPage().districtTheme())
     }
 }

@@ -2,6 +2,7 @@ import DistrictL10n
 @testable import DistrictMac
 import DistrictNetwork
 import Foundation
+import SwiftUI
 
 /// What the sheet snapshot tests share: rules for the writes a sheet sends, and a way to act
 /// on a sheet after its own `.task` has read, as the person at the keyboard would.
@@ -40,5 +41,24 @@ extension ScreenSnapshotCase {
     /// The image name for `state` in `locale`: `new-en`, `new-fr`.
     static func named(_ state: String, _ locale: L10nLocale) -> String {
         "\(state)-\(locale == .en ? "en" : "fr")"
+    }
+}
+
+extension View {
+    /// The palette's page colour behind a sheet drawn in a plain window.
+    ///
+    /// ⚠️ OUTSIDE A SHEET ``View/macSheetBackground()`` PAINTS NOTHING: it sets the
+    /// presentation's background, and a test window presents nothing. A sheet without
+    /// ``MacSheetChrome`` would be drawn on a transparent bitmap, which the app never shows.
+    func sheetPage() -> some View {
+        modifier(SheetPage())
+    }
+}
+
+private struct SheetPage: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content.background(DistrictColors.resolve(colorScheme).background)
     }
 }
