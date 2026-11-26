@@ -88,8 +88,15 @@ final class CardScreenTests: ScreenSnapshotCase {
                 try await Self.workflows(app)
             }
         }
+        // ⚠️ EDITED, NOT `.emptied`: emptying the rows keeps the recording's `hasMore: true`, and the
+        // panel offers "Load more runs" exactly when the server says there are more. A workflow
+        // that has never run answers no rows, a total of 0 and `hasMore: false`.
         let none: [FixtureTransport.Rule] = [
-            .get("/api/district/workflows/runs", .emptied("mobile/district-workflow-runs.json")),
+            .get("/api/district/workflows/runs", .edited("mobile/district-workflow-runs.json") { body in
+                body["runs"] = [Any]()
+                body["total"] = 0
+                body["hasMore"] = false
+            }),
         ]
         try await assertView("empty", rules: none + ScreenRules.loaded, size: Self.size) { app in
             try await Self.workflows(app)
