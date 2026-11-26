@@ -21,12 +21,9 @@
 # for that reason. The variable changes no source and no build setting; it only fixes the
 # seed of the Swift tools the build runs.
 #
-# ⛔ THE LINKER RUNS WITH `-reproducible` (OTHER_LDFLAGS below). With every intermediate object
-# file byte for byte the same in both builds (run 45793383763), the app binary still differed:
-# in `__TEXT,__const` of the x86_64 slice on main (run 45003646554), in `__stubs` and
-# `__objc_stubs` of the arm64 slice on run 45785542723. So the linker laid out identical inputs
-# differently. ld(1): "This option instructs ld to create a reproducible output binary by
-# ignoring certain input properties or using alternative algorithms."
+# ⛔ Reproducible.xcconfig IS PART OF THE RECIPE, passed with -xcconfig, as the release archive
+# (scripts/archive.sh) passes it: the one place the build settings for repeatability live (it
+# says why there are no Objective-C selector stubs).
 #
 # On a difference it prints each differing file and each differing intermediate object file,
 # and keeps both products and those object files under $RUNNER_TEMP/repeatable (or
@@ -51,8 +48,8 @@ for n in 1 2; do
     -destination "$destination" \
     -derivedDataPath DerivedData \
     -clonedSourcePackagesDirPath SourcePackages \
-    CODE_SIGNING_ALLOWED=NO \
-    OTHER_LDFLAGS='$(inherited) -Wl,-reproducible' > "$OUT/build-$n.log" 2>&1 || {
+    -xcconfig Reproducible.xcconfig \
+    CODE_SIGNING_ALLOWED=NO > "$OUT/build-$n.log" 2>&1 || {
       tail -n 100 "$OUT/build-$n.log"
       exit 1
     }
