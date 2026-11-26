@@ -50,9 +50,17 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
         try await super.tearDown()
     }
 
+    /// A note being typed for the receptionist.
+    ///
+    /// ⚠️ THE NOTE BOX IS NEVER DRAWN EMPTY HERE: empty, the multiline box settles at one of two
+    /// heights from run to run (#149), and a typed note fixes its height by its content.
+    private static let note = "Offer the Thursday 2pm slot."
+
     func testArrival() async throws {
         for locale in [L10nLocale.en, .frCA] {
-            try await supervise(Self.named("arrival", locale), locale: locale) { _, _ in }
+            try await supervise(Self.named("arrival", locale), locale: locale) { model, _ in
+                model.draft = Self.note
+            }
         }
     }
 
@@ -60,15 +68,18 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
         for locale in [L10nLocale.en, .frCA] {
             try await supervise(Self.named("listening", locale), locale: locale) { model, media in
                 try await Self.listen(model, media)
+                model.draft = Self.note
             }
         }
     }
 
+    /// A note sent, which empties the box, and the next one being typed.
     func testWhisperSent() async throws {
         try await supervise("whisper-en") { model, media in
             try await Self.listen(model, media)
-            model.draft = "Offer the Thursday 2pm slot."
+            model.draft = Self.note
             await model.sendWhisper()
+            model.draft = "Then confirm their email address."
         }
     }
 
