@@ -84,10 +84,11 @@ final class SchedulingEventTypeSheetTests: SchedulingSheetSnapshotCase {
             try await AnyView(SchedulingEventTypeHostsSheet(model: Self.hosts(app)))
         }
         // ⚠️ AFTER THE CANDIDATES HAVE ANSWERED TOO (`canAddHosts`), the second read the sheet
-        // makes: hosts removed before it answers would come back as candidates to add.
+        // makes: hosts removed before it answers would come back as candidates to add. With no
+        // host row the wait times out and fails the test rather than indexing an empty list.
         try await sheet("no-host") { app in
             let model = try await Self.hosts(app)
-            afterLoad(model.canAddHosts) {
+            afterLoad(model.canAddHosts && !model.isEmpty) {
                 for row in model.rows {
                     model.remove(row.userId)
                 }
@@ -97,7 +98,7 @@ final class SchedulingEventTypeSheetTests: SchedulingSheetSnapshotCase {
         }
         try await sheet("bad-priority") { app in
             let model = try await Self.hosts(app)
-            afterLoad(model.canAddHosts) {
+            afterLoad(model.canAddHosts && !model.isEmpty) {
                 model.setPriority("first", for: model.rows[0].userId)
                 await model.save()
             }
