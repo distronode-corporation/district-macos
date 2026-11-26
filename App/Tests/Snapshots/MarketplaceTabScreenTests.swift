@@ -203,13 +203,14 @@ final class MarketplaceTabScreenTests: ScreenSnapshotCase {
         }
     }
 
-    /// The paid lookup, answered with the recorded valid and invalid numbers.
+    /// The paid lookup, answered with the recorded valid and invalid numbers. The card alone,
+    /// since on the carrier tab its answer is drawn below the fold.
     func testLookup() async throws {
         let valid: [FixtureTransport.Rule] = [
             .get("\(Self.api)/lookup", .fixture("mobile/district-number-lookup.json")),
         ]
         try await assertView("valid", rules: valid + Self.carrier + ScreenRules.loaded, size: Self.size) { app in
-            try await Self.carrierTab(app) { model in
+            try await Self.lookupCard(app) { model in
                 model.lookupNumber = "+14165550142"
                 await model.lookup()
             }
@@ -218,14 +219,14 @@ final class MarketplaceTabScreenTests: ScreenSnapshotCase {
             .get("\(Self.api)/lookup", .fixture("mobile/district-number-lookup-invalid.json")),
         ]
         try await assertView("invalid", rules: invalid + Self.carrier + ScreenRules.loaded, size: Self.size) { app in
-            try await Self.carrierTab(app) { model in
+            try await Self.lookupCard(app) { model in
                 model.lookupNumber = "+1416"
                 await model.lookup()
             }
         }
         let failing: [FixtureTransport.Rule] = [.get("\(Self.api)/lookup", .status(500))]
         try await assertView("failed", rules: failing + Self.carrier + ScreenRules.loaded, size: Self.size) { app in
-            try await Self.carrierTab(app) { model in
+            try await Self.lookupCard(app) { model in
                 model.lookupNumber = "+14165550142"
                 await model.lookup()
             }
@@ -286,6 +287,16 @@ final class MarketplaceTabScreenTests: ScreenSnapshotCase {
                 ComplianceSection(model: model)
             }
         }
+    }
+
+    /// The lookup card after `then`.
+    private static func lookupCard(
+        _ app: SignedInApp,
+        then: (NumberProvisioningModel) async -> Void
+    ) async throws -> AnyView {
+        let model = provisioning(app)
+        await then(model)
+        return tab { NumberLookupCard(model: model) }
     }
 
     static func provisioning(_ app: SignedInApp, role: WorkspaceRole = .agency) -> NumberProvisioningModel {
