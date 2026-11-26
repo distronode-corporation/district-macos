@@ -115,7 +115,8 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
                 },
                 events: LiveEventFeed(workspaceId: workspaceId, dependencies: SuperviseFixtures.feedDependencies())
             )
-            held.append(contentsOf: [model, media])
+            held.append(model)
+            held.append(media)
             app.container.callStack.supervisor = model
             await steps(model, media)
             var paths = ShellPaths()
