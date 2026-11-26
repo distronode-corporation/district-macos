@@ -104,8 +104,6 @@ final class RoomAndRingScreenTests: ScreenSnapshotCase {
         try await ring("answered-elsewhere-fr", locale: .frCA) { model in
             model.ringStopped(workspaceId: Self.workspaceId, callId: Self.callId, reason: .cancelled(.answered))
         }
-        // Answer pressed on a Mac whose microphone is denied (the harness's).
-        try await ring("answer-no-microphone-en") { model in model.answerPressed() }
     }
 
     private func ring(

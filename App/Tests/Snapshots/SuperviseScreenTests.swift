@@ -15,17 +15,26 @@ import XCTest
 ///
 /// See ``ScreenSnapshotCase`` for how the images are recorded and compared.
 final class SuperviseScreenTests: ScreenSnapshotCase {
-    /// The call in `district-call-detail.json`.
-    private static let callId = "call_contract_answered"
+    /// The call in `district-call-detail.json`, under a call-log id.
+    ///
+    /// ⚠️ THE RECORDING'S ID CARRIES `_`, which no call-log id does, and supervise refuses such
+    /// an id before asking for a seat (`SupervisedCallID`), so the answer carries this one.
+    private static let callId = "cmh1live0001"
 
-    /// ⚠️ THE RECORDED CALL HAS ENDED; supervising needs one in progress, so its status says so.
-    private static let inProgress: [FixtureTransport.Rule] = [
-        .get("/api/district/calls/[^/]+", .edited("mobile/district-call-detail.json") { body in
-            var call = body["call"] as? [String: Any] ?? [:]
-            call["status"] = "in-progress"
-            body["call"] = call
-        }),
-    ]
+    /// The recorded call under ``callId``, in progress (supervising needs one) or as recorded.
+    private static func call(inProgress: Bool) -> [FixtureTransport.Rule] {
+        let id = callId
+        return [
+            .get("/api/district/calls/[^/]+", .edited("mobile/district-call-detail.json") { body in
+                var call = body["call"] as? [String: Any] ?? [:]
+                call["id"] = id
+                if inProgress {
+                    call["status"] = "in-progress"
+                }
+                body["call"] = call
+            }),
+        ]
+    }
 
     /// The listen token, the whisper and the takeover, as recorded.
     private static let liveWrites: [FixtureTransport.Rule] =
@@ -75,14 +84,14 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
 
     func testEnded() async throws {
         // The recorded call, which has ended: no Listen, and no note box.
-        try await supervise("ended-en", rules: ScreenRules.loaded) { _, _ in }
+        try await supervise("ended-en", rules: Self.call(inProgress: false) + ScreenRules.loaded) { _, _ in }
     }
 
     /// The supervise route over a model made from the recorded call, taken through `steps`
     /// before the screen is drawn.
     private func supervise(
         _ name: String,
-        rules: [FixtureTransport.Rule] = SuperviseScreenTests.inProgress + ScreenRules.loaded,
+        rules: [FixtureTransport.Rule] = SuperviseScreenTests.call(inProgress: true) + ScreenRules.loaded,
         locale: L10nLocale = .en,
         file: StaticString = #filePath,
         testName: String = #function,
