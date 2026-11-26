@@ -303,10 +303,6 @@ final class MarketplaceTabScreenTests: ScreenSnapshotCase {
         NumberProvisioningModel(container: app.container, workspaceId: app.workspaceId, role: role)
     }
 
-    static func named(_ state: String, _ locale: L10nLocale) -> String {
-        "\(state)-\(locale == .en ? "en" : "fr")"
-    }
-
     static func unwrap<Value>(_ outcome: Result<Value, ApiError>) throws -> Value {
         try outcome.get()
     }
