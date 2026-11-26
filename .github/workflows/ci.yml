@@ -344,11 +344,6 @@ jobs:
       - name: Build both targets
         run: |
           set -o pipefail
-          # ⛔ THE DIRECT BUILD GETS ITS OWN DERIVED DATA. Both targets build `District AI.app`,
-          # and with the Direct build in the same DerivedData the store app's build-for-testing
-          # below sometimes planned DistrictMacDirect too and failed on "Multiple commands
-          # produce 'District AI.app'" (runs 45793262975, 45816034737; a rerun of the same
-          # commit could pass). Apart, the test build never sees the Direct target's build.
           for scheme in DistrictMac DistrictMacDirect; do
             echo "=== $scheme ==="
             derived=DerivedData
@@ -373,6 +368,39 @@ jobs:
       # why), and the step above has already compiled it.
       # `-enableCodeCoverage YES` here and on the DistrictMacTests step: the build is what
       # instruments the code, and test-without-building only collects.
+      # ⛔ THE TEST BUILD'S PROJECT HAS NO DistrictMacDirect. Both app targets produce
+      # `District AI.app`, which the test bundle's TEST_HOST names, and the build-for-testing of
+      # the store scheme sometimes added DistrictMacDirect to its build and failed on "Multiple
+      # commands produce 'District AI.app'" (runs 45793262975, 45816034737, 45823300792; a rerun
+      # of the same commit could pass). A separate test scheme with implicit dependencies off
+      # and a separate DerivedData for the Direct build did not stop it. The step above has
+      # already built the Direct target from the full project; from here on the project is
+      # regenerated from project.yml without the Direct target and scheme, which is the only
+      # thing removed.
+      - name: Regenerate the project without the Direct target, for the test builds
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          out, skip = [], False
+          for line in open("project.yml").read().split("\n"):
+              if re.match(r"^  DistrictMacDirect:\s*$", line):
+                  skip = True
+                  continue
+              if skip and re.match(r"^(  )?[A-Za-z]", line):
+                  skip = False
+              if not skip:
+                  out.append(line)
+          open("project-tests.yml", "w").write("\n".join(out))
+          PY
+          xcodegen generate --spec project-tests.yml
+          if grep -q DistrictMacDirect DistrictMac.xcodeproj/project.pbxproj; then
+            echo "FATAL - the regenerated project still has DistrictMacDirect"
+            exit 1
+          fi
+          grep -q 'name = DistrictMacTests' DistrictMac.xcodeproj/project.pbxproj
+          echo "project regenerated without DistrictMacDirect"
+
       - name: Build for testing
         run: |
           set -o pipefail
