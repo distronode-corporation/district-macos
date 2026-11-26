@@ -80,6 +80,41 @@ final class SegmentedTabScreenTests: SchedulingSheetSnapshotCase {
         }
     }
 
+    // MARK: - HQ
+
+    /// HQ after a question, answered with the recorded answer, and after a request for a change,
+    /// answered with the recorded proposal and its confirm card. The question is typed into the
+    /// console and sent with ⌘↩ (``SchedulingSheetSnapshotCase/typeAndSubmit(_:file:line:)``).
+    func testHQ() async throws {
+        let answered: [FixtureTransport.Rule] = [.any("/api/district/hq", .fixture("mobile/district-hq-answer.json"))]
+        for locale in [L10nLocale.en, .frCA] {
+            try await screen(
+                MarketplaceTabScreenTests.named("answered", locale),
+                rules: answered,
+                locale: locale,
+                size: Self.size
+            ) { app in
+                typeAndSubmit("How many calls did we get this week?")
+                return AnyView(HQView(container: app.container, workspaceId: app.workspaceId, role: .agency))
+            }
+        }
+        let proposed: [FixtureTransport.Rule] = [
+            .any("/api/district/hq", .fixture("mobile/district-hq-pending-write.json")),
+        ]
+        try await screen("proposed", rules: proposed, size: Self.size) { app in
+            typeAndSubmit("Change the greeting to good afternoon.")
+            return AnyView(HQView(container: app.container, workspaceId: app.workspaceId, role: .agency))
+        }
+        try await screen("proposed-as-a-viewer", rules: proposed, size: Self.size) { app in
+            typeAndSubmit("Change the greeting to good afternoon.")
+            return AnyView(HQView(container: app.container, workspaceId: app.workspaceId, role: .viewer))
+        }
+        try await screen("failed", rules: [.any("/api/district/hq", .status(500))], size: Self.size) { app in
+            typeAndSubmit("How many calls did we get this week?")
+            return AnyView(HQView(container: app.container, workspaceId: app.workspaceId, role: .agency))
+        }
+    }
+
     // MARK: - Drawing
 
     /// Phone numbers on segment `tab`, in English and French.

@@ -99,6 +99,60 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
         }
     }
 
+    /// Type `text` into the drawn window's first editable text field and press ⌘↩, as a
+    /// person asking HQ a question does: the field takes focus, the text goes in through its
+    /// editor (which is what a SwiftUI `TextField` listens to), and the key equivalent reaches
+    /// the button that carries the shortcut.
+    func typeAndSubmit(_ text: String, file: StaticString = #filePath, line: UInt = #line) {
+        let earlier = Set(NSApp.windows.map(ObjectIdentifier.init))
+        afterLoad(Self.textInput(excluding: earlier) != nil, file: file, line: line) {
+            guard let found = Self.textInput(excluding: earlier) else { return }
+            let window = found.window
+            window.makeFirstResponder(found.input)
+            (window.firstResponder as? NSTextView)?.insertText(text, replacementRange: NSRange(location: 0, length: 0))
+            // Let SwiftUI take the new text before the shortcut asks the button to send it.
+            try? await Task.sleep(for: .milliseconds(200))
+            if let event = NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: .command,
+                timestamp: 0,
+                windowNumber: window.windowNumber,
+                context: nil,
+                characters: "\r",
+                charactersIgnoringModifiers: "\r",
+                isARepeat: false,
+                keyCode: 36
+            ) {
+                _ = window.performKeyEquivalent(with: event)
+            }
+        }
+    }
+
+    /// The first editable text field or text view in the newest drawn window not in `earlier`.
+    private static func textInput(excluding earlier: Set<ObjectIdentifier>) -> (window: NSWindow, input: NSView)? {
+        guard let window = NSApp.windows.last(where: {
+            $0.frame.minX == -20000 && !earlier.contains(ObjectIdentifier($0))
+        }), let content = window.contentView, let input = firstTextInput(in: content)
+        else { return nil }
+        return (window: window, input: input)
+    }
+
+    private static func firstTextInput(in view: NSView) -> NSView? {
+        if let field = view as? NSTextField, field.isEditable {
+            return field
+        }
+        if let text = view as? NSTextView, text.isEditable {
+            return text
+        }
+        for child in view.subviews {
+            if let input = firstTextInput(in: child) {
+                return input
+            }
+        }
+        return nil
+    }
+
     /// The first segmented control in the window ``ScreenSnapshotCase`` draws in, which it
     /// places at x = -20000, among the windows not in `earlier`.
     private static func segmentedControl(excluding earlier: Set<ObjectIdentifier>) -> NSSegmentedControl? {
