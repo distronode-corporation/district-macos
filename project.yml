@@ -63,6 +63,23 @@ packages:
     url: https://github.com/apple/swift-asn1.git
     exactVersion: 1.7.3
 
+  # ⛔ TEST-ONLY: LINKED BY `DistrictMacTests` AND NOTHING ELSE, for the screen snapshot tests
+  # (App/Tests/Snapshots). MIT. The three packages after it are its dependencies, linked by
+  # nothing here and declared only to pin them, for swift-asn1's reason above: the package
+  # takes them by range. The versions are the ones its own 1.19.7 Package.resolved records.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    exactVersion: 1.19.7
+  swift-custom-dump:
+    url: https://github.com/pointfreeco/swift-custom-dump
+    exactVersion: 1.3.3
+  swift-syntax:
+    url: https://github.com/swiftlang/swift-syntax
+    exactVersion: 603.0.0
+  xctest-dynamic-overlay:
+    url: https://github.com/pointfreeco/xctest-dynamic-overlay
+    exactVersion: 1.6.1
+
   # ⛔ THE SAME EXACT VERSIONS AS district-ios's project.yml. One WebRTC and one Sentry SDK
   # across both apps, bumped together and deliberately. `exactVersion:` is XcodeGen's
   # spelling, not SwiftPM's `exact:`.
@@ -349,8 +366,22 @@ targets:
     platform: macOS
     sources:
       - path: App/Tests
+        excludes:
+          - "Snapshots/__Snapshots__/**"
+      # ⚠️ FOLDER REFERENCES, so the bundle keeps the directory layout the tests read by path:
+      # the recorded server answers the screens are drawn from, and the reference images.
+      # ⛔ READ FROM THE BUNDLE, NOT FROM `#filePath`: the test host runs in the App Sandbox
+      # (App/AdHoc.entitlements), which cannot read the source tree.
+      - path: contracts
+        type: folder
+        buildPhase: resources
+      - path: App/Tests/Snapshots/__Snapshots__
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: DistrictMac
+      - package: SnapshotTesting
+        product: SnapshotTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.distronode.district.tests
