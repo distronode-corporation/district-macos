@@ -1,0 +1,227 @@
+import AppKit
+import DistrictAuthCore
+import DistrictL10n
+@testable import DistrictMac
+import SnapshotTesting
+import SwiftUI
+import XCTest
+
+/// The base of the screen snapshot tests: the whole Mac window (``ShellView``, sidebar
+/// included) drawn from the service's recorded responses, on one screen, in one state and one
+/// language, compared pixel by pixel with a reference image committed beside the tests.
+///
+/// ⛔ THE REFERENCE IMAGES ARE RECORDED ON CI, NEVER ON A DEVELOPER'S MAC. Text rendering and
+/// control drawing differ between macOS versions, so an image recorded anywhere but the `app`
+/// job's runner (macOS 26, Xcode 26.3) would fail there. A missing reference makes the test
+/// FAIL and writes the new image (SnapshotTesting's `.missing` record mode); the `app` job
+/// uploads every new or failing image as the `snapshots` artifact, and the images are
+/// committed from it into `App/Tests/Snapshots/__Snapshots__/<suite>/`.
+///
+/// ⛔ READ FROM THE BUNDLE, WRITTEN TO THE CONTAINER'S TEMPORARY DIRECTORY: the test host runs in
+/// the App Sandbox (App/AdHoc.entitlements), so the source tree is out of reach. The references
+/// are a folder resource of the test bundle and are copied next to the new images before each
+/// comparison; the `app` job finds that directory by its name, `DistrictSnapshots`.
+///
+/// ⚠️ ONE PIXEL SCALE AND ONE APPEARANCE, WHATEVER THE RUNNER'S DISPLAY: the window is drawn
+/// into a bitmap of exactly its size in points, in the light appearance, so the image does not
+/// change with the runner's screen scale or a dark-mode default.
+///
+/// ⚠️ THE CLOCK THE SCREENS READ IS THE DEVICE ZONE, PINNED HERE to America/Toronto, so the
+/// recorded instants in the fixtures read the same on every runner.
+@MainActor
+class ScreenSnapshotCase: XCTestCase {
+    /// The agency workspace from `district-workspace-list.json`, made the default so every
+    /// section is drawn as a role that may see it.
+    static let workspaceId = "ws-contract-active"
+
+    /// The window the screens are drawn in: wide enough for the three columns, the size the
+    /// window opens at on a 13-inch display.
+    static let regular = CGSize(width: 1200, height: 800)
+    /// The smallest the window may be made (`ListColumnWidth.windowMin` by
+    /// `MacWindowSize.minHeight`).
+    static let compact = CGSize(width: 1000, height: 560)
+
+    private var window: NSWindow?
+    private var savedZone: TimeZone?
+
+    override func setUp() async throws {
+        try await super.setUp()
+        savedZone = NSTimeZone.default
+        NSTimeZone.default = TimeZone(identifier: "America/Toronto") ?? .current
+    }
+
+    override func tearDown() async throws {
+        window?.close()
+        window = nil
+        L10nRuntime.locale = .en
+        if let savedZone {
+            NSTimeZone.default = savedZone
+        }
+        try await super.tearDown()
+    }
+
+    /// Draw the shell on `item` (and `route` pushed on it, if any), answered by `rules`, wait
+    /// until every read has answered, and compare the window with its reference image.
+    func assertScreen(
+        _ name: String,
+        item: SidebarItem,
+        route: Route? = nil,
+        rules: [FixtureTransport.Rule],
+        locale: L10nLocale = .en,
+        size: CGSize = ScreenSnapshotCase.regular,
+        file: StaticString = #filePath,
+        testName: String = #function,
+        line: UInt = #line
+    ) async throws {
+        L10nRuntime.locale = locale
+        let transport = FixtureTransport(rules: rules)
+        try await host(item: item, route: route, transport: transport, size: size)
+        await settle(transport)
+        let unanswered = transport.unansweredRequests
+        if !unanswered.isEmpty {
+            print("SNAPSHOT-UNANSWERED \(Self.suite(self)).\(name): \(unanswered.joined(separator: ", "))")
+        }
+        let image = try render(size: size)
+        compare(image, named: name, file: file, testName: testName, line: line)
+    }
+
+    // MARK: - Harness
+
+    private func host(item: SidebarItem, route: Route?, transport: FixtureTransport, size: CGSize) async throws {
+        let container = AppContainer(
+            baseURL: URL(string: "https://api.invalid")!,
+            microphone: FakeMicrophoneAccess(status: .denied),
+            transport: transport,
+            tokenStore: InMemoryTokenStore()
+        )
+        // ⚠️ A SESSION IN MEMORY ONLY, as `MacListSectionLoadTests` adopts it: the access token
+        // is fresh so no request waits on a refresh, and nothing reaches the keychain.
+        let hour: Int64 = 3_600_000
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        await container.coordinator.adopt(
+            NativeTokens(
+                accessToken: "access",
+                accessTokenExpiresAt: now + hour,
+                refreshToken: "refresh",
+                refreshTokenExpiresAt: now + 24 * hour
+            ),
+            deviceId: container.deviceId
+        )
+        let push = PushRegistrar(container: container, system: .silent)
+        // ⛔ NO LIVE SESSION: the factory builds nothing, so no socket is opened.
+        let live = DesktopLive(calls: container.callStack) { _ in nil }
+        let selection = WorkspaceSelectionStore(defaults: Self.scratchDefaults())
+        let session = SessionModel(container: container, push: push, live: live, selection: selection)
+        var paths = ShellPaths()
+        paths.select(item)
+        if let route {
+            paths.open(route)
+        }
+        let shell = ShellView(container: container, session: session, push: push, live: live, paths: paths)
+            .frame(width: size.width, height: size.height)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: -20000, y: -20000, width: size.width, height: size.height),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .aqua)
+        window.contentView = NSHostingView(rootView: shell)
+        window.contentView?.layoutSubtreeIfNeeded()
+        self.window = window
+    }
+
+    /// ⚠️ A FRESH, EMPTY DEFAULTS DOMAIN PER SCREEN, so a workspace another test selected is
+    /// not the one this screen opens on.
+    private static func scratchDefaults() -> UserDefaults {
+        let name = "snapshots.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name) ?? .standard
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    /// Wait until no read is in flight and none has been sent for a while, then give SwiftUI
+    /// a moment to draw the last answer.
+    ///
+    /// ⚠️ BOUNDED: a screen that keeps reading (a poll) is drawn as it stands after the cap,
+    /// which its reference image then shows; it never hangs the run.
+    private func settle(_ transport: FixtureTransport) async {
+        let deadline = Date().addingTimeInterval(20)
+        try? await Task.sleep(for: .milliseconds(300))
+        while !transport.isIdle(for: 0.6), Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        window?.contentView?.layoutSubtreeIfNeeded()
+        try? await Task.sleep(for: .milliseconds(400))
+        window?.contentView?.layoutSubtreeIfNeeded()
+    }
+
+    private func render(size: CGSize) throws -> NSImage {
+        guard let view = window?.contentView,
+              let bitmap = NSBitmapImageRep(
+                  bitmapDataPlanes: nil,
+                  pixelsWide: Int(size.width),
+                  pixelsHigh: Int(size.height),
+                  bitsPerSample: 8,
+                  samplesPerPixel: 4,
+                  hasAlpha: true,
+                  isPlanar: false,
+                  colorSpaceName: .deviceRGB,
+                  bytesPerRow: 0,
+                  bitsPerPixel: 0
+              )
+        else {
+            throw XCTSkip("no window to draw")
+        }
+        bitmap.size = view.bounds.size
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        let image = NSImage(size: view.bounds.size)
+        image.addRepresentation(bitmap)
+        return image
+    }
+
+    private func compare(_ image: NSImage, named name: String, file: StaticString, testName: String, line: UInt) {
+        let suite = Self.suite(self)
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DistrictSnapshots", isDirectory: true)
+            .appendingPathComponent(suite, isDirectory: true)
+        Self.copyReferences(of: suite, to: directory)
+        // ⚠️ 98% PERCEPTUAL: a pixel counts as the same when a person could not tell the
+        // difference (anti-aliasing that moves by a fraction), and every pixel must pass it.
+        let failure = verifySnapshot(
+            of: image,
+            as: .image(precision: 1, perceptualPrecision: 0.98),
+            named: name,
+            snapshotDirectory: directory.path,
+            file: file,
+            testName: testName,
+            line: line
+        )
+        if let failure {
+            XCTFail("\(failure)\nSNAPSHOT-DIR \(directory.path)", file: file, line: line)
+        }
+    }
+
+    private static func suite(_ test: XCTestCase) -> String {
+        String(describing: type(of: test))
+    }
+
+    /// Copy the committed references for `suite` from the bundle next to where SnapshotTesting
+    /// looks for them.
+    private static func copyReferences(of suite: String, to directory: URL) {
+        let manager = FileManager.default
+        try? manager.createDirectory(at: directory, withIntermediateDirectories: true)
+        guard let source = Bundle(for: ScreenSnapshotCase.self).resourceURL?
+            .appendingPathComponent("__Snapshots__", isDirectory: true)
+            .appendingPathComponent(suite, isDirectory: true),
+            let names = try? manager.contentsOfDirectory(atPath: source.path)
+        else { return }
+        for name in names where name.hasSuffix(".png") {
+            let target = directory.appendingPathComponent(name)
+            try? manager.removeItem(at: target)
+            try? manager.copyItem(at: source.appendingPathComponent(name), to: target)
+        }
+    }
+}

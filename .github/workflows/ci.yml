@@ -309,6 +309,18 @@ jobs:
             -scheme DistrictMacDirect \
             -clonedSourcePackagesDirPath SourcePackages
 
+      # ⛔ THE SCREEN SNAPSHOT TESTS' DATA IS THE PINNED CORE'S OWN COPY OF THE SERVICE'S ANSWERS.
+      # `contracts/` is copied from district-core-swift at the release project.yml pins, and
+      # this fails when a core bump or a hand edit leaves the two apart (contracts/README.md).
+      - name: contracts/ is the pinned DistrictCore's copy
+        run: |
+          set -euo pipefail
+          core=SourcePackages/checkouts/district-core-swift/contracts
+          for dir in mobile desktop; do
+            diff -r "$core/$dir" "contracts/$dir"
+          done
+          echo "contracts/mobile and contracts/desktop equal the resolved DistrictCore's"
+
       # The resolved graph, for the `dependency graph` job to submit from Linux. Uploaded
       # straight after resolution, so the snapshot is what Xcode resolved even when a
       # later step fails.
@@ -366,6 +378,7 @@ jobs:
           grep -q '\*\* TEST BUILD SUCCEEDED \*\*' xcodebuild-testing-DistrictMac.log
 
       - name: DistrictMacTests
+        id: unit-tests
         run: |
           set -o pipefail
           xcodebuild test-without-building \
@@ -406,30 +419,37 @@ jobs:
             exit 1
           fi
 
-      # The app target's line coverage from DistrictMacTests, printed with every target's
-      # for context. ⚠️ NO FLOOR YET: the number has to be measured on the runner first.
-      # A missing report or target is a warning, not a failure, until then.
+      # ⛔ THE APP TARGET'S LINE COVERAGE FROM DistrictMacTests, WITH A FLOOR. A RATCHET: the
+      # floor is the measured number rounded down, raised in the pull request that adds the
+      # tests that lift it, and never lowered to make a run pass. 80 is the target (OpenSSF
+      # Best Practices silver). Every target is printed for context; only `District AI.app`,
+      # the code in App/Sources, is held to the floor. Nothing is excluded from it.
+      # Floor history: 25 on 2026-11-26 (measured 25.89% on main run 45003646554).
       - name: DistrictMacTests line coverage (xccov)
+        # Also after a red test run, so a run that records new snapshot images still reports
+        # the number they reach.
+        if: ${{ !cancelled() && steps.unit-tests.outcome != 'skipped' }}
+        env:
+          COVERAGE_FLOOR: "25"
         run: |
-          if ! xcrun xccov view --report --only-targets --json DistrictMacTests.xcresult > coverage.json; then
-            echo "::warning::xccov could not read DistrictMacTests.xcresult; no coverage report this run"
-            exit 0
-          fi
+          set -euo pipefail
+          xcrun xccov view --report --only-targets --json DistrictMacTests.xcresult > coverage.json
           python3 - <<'PY'
-          import json, sys
-          try:
-              report = json.load(open("coverage.json"))
-          except (OSError, ValueError) as e:
-              print(f"::warning::the coverage report could not be parsed ({e})")
-              sys.exit(0)
+          import json, os, sys
+          report = json.load(open("coverage.json"))
           targets = report["targets"] if isinstance(report, dict) else report
           for t in sorted(targets, key=lambda t: t["name"]):
               print(f'{t["name"]}: {100 * t["lineCoverage"]:.2f}% ({t["coveredLines"]}/{t["executableLines"]} lines)')
           app = [t for t in targets if t["name"] == "District AI.app"]
-          if app:
-              print(f'app target line coverage - {100 * app[0]["lineCoverage"]:.2f}%')
-          else:
-              print("::warning::District AI.app is not in the coverage report")
+          if not app:
+              print("FATAL - District AI.app is not in the coverage report")
+              sys.exit(1)
+          line = 100 * app[0]["lineCoverage"]
+          floor = float(os.environ["COVERAGE_FLOOR"])
+          print(f"app target line coverage - {line:.2f}% (floor {floor:g}%)")
+          if line < floor:
+              print(f"FATAL - app target line coverage {line:.2f}% is below the floor of {floor:g}%")
+              sys.exit(1)
           PY
 
       # ⛔ THE SCREENSHOT CASE IS BUILT, NEVER RUN. It signs in to production on a minted
@@ -467,6 +487,26 @@ jobs:
             -resultBundlePath LaunchSmoke.xcresult \
             2>&1 | tee xcodebuild-launch-smoke.log | xcbeautify --renderer github-actions
           grep -Eq 'Executed 2 tests, with (1 test skipped and )?0 failures' xcodebuild-launch-smoke.log
+
+      # ⚠️ THE SCREEN SNAPSHOTS' NEW AND FAILING IMAGES, from the test host's sandbox container,
+      # where ScreenSnapshotCase writes them (the host cannot write the checkout). A new screen's
+      # images are reviewed and committed from this artifact into
+      # App/Tests/Snapshots/__Snapshots__/<suite>/; see that folder's README.
+      - name: Collect the snapshot images
+        if: always()
+        run: |
+          mkdir -p snapshots
+          find "$HOME/Library/Containers" "${TMPDIR:-/tmp}" -type d -name DistrictSnapshots -prune 2>/dev/null \
+            | while IFS= read -r dir; do cp -R "$dir/." snapshots/; done
+          find snapshots -type f | sort | head -n 400
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: snapshots
+          path: snapshots/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Tail the logs on failure
         if: failure()
