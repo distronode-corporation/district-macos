@@ -167,7 +167,9 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         HTTPResponse(
             statusCode: status,
             headers: ["Content-Type": "application/json"],
-            body: Data(#"{"success":false,"error":"\#(code)"}"#.utf8)
+            // The service's shape: `error` and `code` both present (DeleteAccountModelTests'
+            // envelope); the screens that word a code themselves read `code`.
+            body: Data(#"{"success":false,"error":"\#(code)","code":"\#(code)"}"#.utf8)
         )
     }
 }

@@ -6,6 +6,8 @@ import DistrictL10n
 import XCTest
 
 /// Every Copy accessor answers its catalog entry's English and French (see the script).
+/// Main-actor isolated because a few Copy enums are (their accessors read main-actor state).
+@MainActor
 final class CopyCatalogTests: XCTestCase {
     func test_account() {
         XCTAssertEqual(AccountCopy.account, "Account", "account.account")
