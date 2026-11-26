@@ -1,8 +1,7 @@
 # Roadmap
 
-The near-term plan for District AI for Mac. This repository has no open issues, so the list is
-taken from its open pull requests and its own unfinished items, each named with where it comes
-from. This roadmap covers the next twelve months, to November 2027. Items have no dates of
+The near-term plan for District AI for Mac. The list is taken from this repository's open issues
+and pull requests and its own unfinished items, each named with where it comes from. This roadmap covers the next twelve months, to November 2027. Items have no dates of
 their own: an item is done when the change that does it is merged and released, and it then
 leaves this list for [CHANGELOG.md](CHANGELOG.md). Anything here can change; open an issue to
 discuss an item or to propose a new one.
@@ -18,6 +17,10 @@ discuss an item or to propose a new one.
 - **DistrictCore 9.0.0.** One open pull request moves the app to the shared core's 9.0.0 release,
   with its sign-in fixes and the server's updated contracts
   ([#119](https://github.com/distronode-corporation/district-macos/pull/119)).
+- **A serialised keychain token store.** `KeychainTokenStore` does not yet serialise its
+  operations, which the shared core's `TokenStore` contract requires, so two writes can reach
+  the keychain out of order. The plan is to put one serialisation around every member
+  ([#118](https://github.com/distronode-corporation/district-macos/issues/118)).
 - **A repeatable build.** CI's `repeatable` job ([`ci/repeatable-build.sh`](ci/repeatable-build.sh),
   on pushes to `main`) builds the store app unsigned, in Release, twice from clean and compares
   every file in the two bundles. On `main` two files differ, the Sentry framework's binary and
