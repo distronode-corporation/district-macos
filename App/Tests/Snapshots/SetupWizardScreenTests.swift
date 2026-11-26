@@ -1,3 +1,4 @@
+import DistrictData
 import DistrictL10n
 @testable import DistrictMac
 import DistrictModel
@@ -11,14 +12,6 @@ final class SetupWizardScreenTests: ScreenSnapshotCase {
     /// The size the shell presents the sheet at (`macSheetSize(width: 640, height:
     /// MacSheetFit.maxHeight)`).
     private static let sheet = CGSize(width: 640, height: MacSheetFit.maxHeight)
-
-    /// ⚠️ NO BUSINESS DRAFT LEFT BY ANOTHER TEST. The wizard keeps step 1's unsaved draft in the
-    /// standard defaults per workspace and restores it over the service's answer, so a test
-    /// elsewhere that saved one for this workspace changed this screen (run 45862905442).
-    override func setUp() async throws {
-        try await super.setUp()
-        SetupDraftStore(defaults: .standard).clear(workspaceId: Self.workspaceId)
-    }
 
     func testBusiness() async throws {
         try await step(.business)
@@ -72,13 +65,28 @@ final class SetupWizardScreenTests: ScreenSnapshotCase {
         }
     }
 
+    /// The wizard as the app builds it, with two seams pinned:
+    ///
+    /// ⛔ NO APP STORE STOREFRONT. The app asks StoreKit for the storefront before the wizard
+    /// leaves its loading state, and on the runner the first ask can take longer than the
+    /// harness waits: testBusiness's first reference caught "Loading your setup" (run
+    /// 45871221841 then drew the step). Nil is what a Mac with no storefront answers, and the
+    /// Developer ID build's answer always.
+    /// ⛔ ITS OWN, EMPTY DRAFT STORE. The wizard restores step 1's unsaved draft per workspace
+    /// over the service's answer, and the standard defaults can hold one another test saved.
     private static func wizard(_ app: SignedInApp) -> AnyView {
-        AnyView(SetupWizardView(
-            container: app.container,
-            workspaceId: app.workspaceId,
+        let workspaces = app.container.workspaces
+        let workspaceId = app.workspaceId
+        let suite = "snapshots.setup.\(UUID().uuidString)"
+        let model = SetupWizardModel(
+            repository: SetupWizardRepository(client: app.container.api),
+            workspaceId: workspaceId,
             workspaceName: "Zulu Agency",
-            onClose: {}
-        ))
+            store: SetupDraftStore(defaults: UserDefaults(suiteName: suite) ?? .standard),
+            personaLanguage: { try? await workspaces.config(workspaceId: workspaceId).get().aiPersona?.language },
+            storefront: { nil }
+        )
+        return AnyView(SetupWizardView(model: model, container: app.container, onClose: {}))
     }
 
     /// The recorded setup state with every step before `open` done and the rest `todo`.
