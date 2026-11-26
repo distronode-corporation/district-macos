@@ -51,9 +51,9 @@ final class RoomAndRingScreenTests: ScreenSnapshotCase {
 
     /// Join pressed, and the room's token refused: back before the join, saying why.
     ///
-    /// ⚠️ THE MODEL IS THE SCREEN'S OWN: it is claimed as the call stack's room while the
-    /// screen is built, so the screen adopts it (``ActiveRoomModel/attached(to:roomName:)``),
-    /// then given back before the join, which claims it again itself.
+    /// ⚠️ THE JOIN IS REFUSED BEFORE THE SCREEN IS BUILT, so the image cannot be taken while the
+    /// join is still pending. The refused model is then claimed as the call stack's room, so the
+    /// screen adopts it (``ActiveRoomModel/attached(to:roomName:)``) with its refusal.
     func testRoomJoinRefused() async throws {
         try await assertView(
             "refused-en",
@@ -71,13 +71,9 @@ final class RoomAndRingScreenTests: ScreenSnapshotCase {
                 askPermissions: { RoomPermissions(requested: true, microphoneGranted: true, cameraGranted: true) }
             )
             held.append(model)
+            await model.join()
+            _ = try XCTUnwrap(model.joinFailure, "the refused join set no failure")
             calls.claimRoom(model)
-            Self.once({ true }, {
-                // The screen is built on the first layout, before this runs.
-                try? await Task.sleep(for: .milliseconds(500))
-                calls.releaseRoom(model)
-                await model.join()
-            })
             var paths = ShellPaths()
             paths.select(.rooms)
             paths.open(.activeRoom(workspaceId: app.workspaceId, role: .agency, roomName: Self.roomName))
