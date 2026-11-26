@@ -20,8 +20,13 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         case edited(String, @Sendable (inout [String: Any]) -> Void)
         /// A literal JSON body.
         case json(String)
-        /// A status with the service's error envelope.
+        /// A status with the service's error envelope and its generic code for that class of
+        /// status (`server_error` for a 5xx, `invalid_request` for a 4xx, both codes from
+        /// `contracts/i18n/api-errors.json`).
         case status(Int)
+        /// A status with the service's error envelope carrying one specific code from
+        /// `contracts/i18n/api-errors.json`, for a screen that answers a code in its own words.
+        case refusal(Int, code: String)
         /// One recording for an English request and another for a French one, chosen by the
         /// request's `Accept-Language`, where the service records both.
         case localized(en: String, fr: String)
@@ -133,7 +138,9 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         case let .json(body):
             return ok(Data(body.utf8))
         case let .status(code):
-            return envelope(code, code: code >= 500 ? "internal_error" : "request_failed")
+            return envelope(code, code: code >= 500 ? "server_error" : "invalid_request")
+        case let .refusal(status, code):
+            return envelope(status, code: code)
         }
     }
 
