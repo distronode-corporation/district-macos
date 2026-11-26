@@ -83,9 +83,11 @@ final class SchedulingEventTypeSheetTests: SchedulingSheetSnapshotCase {
         try await sheetInBothLanguages("loaded") { app in
             try await AnyView(SchedulingEventTypeHostsSheet(model: Self.hosts(app)))
         }
+        // ⚠️ AFTER THE CANDIDATES HAVE ANSWERED TOO (`canAddHosts`), the second read the sheet
+        // makes: hosts removed before it answers would come back as candidates to add.
         try await sheet("no-host") { app in
             let model = try await Self.hosts(app)
-            afterLoad(!model.isEmpty) {
+            afterLoad(model.canAddHosts) {
                 for row in model.rows {
                     model.remove(row.userId)
                 }
@@ -95,7 +97,7 @@ final class SchedulingEventTypeSheetTests: SchedulingSheetSnapshotCase {
         }
         try await sheet("bad-priority") { app in
             let model = try await Self.hosts(app)
-            afterLoad(!model.isEmpty) {
+            afterLoad(model.canAddHosts) {
                 model.setPriority("first", for: model.rows[0].userId)
                 await model.save()
             }
