@@ -59,14 +59,14 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
     func testListening() async throws {
         for locale in [L10nLocale.en, .frCA] {
             try await supervise(Self.named("listening", locale), locale: locale) { model, media in
-                await Self.listen(model, media)
+                try await Self.listen(model, media)
             }
         }
     }
 
     func testWhisperSent() async throws {
         try await supervise("whisper-en") { model, media in
-            await Self.listen(model, media)
+            try await Self.listen(model, media)
             model.draft = "Offer the Thursday 2pm slot."
             await model.sendWhisper()
         }
@@ -74,9 +74,9 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
 
     func testTakenOver() async throws {
         try await supervise("taken-over-en") { model, media in
-            await Self.listen(model, media)
+            try await Self.listen(model, media)
             await model.takeOver()
-            await Self.until { media.engines.contains { $0.leg == .takeover } }
+            try await Self.until("the takeover leg") { media.engines.contains { $0.leg == .takeover } }
             media.engine(.takeover, .connected)
             media.engine(.takeover, .microphoneChanged(enabled: true))
         }
@@ -96,7 +96,7 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
         file: StaticString = #filePath,
         testName: String = #function,
         line: UInt = #line,
-        steps: @escaping @MainActor (SuperviseModel, FakeSuperviseMedia) async -> Void
+        steps: @escaping @MainActor (SuperviseModel, FakeSuperviseMedia) async throws -> Void
     ) async throws {
         try await assertView(
             name,
@@ -127,7 +127,7 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
             held.append(model)
             held.append(media)
             app.container.callStack.supervisor = model
-            await steps(model, media)
+            try await steps(model, media)
             var paths = ShellPaths()
             paths.select(.live)
             paths.open(.superviseCall(workspaceId: workspaceId, role: .agency, callId: Self.callId))
@@ -138,18 +138,27 @@ final class SuperviseScreenTests: ScreenSnapshotCase {
     }
 
     /// Listen, and the listen leg's engine reports it is in the room.
-    private static func listen(_ model: SuperviseModel, _ media: FakeSuperviseMedia) async {
+    private static func listen(_ model: SuperviseModel, _ media: FakeSuperviseMedia) async throws {
         await model.listen()
-        await until { media.engines.contains { $0.leg == .listen } }
+        try await until("the listen leg") { media.engines.contains { $0.leg == .listen } }
         media.engine(.listen, .connected)
-        await until { model.state.phase == .listening }
+        try await until("listening") { model.state.phase == .listening }
+    }
+
+    /// A step that did not reach its state in time.
+    private struct TimedOut: Error, CustomStringConvertible {
+        let description: String
     }
 
     /// Wait, at most 5 seconds, for `condition`.
-    private static func until(_ condition: @MainActor () -> Bool) async {
+    ///
+    /// ⚠️ A TIMEOUT THROWS, so a screen that never reached its state is never drawn, and never
+    /// recorded as a reference.
+    private static func until(_ what: String, _ condition: @MainActor () -> Bool) async throws {
         let deadline = Date().addingTimeInterval(5)
         while !condition(), Date() < deadline {
             try? await Task.sleep(for: .milliseconds(20))
         }
+        guard condition() else { throw TimedOut(description: "timed out waiting for \(what)") }
     }
 }
