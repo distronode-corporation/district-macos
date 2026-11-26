@@ -95,6 +95,8 @@ def render() -> str:
         "import XCTest",
         "",
         "/// Every Copy accessor answers its catalog entry's English and French (see the script).",
+        "/// Main-actor isolated because a few Copy enums are (their accessors read main-actor state).",
+        "@MainActor",
         "final class CopyCatalogTests: XCTestCase {",
     ]
     counted = 0
