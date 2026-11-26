@@ -43,6 +43,17 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
             line: line,
             build: build
         )
+        // ⛔ EVERY STEP THIS STATE SCHEDULED IS AWAITED BEFORE THE STATE IS DONE, so a step that
+        // never ran fails this state's test, not whichever test happens to be running when its
+        // wait gives up.
+        let steps = pendingSteps
+        pendingSteps = []
+        for step in steps {
+            let ran = await step.task.value
+            if !ran {
+                XCTFail("the sheet's own read never answered, so its step never ran", file: step.file, line: step.line)
+            }
+        }
     }
 
     /// The same state in English (`<name>-en`) and Canadian French (`<name>-fr`).
@@ -70,27 +81,37 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
     /// Run `step` once `ready` holds, which is the sheet's own read having answered.
     ///
     /// ⚠️ BOUNDED, like the harness's settle: a read that has not answered after ten seconds
-    /// fails the test and `step` never runs, since a step that indexes the rows it waited for
-    /// would trap on an empty list. Ten seconds is inside the settle's twenty, so the failure
-    /// lands on the test that waited.
+    /// gives up and `step` never runs, since a step that indexes the rows it waited for would
+    /// trap on an empty list. ``sheet(_:rules:locale:file:testName:line:build:)`` awaits the
+    /// wait before it returns and fails the state if the step did not run. The image is taken
+    /// by the harness's settle, which does not know about the step, so such a state fails
+    /// after its comparison rather than before it.
     func afterLoad(
         _ ready: @autoclosure @escaping @MainActor () -> Bool,
         file: StaticString = #filePath,
         line: UInt = #line,
         then step: @escaping @MainActor () async -> Void
     ) {
-        Task { @MainActor in
+        let task = Task { @MainActor in
             let deadline = Date().addingTimeInterval(10)
             while !ready() {
-                guard Date() < deadline else {
-                    XCTFail("the sheet's own read never answered", file: file, line: line)
-                    return
-                }
+                guard Date() < deadline else { return false }
                 try? await Task.sleep(for: .milliseconds(10))
             }
             await step()
+            return true
         }
+        pendingSteps.append(PendingStep(task: task, file: file, line: line))
     }
+
+    /// A step ``afterLoad(_:file:line:then:)`` scheduled, and where it was asked for.
+    private struct PendingStep {
+        let task: Task<Bool, Never>
+        let file: StaticString
+        let line: UInt
+    }
+
+    private var pendingSteps: [PendingStep] = []
 
     /// A scheduling op answered with a 500 and the service's error envelope: the write's
     /// failure state.
