@@ -147,6 +147,63 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
         return box
     }
 
+    /// The same state in English (`<name>-en`) and Canadian French (`<name>-fr`).
+    func sheetInBothLanguages(
+        _ name: String,
+        rules: [FixtureTransport.Rule] = [],
+        file: StaticString = #filePath,
+        testName: String = #function,
+        line: UInt = #line,
+        build: (SignedInApp) async throws -> AnyView
+    ) async throws {
+        for locale in [L10nLocale.en, .frCA] {
+            try await sheet(
+                "\(name)-\(locale == .en ? "en" : "fr")",
+                rules: rules,
+                locale: locale,
+                file: file,
+                testName: testName,
+                line: line,
+                build: build
+            )
+        }
+    }
+
+    /// Run `step` once `ready` holds, which is the sheet's own read having answered.
+    ///
+    /// ⚠️ BOUNDED, like the harness's settle: a read that has not answered after ten seconds
+    /// gives up and `step` never runs, since a step that indexes the rows it waited for would
+    /// trap on an empty list. ``sheet(_:rules:locale:file:testName:line:build:)`` awaits the
+    /// wait before it returns and fails the state if the step did not run. The image is taken
+    /// by the harness's settle, which does not know about the step, so such a state fails
+    /// after its comparison rather than before it.
+    func afterLoad(
+        _ ready: @autoclosure @escaping @MainActor () -> Bool,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        then step: @escaping @MainActor () async -> Void
+    ) {
+        let task = Task { @MainActor in
+            let deadline = Date().addingTimeInterval(10)
+            while !ready() {
+                guard Date() < deadline else { return false }
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            await step()
+            return true
+        }
+        pendingSteps.append(PendingStep(task: task, file: file, line: line))
+    }
+
+    /// A step ``afterLoad(_:file:line:then:)`` scheduled, and where it was asked for.
+    private struct PendingStep {
+        let task: Task<Bool, Never>
+        let file: StaticString
+        let line: UInt
+    }
+
+    private var pendingSteps: [PendingStep] = []
+
     /// A scheduling op answered with a 500 and the service's error envelope: the write's
     /// failure state.
     static func failing(_ op: String) -> FixtureTransport.Rule {
@@ -160,7 +217,7 @@ final class WindowBox {
     weak var window: NSWindow?
 
     func find<Control: NSView>(_: Control.Type) -> Control? {
-        window?.contentView.flatMap { Self.first(in: $0) { $0 as? Control } }
+        window?.contentView.flatMap { root in Self.first(in: root) { view in view as? Control } }
     }
 
     /// The first editable text field or text view.
