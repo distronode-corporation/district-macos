@@ -103,7 +103,7 @@ class ScreenSnapshotCase: XCTestCase {
         file: StaticString = #filePath,
         testName: String = #function,
         line: UInt = #line,
-        build: (SignedInApp) -> AnyView
+        build: (SignedInApp) async throws -> AnyView
     ) async throws {
         L10nRuntime.locale = locale
         let transport = FixtureTransport(rules: rules)
@@ -112,7 +112,8 @@ class ScreenSnapshotCase: XCTestCase {
         // there first; every screen then opens on the list's default, the agency workspace.
         WorkspaceSelectionStore().setSelectedWorkspaceId(nil)
         let app = await SignedInApp(transport: transport, defaults: Self.scratchDefaults())
-        host(build(app), size: size)
+        let view = try await build(app)
+        host(view, size: size)
         await settle(transport)
         let unanswered = transport.unansweredRequests
         if !unanswered.isEmpty {
