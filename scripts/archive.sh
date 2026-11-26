@@ -127,9 +127,10 @@ xcodegen generate --spec project.yml
 # ⛔ `generic/platform=macOS` builds every architecture in ARCHS (arm64 and x86_64 in
 # Release), not just the host's. Packages go to SourcePackages/ (gitignored), as in
 # ci.yml, which is where scripts/sparkle-sign.sh takes Sparkle's sign_update from.
-# ⛔ Reproducible.xcconfig: the same build settings CI's repeatable job builds with, so the
-# shipped app is built exactly as that check proves repeatable (the file says why).
-xcodebuild archive \
+# ⛔ Reproducible.xcconfig and SWIFT_DETERMINISTIC_HASHING=1: the same build settings and
+# environment CI's repeatable job builds with, so the shipped app is built exactly as that check
+# proves repeatable (ci/repeatable-build.sh and the xcconfig say why).
+SWIFT_DETERMINISTIC_HASHING=1 xcodebuild archive \
   -project DistrictMac.xcodeproj \
   -scheme "$SCHEME" \
   -configuration Release \

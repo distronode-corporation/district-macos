@@ -81,8 +81,10 @@ echo "FAIL: the two builds differ in these files:"
 grep -E '^[-+]([0-9a-f]{64}|link) ' "$OUT/sha256.diff" | sed -E 's/^[-+]([0-9a-f]{64}|link)  //; s/ -> .*$//' | sort -u | tee "$OUT/differing.txt"
 # The object files that differ, kept from both builds for the artifact; the rest are dropped.
 echo "Intermediate object files that differ:"
-diff "$OUT/1.objects.sha256" "$OUT/2.objects.sha256" | grep -E '^[<>] ' | sed -E 's/^[<>] [0-9a-f]{64}  //' | sort -u \
-  | tee "$OUT/differing-objects.txt"
+# ⚠️ `|| true`: diff exits 1 on a difference and grep exits 1 on none, and either would end the
+# script here under `set -euo pipefail` before the objects are kept.
+{ diff "$OUT/1.objects.sha256" "$OUT/2.objects.sha256" || true; } | { grep -E '^[<>] ' || true; } \
+  | sed -E 's/^[<>] [0-9a-f]{64}  //' | sort -u | tee "$OUT/differing-objects.txt"
 for n in 1 2; do
   mkdir -p "$OUT/objects-$n"
   (cd "$OUT/$n.objects" && xargs -I{} rsync -R "{}" "$OUT/objects-$n/" < "$OUT/differing-objects.txt") || true
