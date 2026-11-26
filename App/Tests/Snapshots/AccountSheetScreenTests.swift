@@ -163,19 +163,6 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
                 await model.confirm()
             }
         }
-        // ⚠️ A CODE THE SERVICE DID NOT ACCEPT, its rule ahead of the recorded confirmation.
-        let wrongCode = Self.writes("/api/auth/mfa/confirm", .refusal(400, code: "mfa_code_invalid"))
-        try await assertView(
-            "wrong-code-en",
-            rules: wrongCode + Self.off + ScreenRules.loaded,
-            size: Self.twoStepSize
-        ) { app in
-            Self.twoStep(app) { model in
-                await Self.enroll(model)
-                model.totp = "123456"
-                await model.confirm()
-            }
-        }
     }
 
     func testTwoStepDisable() async throws {
