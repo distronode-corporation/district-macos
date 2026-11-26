@@ -8,13 +8,25 @@ issue to discuss an item or to propose a new one.
 
 ## Near term
 
-- **Release what is merged.** Account deletion in the app, two-step verification settings and
-  the setup wizard in the app are merged and listed under `[Unreleased]` in
-  [CHANGELOG.md](CHANGELOG.md), with DistrictCore 8.6.0. The plan is to ship them in the next
-  release, on Releases, Homebrew and the Mac App Store.
-- **Hardening from the deep security scan.** One open pull request: ending a room join that a
-  leave or an audio yield lands inside
-  ([#115](https://github.com/distronode-corporation/district-macos/pull/115)).
+- **Release what is merged.** Account deletion in the app, two-step verification settings,
+  the setup wizard and the hardening from the deep security scan (ending a room join that a
+  leave or an audio yield lands inside,
+  [#115](https://github.com/distronode-corporation/district-macos/pull/115)) are merged and
+  listed under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md). The plan is to ship them in the
+  next release, on Releases, Homebrew and the Mac App Store.
+- **DistrictCore 9.0.0.** One open pull request moves the app to the shared core's 9.0.0 release,
+  with its sign-in fixes and the server's updated contracts
+  ([#119](https://github.com/distronode-corporation/district-macos/pull/119)).
+- **A repeatable build.** CI's `repeatable` job builds the store app unsigned twice from clean and
+  compares every file. On `main` two files still differ (the Sentry framework's binary and two
+  cells of the app binary's x86_64 slice), so the job does not block yet. One open pull request
+  fixes both and makes it blocking
+  ([#120](https://github.com/distronode-corporation/district-macos/pull/120)).
+- **Line coverage of the app's own code to 80 percent.** `main` measures about 26 percent of
+  `App/Sources` (xccov, CI's `app` job). The plan is snapshot tests of every screen in its real
+  states, drawn from the service's recorded responses, plus unit tests for the logic they do not
+  reach, with a floor in CI raised as each batch lands. The first batch is open
+  ([#121](https://github.com/distronode-corporation/district-macos/pull/121)).
 - **Screenshots in the README.** The README has a marked place for a screenshot of the app; it
   is to be captured on a Mac the way [docs/screenshots.md](docs/screenshots.md) describes.
 
