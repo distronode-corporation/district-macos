@@ -13,3 +13,10 @@
 // objc_msgSend calls and the linker has nothing to order. district-ios made the same change
 // (its #150).
 OTHER_CFLAGS = $(inherited) -fno-objc-msgsend-selector-stubs
+
+// ⛔ AND THE LINKER IN ITS REPRODUCIBLE MODE. With no stubs and every intermediate object file
+// identical (dispatch run 45877456606), the x86_64 slice still differed in two bytes of
+// `__TEXT,__const`, the table of mangled-name references the linker lays out, and so in its
+// UUID. ld(1): `-reproducible` "instructs ld to create a reproducible output binary by
+// ignoring certain input properties or using alternative algorithms".
+OTHER_LDFLAGS = $(inherited) -Wl,-reproducible
