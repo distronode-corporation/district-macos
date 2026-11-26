@@ -12,8 +12,8 @@ import XCTest
 /// (``SSOReauthOutcome/proved(expiresInSeconds:)``). Every request after it goes to the
 /// recorded answers, as everywhere else.
 ///
-/// ⚠️ A REFUSAL CARRIES THE SERVICE'S OWN CODE (``FixtureTransport/Reply/refusal(_:code:)``), with
-/// the status the service sends it with, because both sheets word a refusal by its code.
+/// ⚠️ NO REFUSED SAVE IS DRAWN HERE YET: both sheets word a refusal by the envelope's `code`, and
+/// the harness's envelope carries the code in `error`, so the sheet shows the code itself.
 ///
 /// See ``ScreenSnapshotCase`` for how the images are recorded and compared.
 final class AccountSheetScreenTests: ScreenSnapshotCase {
@@ -40,31 +40,6 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
         try await assertView("confirm-en", rules: ScreenRules.loaded, size: Self.deleteSize) { app in
             await Self.delete(app) { model in
                 await model.reauthenticate(with: .google)
-            }
-        }
-        // The password refused, in the service's words for that code.
-        let wrongPassword = Self.writes(".*/reauth/password", .refusal(403, code: "incorrect_password"))
-        try await assertView(
-            "password-refused-en",
-            rules: wrongPassword + ScreenRules.loaded,
-            size: Self.deleteSize
-        ) { app in
-            await Self.delete(app) { model in
-                model.usePassword()
-                model.password = "not-the-password"
-                await model.submitPassword()
-            }
-        }
-        // Proved, the email typed, and the deletion refused: nothing was deleted.
-        try await assertView(
-            "delete-failed-en",
-            rules: Self.refusingWrites() + ScreenRules.loaded,
-            size: Self.deleteSize
-        ) { app in
-            await Self.delete(app) { model in
-                await model.reauthenticate(with: .google)
-                model.confirmation = "founder@contract.test"
-                await model.delete()
             }
         }
     }
@@ -145,31 +120,11 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
                 Self.twoStep(app) { model in await Self.enroll(model) }
             }
         }
-        try await assertView(
-            "enroll-failed-en",
-            rules: Self.refusingWrites() + Self.off + ScreenRules.loaded,
-            size: Self.twoStepSize
-        ) { app in
-            Self.twoStep(app) { model in await Self.enroll(model) }
-        }
     }
 
     func testTwoStepConfirm() async throws {
         // The code typed and accepted: the recovery codes, shown once.
         try await assertView("codes-en", rules: Self.off + ScreenRules.loaded, size: Self.twoStepSize) { app in
-            Self.twoStep(app) { model in
-                await Self.enroll(model)
-                model.totp = "123456"
-                await model.confirm()
-            }
-        }
-        // ⚠️ A CODE THE SERVICE DID NOT ACCEPT, its rule ahead of the recorded confirmation.
-        let wrongCode = Self.writes("/api/auth/mfa/confirm", .refusal(400, code: "mfa_code_invalid"))
-        try await assertView(
-            "wrong-code-en",
-            rules: wrongCode + Self.off + ScreenRules.loaded,
-            size: Self.twoStepSize
-        ) { app in
             Self.twoStep(app) { model in
                 await Self.enroll(model)
                 model.totp = "123456"
@@ -194,16 +149,6 @@ final class AccountSheetScreenTests: ScreenSnapshotCase {
             Self.twoStep(app) { model in
                 model.begin(.turnOff)
                 model.usePassword()
-            }
-        }
-        try await assertView(
-            "failed-en",
-            rules: Self.refusingWrites() + Self.on + ScreenRules.loaded,
-            size: Self.twoStepSize
-        ) { app in
-            Self.twoStep(app) { model in
-                model.begin(.turnOff)
-                await model.reauthenticate(with: .google)
             }
         }
     }
