@@ -52,7 +52,18 @@ enum ScreenRules {
         .get("\(api)/workspace/sip", .fixture("mobile/district-sip-trunks.json")),
 
         // The sections.
-        .get("\(api)/overview", .fixture("mobile/district-overview.json")),
+        // ⚠️ THE RECORDING'S `workspaceId` IS MOVED TO THE WORKSPACE ON SCREEN: the Overview
+        // refuses an answer for another workspace (a switch that raced the read), which is
+        // what the recorded id would be here.
+        .get("\(api)/overview", .edited("mobile/district-overview.json") { body in
+            body["workspaceId"] = ScreenSnapshotCase.workspaceId
+        }),
+        .get("\(api)/setup/forwarding-check", .fixture("mobile/district-forwarding-check.json")),
+        .get("\(api)/connections", .fixture("mobile/district-connections.json")),
+        .any("\(api)/messages/mark-read", .fixture("mobile/district-message-mark-read.json")),
+        // ⚠️ THE ONE BODY WRITTEN HERE: the corpus records no answer for this read. Its three
+        // keys are `AvailabilityResponse`'s, all always present on the wire.
+        .get("\(api)/workspace/availability", .json(#"{"success":true,"availableForCalls":true,"reason":null}"#)),
         .get("\(api)/setup", .fixture("mobile/district-setup.json")),
         .get("\(api)/analytics", .fixture("mobile/district-analytics.json")),
         .get("\(api)/calls/[^/]+/transcript", .fixture("mobile/district-call-transcript.json")),

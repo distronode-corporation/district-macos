@@ -26,6 +26,11 @@ import XCTest
 /// into a bitmap of exactly its size in points, in the light appearance, so the image does not
 /// change with the runner's screen scale or a dark-mode default.
 ///
+/// ⚠️ THE SIDEBAR IS AN EMPTY PANEL IN EVERY IMAGE. macOS 26 draws the split view's sidebar as
+/// glass, which the window server composites, and a bitmap drawn from the view tree in-process
+/// gets the panel without its rows. The sidebar's SwiftUI body still runs (its rows are laid
+/// out), and its content is pinned by the sidebar unit tests (`MacSidebarItemTests`).
+///
 /// ⚠️ THE CLOCK THE SCREENS READ IS THE DEVICE ZONE, PINNED HERE to America/Toronto, so the
 /// recorded instants in the fixtures read the same on every runner.
 @MainActor
