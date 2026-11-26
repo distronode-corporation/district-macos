@@ -109,15 +109,12 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
 
 ### Changed
 
-- Sentry is linked as its dynamic XCFramework (`Sentry-Dynamic`, still 9.30.1 and still
-  prebuilt) instead of the static one, so two clean builds of the same commit can be byte
-  for byte identical: the static product's embedded framework held a stub linked in a
-  random temporary directory. CI's `repeatable` job now blocks.
 - Release builds are built with `Reproducible.xcconfig`, which turns off Objective-C selector
   stubs (`-fno-objc-msgsend-selector-stubs`) for every target, LiveKit's included. The release
   archive (`scripts/archive.sh`, both lanes) and CI's `repeatable` job pass the same file, so the
   shipped app is built exactly as the repeatable check builds it; with stubs, the linker ordered
-  LiveKit's selector references differently from one link to the next.
+  LiveKit's selector references differently from one link to the next. CI's `repeatable` job
+  now blocks.
 - The contact block confirmation's accessibility identifier is `district-contact-block-confirm`,
   Android's and iOS's string, so one test plan addresses the same button in all three apps
   (#103). It was `district-contact-confirm-block` through 3.3.0; the unblock confirmation keeps
