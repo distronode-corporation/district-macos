@@ -44,3 +44,4 @@ sparkle_private_key*
 .DS_Store
 
 __pycache__/
+project-tests.yml
