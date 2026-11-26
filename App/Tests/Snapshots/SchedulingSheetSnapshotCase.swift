@@ -1,3 +1,4 @@
+import AppKit
 import DistrictData
 import DistrictL10n
 @testable import DistrictMac
@@ -33,11 +34,35 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
         line: UInt = #line,
         build: (SignedInApp) async throws -> AnyView
     ) async throws {
+        try await screen(
+            name,
+            rules: rules,
+            locale: locale,
+            size: Self.sheetSize,
+            file: file,
+            testName: testName,
+            line: line,
+            build: build
+        )
+    }
+
+    /// Draw what `build` returns at `size`, answered by `rules` first and then by every recorded
+    /// read, and await the steps it scheduled.
+    func screen(
+        _ name: String,
+        rules: [FixtureTransport.Rule] = [],
+        locale: L10nLocale = .en,
+        size: CGSize,
+        file: StaticString = #filePath,
+        testName: String = #function,
+        line: UInt = #line,
+        build: (SignedInApp) async throws -> AnyView
+    ) async throws {
         try await assertView(
             name,
             rules: rules + ScreenRules.loaded,
             locale: locale,
-            size: Self.sheetSize,
+            size: size,
             file: file,
             testName: testName,
             line: line,
@@ -54,6 +79,43 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
                 XCTFail("the sheet's own read never answered, so its step never ran", file: step.file, line: step.line)
             }
         }
+    }
+
+    /// Choose segment `index` of the drawn window's segmented control, as a click on it does:
+    /// the control's selection changes and its action is sent, which is what a SwiftUI
+    /// `Picker` in the segmented style listens to.
+    ///
+    /// ⚠️ THE ONLY WAY INTO A TAB A SCREEN KEEPS IN A MODEL OF ITS OWN (`MarketplaceView`,
+    /// `SchedulingDeveloperView`, `SchedulingSettingsView`): nothing outside the view can set it.
+    ///
+    /// ⚠️ ONLY A WINDOW OPENED AFTER THE CALL COUNTS: `build` runs before the harness opens the
+    /// state's window, and an earlier state's window can still be listed.
+    func chooseSegment(_ index: Int, file: StaticString = #filePath, line: UInt = #line) {
+        let earlier = Set(NSApp.windows.map(ObjectIdentifier.init))
+        afterLoad(Self.segmentedControl(excluding: earlier) != nil, file: file, line: line) {
+            guard let control = Self.segmentedControl(excluding: earlier) else { return }
+            control.selectedSegment = index
+            _ = control.sendAction(control.action, to: control.target)
+        }
+    }
+
+    /// The first segmented control in the window ``ScreenSnapshotCase`` draws in, which it
+    /// places at x = -20000, among the windows not in `earlier`.
+    private static func segmentedControl(excluding earlier: Set<ObjectIdentifier>) -> NSSegmentedControl? {
+        let window = NSApp.windows.last { $0.frame.minX == -20000 && !earlier.contains(ObjectIdentifier($0)) }
+        return window?.contentView.flatMap(firstSegmentedControl(in:))
+    }
+
+    private static func firstSegmentedControl(in view: NSView) -> NSSegmentedControl? {
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
+        for child in view.subviews {
+            if let control = firstSegmentedControl(in: child) {
+                return control
+            }
+        }
+        return nil
     }
 
     /// The same state in English (`<name>-en`) and Canadian French (`<name>-fr`).
