@@ -25,6 +25,10 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         /// One recording for an English request and another for a French one, chosen by the
         /// request's `Accept-Language`, where the service records both.
         case localized(en: String, fr: String)
+        /// A fixture with its rows taken out: every list of objects in it, at the top or one
+        /// level down (`data.items`), made empty, and every `total` and `count` made 0. The
+        /// service's own answer for a tenant with nothing in it yet, where it records none.
+        case emptied(String)
     }
 
     /// ⚠️ THE PATTERN IS KEPT AS TEXT AND COMPILED PER MATCH: a compiled `Regex` is not
@@ -117,6 +121,9 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         switch reply {
         case let .localized(en, fr):
             return try ok(Fixtures.data(french ? fr : en))
+        case let .emptied(name):
+            let value = try JSONSerialization.jsonObject(with: Fixtures.data(name))
+            return try ok(JSONSerialization.data(withJSONObject: emptied(value, depth: 0), options: [.sortedKeys]))
         case let .fixture(name):
             return try ok(Fixtures.data(name))
         case let .edited(name, edit):
@@ -128,6 +135,21 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         case let .status(code):
             return envelope(code, code: code >= 500 ? "internal_error" : "request_failed")
         }
+    }
+
+    private static func emptied(_ value: Any, depth: Int) -> Any {
+        if let rows = value as? [Any], rows.first is [String: Any] || rows.isEmpty {
+            return [Any]()
+        }
+        guard depth < 2, var object = value as? [String: Any] else { return value }
+        for (key, field) in object {
+            if key == "total" || key == "count", field is NSNumber {
+                object[key] = 0
+            } else {
+                object[key] = emptied(field, depth: depth + 1)
+            }
+        }
+        return object
     }
 
     private static func ok(_ body: Data) -> HTTPResponse {

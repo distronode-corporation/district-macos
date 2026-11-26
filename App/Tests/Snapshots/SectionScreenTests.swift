@@ -105,6 +105,14 @@ final class SectionScreenTests: ScreenSnapshotCase {
             line: line
         )
         try await assertScreen(
+            "empty-en",
+            item: item,
+            rules: ScreenRules.empty,
+            file: file,
+            testName: testName,
+            line: line
+        )
+        try await assertScreen(
             "failed-en",
             item: item,
             rules: ScreenRules.failing,

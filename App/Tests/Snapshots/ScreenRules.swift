@@ -109,6 +109,21 @@ enum ScreenRules {
         .scheduling("webhooks.deliveries", .fixture("mobile/district-scheduling-webhook-deliveries.json")),
     ]
 
+    /// The same reads with their rows taken out (``FixtureTransport/Reply/emptied(_:)``): each
+    /// screen as a new tenant sees it. The workspace list, the account and the workspace's own
+    /// configuration keep their recorded answers, which a new tenant has too.
+    static let empty: [FixtureTransport.Rule] = workspaces + loaded.dropFirst(workspaces.count).map { rule in
+        guard case let .fixture(name) = rule.reply, !kept.contains(name) else { return rule }
+        return FixtureTransport.Rule(method: rule.method, pattern: rule.pattern, op: rule.op, reply: .emptied(name))
+    }
+
+    private static let kept: Set = [
+        "mobile/district-settings.json",
+        "mobile/district-workspace-config.json",
+        "mobile/district-scheduling-status-ready.json",
+        "mobile/district-scheduling-me.json",
+    ]
+
     /// Every read answered with a 500, after the workspace list: each screen's failure state.
     static let failing: [FixtureTransport.Rule] = workspaces + [
         .any(".*", .status(500)),
