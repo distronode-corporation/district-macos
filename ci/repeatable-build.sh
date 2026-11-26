@@ -12,8 +12,14 @@
 # signature to strip before comparing (CI's other builds sign ad hoc; this one does not
 # sign at all), and no Apple account needed.
 #
-# Expected differences: none yet listed. This has not run on a runner yet; if a file
-# must be accepted as differing, list it here with the reason and skip it below.
+# Expected differences: none. Every file is compared; nothing is skipped.
+#
+# ⛔ SWIFT_DETERMINISTIC_HASHING=1 IS PART OF THE RECIPE. Parts of the Swift toolchain are
+# written in Swift (the driver, the App Intents metadata extractor, optimizer passes),
+# and a Swift Dictionary's iteration order follows a hash seed that is random per process
+# unless this variable is set. district-ios's two clean builds differed in a version.json
+# for that reason. The variable changes no source and no build setting; it only fixes the
+# seed of the Swift tools the build runs.
 #
 # On a difference it prints each differing file and keeps both products under
 # $RUNNER_TEMP/repeatable (or /tmp/repeatable) for the job to upload.
@@ -23,6 +29,7 @@ scheme=$1
 destination=$2
 product=$3
 OUT=${RUNNER_TEMP:-/tmp}/repeatable
+export SWIFT_DETERMINISTIC_HASHING=1
 rm -rf "$OUT"
 mkdir -p "$OUT"
 

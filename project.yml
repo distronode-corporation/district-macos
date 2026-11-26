@@ -119,8 +119,17 @@ targetTemplates:
           - DistrictCall
           - DistrictLive
           - DistrictL10n
+      # ⛔ `Sentry-Dynamic`, NOT `Sentry`, FOR THE REPEATABLE BUILD. The `Sentry` product is
+      # a STATIC XCFramework: its code links into the app binary and Xcode embeds the
+      # framework only to carry its Info.plist and privacy manifest, "injecting a stub
+      # binary into codeless framework". That stub is linked in a fresh random
+      # `swbuild.tmp.*` directory whose path lands in its LC_ID_DYLIB, so
+      # `Frameworks/Sentry.framework/Versions/A/Sentry` differed between two clean builds of
+      # the same commit (ci/repeatable-build.sh, main run 45003646554). `Sentry-Dynamic` is
+      # the same 9.30.1 release, also prebuilt, copied into the bundle as shipped. district-ios
+      # made the same change (its #141).
       - package: Sentry
-        product: Sentry
+        product: Sentry-Dynamic
       - package: LiveKit
         product: LiveKit
     # ⚠️ GENERATED, NOT AUTHORED. xcodegen writes the plist at `path` from these

@@ -233,6 +233,10 @@ every pull request, and uses no secrets:
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
   store target for testing and runs `DistrictMacTests`.
+- **repeatable** (macOS, pushes to `main` and dispatches): builds the store app unsigned,
+  in Release, twice from clean, and fails unless every file in the two bundles is byte for
+  byte the same ([`ci/repeatable-build.sh`](ci/repeatable-build.sh), which is also the
+  recipe for repeating a build yourself).
 - **dependency graph** (Linux): submits the Swift packages **app** resolved to GitHub's dependency graph,
   which cannot see them on its own; on pushes to `main` and pull requests from this
   repository.
