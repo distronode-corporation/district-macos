@@ -33,6 +33,22 @@ enum AppL10n {
         L10nRuntime.locale == .frCA ? .frCA : .en
     }
 
+    /// The locale for what the SYSTEM draws inside the app's screens (a `DatePicker`'s month
+    /// calendar), so its month and day names are in the app's language.
+    ///
+    /// ⛔ FRENCH IS fr_CA, WHATEVER THE MAC IS SET TO. The app reads French from the bundle's
+    /// preferred localizations, which can differ from the region format the system controls
+    /// otherwise follow, and a French screen around an English calendar is the English
+    /// fallback French must never show (issue #129). ⚠️ English keeps the Mac's own locale when
+    /// that is English (an operator's en_GB or en_CA dates stay theirs), and en_US when the Mac
+    /// is set to another language.
+    static func displayLocale(current: Locale = .autoupdatingCurrent) -> Locale {
+        if copyLocale == .frCA {
+            return Locale(identifier: "fr_CA")
+        }
+        return current.language.languageCode == .english ? current : Locale(identifier: "en_US")
+    }
+
     /// Called on the main thread after each language change the observer in ``bootstrap()``
     /// applies (not at launch). The app sets it once, to ``AccountLanguageSync``.
     @MainActor static var onChange: (@MainActor () -> Void)?
