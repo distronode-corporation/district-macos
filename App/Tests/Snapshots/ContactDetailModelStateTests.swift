@@ -174,6 +174,7 @@ final class ContactDetailModelStateTests: XCTestCase {
         let (model, transport) = await model(Self.loaded)
         await model.clearIntel()
         XCTAssertTrue(sent(transport, "clear-intel"), "\(transport.sentRequests)")
+        XCTAssertEqual(loaded(model)?.saving, false)
         XCTAssertNil(loaded(model)?.mutationFailure)
     }
 
