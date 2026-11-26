@@ -68,6 +68,15 @@ final class HQMarkdownTests: XCTestCase {
         )
     }
 
+    /// A fence in a nested list item, four spaces in, is still a fence and kept as sent.
+    func testAFenceInANestedListItemStaysAsSent() {
+        let text = "- outer\n  - inner\n    ~~~\n    Total **19**\n    ~~~\nAfter **bold**"
+        XCTAssertEqual(
+            String(HQMarkdown.inline(text).characters),
+            "- outer\n  - inner\n    ~~~\n    Total **19**\n    ~~~\nAfter bold"
+        )
+    }
+
     func testPlainTextIsUnchanged() {
         XCTAssertEqual(String(HQMarkdown.inline("No calls yet.").characters), "No calls yet.")
     }

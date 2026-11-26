@@ -15,6 +15,11 @@ import Foundation
 /// (CodeRabbit on #145), so the lines from a fence to its closing fence are never parsed. A
 /// fence is three or more backticks or tildes, closed by at least as many of the same.
 ///
+/// ⚠️ ANY INDENTATION, ON PURPOSE. CommonMark allows at most three spaces before a top-level
+/// fence, but list items are not tracked here, and a fence in a nested list item sits four
+/// spaces in or more. Read inline, such a fence would swallow its line breaks again. The cost
+/// is that a fence-like line indented four spaces inside a block closes it.
+///
 /// ⚠️ TEXT THAT IS NOT VALID MARKDOWN IS SHOWN AS SENT, so an answer is never lost to a
 /// parse failure.
 enum HQMarkdown {
