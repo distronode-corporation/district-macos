@@ -13,7 +13,7 @@ import XCTest
 /// form is filled from the service's answer and not from a retyped one.
 ///
 /// ⚠️ A STATE A SHEET'S OWN `.task` WOULD OVERWRITE IS REACHED AFTER THAT READ
-/// (``afterLoad(_:then:)``). Several sheets read their rows when they appear, and that read
+/// (``afterLoad(_:file:line:then:)``). Several sheets read their rows when they appear, and that read
 /// replaces whatever the rows held, so an edit made before the view is returned would be drawn
 /// as the recorded rows again.
 @MainActor
@@ -69,15 +69,23 @@ class SchedulingSheetSnapshotCase: ScreenSnapshotCase {
 
     /// Run `step` once `ready` holds, which is the sheet's own read having answered.
     ///
-    /// ⚠️ BOUNDED, like the harness's settle: a read that never answers runs `step` anyway
-    /// after ten seconds, and the image shows what that left.
+    /// ⚠️ BOUNDED, like the harness's settle: a read that has not answered after ten seconds
+    /// fails the test and `step` never runs, since a step that indexes the rows it waited for
+    /// would trap on an empty list. Ten seconds is inside the settle's twenty, so the failure
+    /// lands on the test that waited.
     func afterLoad(
         _ ready: @autoclosure @escaping @MainActor () -> Bool,
+        file: StaticString = #filePath,
+        line: UInt = #line,
         then step: @escaping @MainActor () async -> Void
     ) {
         Task { @MainActor in
             let deadline = Date().addingTimeInterval(10)
-            while !ready(), Date() < deadline {
+            while !ready() {
+                guard Date() < deadline else {
+                    XCTFail("the sheet's own read never answered", file: file, line: line)
+                    return
+                }
                 try? await Task.sleep(for: .milliseconds(10))
             }
             await step()
