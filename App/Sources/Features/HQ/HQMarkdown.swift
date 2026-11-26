@@ -10,10 +10,38 @@ import Foundation
 /// ⛔ NO LINKS. A link in an answer becomes plain styled text, never something to click: the
 /// console's text is generated, and a click must not take the operator somewhere it chose.
 ///
+/// ⛔ A FENCED BLOCK IS KEPT AS SENT, fences and all. Inline parsing alone read a ```` ``` ````
+/// fence as a code-span delimiter and swallowed both fences and the line breaks around them
+/// (CodeRabbit on #145), so the lines from a fence to its closing fence are never parsed.
+///
 /// ⚠️ TEXT THAT IS NOT VALID MARKDOWN IS SHOWN AS SENT, so an answer is never lost to a
 /// parse failure.
 enum HQMarkdown {
     static func inline(_ text: String) -> AttributedString {
+        var rendered = AttributedString()
+        var prose = ""
+        var fenced = false
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        for (index, line) in lines.enumerated() {
+            let piece = String(line) + (index < lines.count - 1 ? "\n" : "")
+            let isFence = line.trimmingCharacters(in: .whitespaces).hasPrefix("```")
+            if isFence || fenced {
+                rendered += parsed(prose)
+                prose = ""
+                rendered += AttributedString(piece)
+                if isFence {
+                    fenced.toggle()
+                }
+            } else {
+                prose += piece
+            }
+        }
+        rendered += parsed(prose)
+        return rendered
+    }
+
+    private static func parsed(_ text: String) -> AttributedString {
+        guard !text.isEmpty else { return AttributedString() }
         let options = AttributedString.MarkdownParsingOptions(
             allowsExtendedAttributes: false,
             interpretedSyntax: .inlineOnlyPreservingWhitespace,

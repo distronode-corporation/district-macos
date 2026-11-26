@@ -23,6 +23,12 @@ final class HQMarkdownTests: XCTestCase {
         XCTAssertTrue(rendered.runs.allSatisfy { $0.link == nil })
     }
 
+    /// A fenced block keeps its fences, its line breaks and its literal asterisks.
+    func testAFencedBlockStaysAsSent() {
+        let text = "Before **bold**\n```text\nTotal **19**\n```\nAfter"
+        XCTAssertEqual(String(HQMarkdown.inline(text).characters), "Before bold\n```text\nTotal **19**\n```\nAfter")
+    }
+
     func testPlainTextIsUnchanged() {
         XCTAssertEqual(String(HQMarkdown.inline("No calls yet.").characters), "No calls yet.")
     }
