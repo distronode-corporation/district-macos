@@ -358,8 +358,9 @@ jobs:
             DISTRICT_FRENCH=YES scripts/check-bundle-l10n.sh "DerivedData/Build/Products/Debug/District AI.app"
           done
 
-      # ⚠️ THE STORE SCHEME ONLY: `DistrictMacDirect` has no test action (project.yml says
-      # why), and the step above has already compiled it.
+      # ⚠️ THE STORE APP ONLY, through `DistrictMacUnitTests`, the store app and its tests with
+      # implicit dependencies off (project.yml says why): `DistrictMacDirect` has no test action,
+      # and the step above has already compiled it.
       # `-enableCodeCoverage YES` here and on the DistrictMacTests step: the build is what
       # instruments the code, and test-without-building only collects.
       - name: Build for testing
@@ -367,7 +368,7 @@ jobs:
           set -o pipefail
           xcodebuild build-for-testing \
             -project DistrictMac.xcodeproj \
-            -scheme DistrictMac \
+            -scheme DistrictMacUnitTests \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -clonedSourcePackagesDirPath SourcePackages \
@@ -383,7 +384,7 @@ jobs:
           set -o pipefail
           xcodebuild test-without-building \
             -project DistrictMac.xcodeproj \
-            -scheme DistrictMac \
+            -scheme DistrictMacUnitTests \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -clonedSourcePackagesDirPath SourcePackages \

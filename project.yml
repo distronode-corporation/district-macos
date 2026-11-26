@@ -435,6 +435,24 @@ schemes:
         - DistrictMacTests
     archive:
       config: Release
+  # ⛔ CI'S UNIT-TEST SCHEME, WITH IMPLICIT DEPENDENCIES OFF. Both app targets produce
+  # `District AI.app`, and the test bundle's TEST_HOST and BUNDLE_LOADER name that product, so
+  # Xcode's implicit dependency search could add `DistrictMacDirect` to a build-for-testing of
+  # `DistrictMac` too, and some runs failed with "Multiple commands produce 'District AI.app'"
+  # (runs 45793262975, 45796003844). Here every dependency is the explicit one: the store app
+  # and the test bundle, which links the store app and its packages through project.yml's
+  # `dependencies`. `DistrictMac` keeps its own test action for running the tests in Xcode;
+  # its build, run and archive are unchanged.
+  DistrictMacUnitTests:
+    build:
+      buildImplicitDependencies: false
+      targets:
+        DistrictMac: all
+        DistrictMacTests: [test]
+    test:
+      config: Debug
+      targets:
+        - DistrictMacTests
   # ⛔ NO TEST ACTION. The test bundle is hosted by the store target, and both targets
   # build `District AI.app` (`PRODUCT_NAME`), so a test build of this scheme would build
   # both into one `BUILT_PRODUCTS_DIR` and fail with "Multiple commands produce
