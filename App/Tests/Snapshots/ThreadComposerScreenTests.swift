@@ -15,9 +15,13 @@ final class ThreadComposerScreenTests: ScreenSnapshotCase {
     private static let email = ReplyTarget(to: "ada@contract.test", channel: MessageChannel.email)
     private static let whatsApp = ReplyTarget(to: "+14165551234", channel: MessageChannel.whatsapp)
 
-    /// The recorded draft for this thread, in place of the shared rules' empty one.
+    /// The recorded draft for this thread.
+    ///
+    /// ⚠️ ONE THREAD'S DRAFT IS READ FROM `messages/drafts` WITH ITS THREAD KEY, the path the
+    /// shared rules answer with the whole list (`district-drafts-list.json`), and the rules match
+    /// paths only, so this answer goes first.
     private static let draft: [FixtureTransport.Rule] = [
-        .get("/api/district/messages/draft", .fixture("mobile/district-draft.json")),
+        .get("/api/district/messages/drafts", .fixture("mobile/district-draft.json")),
     ]
 
     /// ⚠️ THE RECORDING'S WINDOW IS OPEN; the closed one is the same answer with `open` false.
@@ -44,7 +48,7 @@ final class ThreadComposerScreenTests: ScreenSnapshotCase {
     }
 
     func testDraftUnreadable() async throws {
-        let failed: [FixtureTransport.Rule] = [.get("/api/district/messages/draft", .status(500))]
+        let failed: [FixtureTransport.Rule] = [.get("/api/district/messages/drafts", .status(500))]
         try await thread("failed-en", [Self.sms, Self.email], rules: failed)
     }
 
