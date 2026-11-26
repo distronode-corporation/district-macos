@@ -29,6 +29,26 @@ final class HQMarkdownTests: XCTestCase {
         XCTAssertEqual(String(HQMarkdown.inline(text).characters), "Before bold\n```text\nTotal **19**\n```\nAfter")
     }
 
+    /// Three backticks with a backtick later on the line open a code span, not a fence
+    /// (CodeRabbit on #145), so the span and everything after it are still rendered.
+    func testAnInlineTripleBacktickSpanIsNotAFence() throws {
+        let rendered = HQMarkdown.inline("```value```\n**Next**")
+        XCTAssertEqual(String(rendered.characters), "value\nNext")
+        let code = try XCTUnwrap(rendered.range(of: "value"))
+        XCTAssertEqual(rendered[code].inlinePresentationIntent, .code)
+        let bold = try XCTUnwrap(rendered.range(of: "Next"))
+        XCTAssertEqual(rendered[bold].inlinePresentationIntent, .stronglyEmphasized)
+    }
+
+    /// Inside a fence, only a line of backticks closes it; a code span line does not.
+    func testOnlyALineOfBackticksClosesAFence() {
+        let text = "```text\n```value```\n**kept**\n```\nAfter **bold**"
+        XCTAssertEqual(
+            String(HQMarkdown.inline(text).characters),
+            "```text\n```value```\n**kept**\n```\nAfter bold"
+        )
+    }
+
     func testPlainTextIsUnchanged() {
         XCTAssertEqual(String(HQMarkdown.inline("No calls yet.").characters), "No calls yet.")
     }

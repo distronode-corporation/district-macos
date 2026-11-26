@@ -24,7 +24,13 @@ enum HQMarkdown {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
         for (index, line) in lines.enumerated() {
             let piece = String(line) + (index < lines.count - 1 ? "\n" : "")
-            let isFence = line.trimmingCharacters(in: .whitespaces).hasPrefix("```")
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            // An opening fence's info string cannot hold a backtick (CommonMark 4.5), so
+            // "```value```" is an inline code span, not a fence (CodeRabbit on #145);
+            // a closing fence is backticks only.
+            let isFence = trimmed.hasPrefix("```") && (fenced
+                ? trimmed.allSatisfy { $0 == "`" }
+                : !trimmed.drop { $0 == "`" }.contains("`"))
             if isFence || fenced {
                 rendered += parsed(prose)
                 prose = ""
