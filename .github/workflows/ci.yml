@@ -182,6 +182,11 @@ jobs:
       - name: The catalog is valid and the generated Swift is current
         run: python3 scripts/gen-l10n.py --check
 
+      # The test that every Copy accessor answers its entry's English and French at run time
+      # (App/Tests/Generated/CopyCatalogTests.swift) is written from the same catalog.
+      - name: The generated Copy catalog test is current
+        run: python3 scripts/gen-copy-tests.py --check
+
       # frcheck's French rules (typography, terms, sentence case, one French version of an
       # English string across catalogs) over every catalog, as district-core-swift and
       # district-linux run them. No term base or memory here. Warnings print; an error fails.
@@ -341,27 +346,61 @@ jobs:
           set -o pipefail
           for scheme in DistrictMac DistrictMacDirect; do
             echo "=== $scheme ==="
+            derived=DerivedData
+            if [ "$scheme" = DistrictMacDirect ]; then derived=DerivedData-direct; fi
             xcodebuild build \
               -project DistrictMac.xcodeproj \
               -scheme "$scheme" \
               -destination 'platform=macOS' \
-              -derivedDataPath DerivedData \
+              -derivedDataPath "$derived" \
               -clonedSourcePackagesDirPath SourcePackages \
               CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
               2>&1 | tee "xcodebuild-$scheme.log" | xcbeautify --renderer github-actions
             grep -q '\*\* BUILD SUCCEEDED \*\*' "xcodebuild-$scheme.log"
-            # ⛔ AFTER EACH BUILD, because both targets build `District AI.app` into the same
-            # products folder and the second overwrites the first. Both string tables in
+            # Each build's own `District AI.app`. Both string tables in
             # en.lproj, none at the bundle root (a root table shadows every .lproj), both in
             # fr-CA.lproj too, and no other French .lproj. The release lanes run the same
             # check on the archive (scripts/archive.sh, scripts/direct-package.sh).
-            DISTRICT_FRENCH=YES scripts/check-bundle-l10n.sh "DerivedData/Build/Products/Debug/District AI.app"
+            DISTRICT_FRENCH=YES scripts/check-bundle-l10n.sh "$derived/Build/Products/Debug/District AI.app"
           done
 
       # ⚠️ THE STORE SCHEME ONLY: `DistrictMacDirect` has no test action (project.yml says
       # why), and the step above has already compiled it.
       # `-enableCodeCoverage YES` here and on the DistrictMacTests step: the build is what
       # instruments the code, and test-without-building only collects.
+      # ⛔ THE TEST BUILD'S PROJECT HAS NO DistrictMacDirect. Both app targets produce
+      # `District AI.app`, which the test bundle's TEST_HOST names, and the build-for-testing of
+      # the store scheme sometimes added DistrictMacDirect to its build and failed on "Multiple
+      # commands produce 'District AI.app'" (runs 45793262975, 45816034737, 45823300792; a rerun
+      # of the same commit could pass). A separate test scheme with implicit dependencies off
+      # and a separate DerivedData for the Direct build did not stop it. The step above has
+      # already built the Direct target from the full project; from here on the project is
+      # regenerated from project.yml without the Direct target and scheme, which is the only
+      # thing removed.
+      - name: Regenerate the project without the Direct target, for the test builds
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          out, skip = [], False
+          for line in open("project.yml").read().split("\n"):
+              if re.match(r"^  DistrictMacDirect:\s*$", line):
+                  skip = True
+                  continue
+              if skip and re.match(r"^(  )?[A-Za-z]", line):
+                  skip = False
+              if not skip:
+                  out.append(line)
+          open("project-tests.yml", "w").write("\n".join(out))
+          PY
+          xcodegen generate --spec project-tests.yml
+          if grep -q DistrictMacDirect DistrictMac.xcodeproj/project.pbxproj; then
+            echo "FATAL - the regenerated project still has DistrictMacDirect"
+            exit 1
+          fi
+          grep -q 'name = DistrictMacTests' DistrictMac.xcodeproj/project.pbxproj
+          echo "project regenerated without DistrictMacDirect"
+
       - name: Build for testing
         run: |
           set -o pipefail
@@ -424,13 +463,14 @@ jobs:
       # tests that lift it, and never lowered to make a run pass. 80 is the target (OpenSSF
       # Best Practices silver). Every target is printed for context; only `District AI.app`,
       # the code in App/Sources, is held to the floor. Nothing is excluded from it.
-      # Floor history: 25 on 2026-11-26 (measured 25.89% on main run 45003646554).
+      # Floor history: 25 on 2026-11-26 (measured 25.89% on main run 45003646554); 58 with the
+      # screen snapshot tests and the Copy catalog test (58.43% on run 45838890995).
       - name: DistrictMacTests line coverage (xccov)
         # Also after a red test run, so a run that records new snapshot images still reports
         # the number they reach.
         if: ${{ !cancelled() && steps.unit-tests.outcome != 'skipped' }}
         env:
-          COVERAGE_FLOOR: "25"
+          COVERAGE_FLOOR: "58"
         run: |
           set -euo pipefail
           xcrun xccov view --report --only-targets --json DistrictMacTests.xcresult > coverage.json
