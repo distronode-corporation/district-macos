@@ -264,10 +264,13 @@ class ScreenSnapshotCase: XCTestCase {
             .appendingPathComponent(suite, isDirectory: true)
         Self.stageReference(of: suite, file: "\(Self.sanitized(testName)).\(Self.sanitized(name)).png", in: directory)
         // ⚠️ 98% PERCEPTUAL: a pixel counts as the same when a person could not tell the
-        // difference (anti-aliasing that moves by a fraction), and every pixel must pass it.
+        // difference (anti-aliasing that moves by a fraction). ⚠️ AND 99.98% OF PIXELS MUST PASS:
+        // at most 1 in 5,000 may differ (192 in the regular window), far fewer than any changed
+        // word draws. The Account screen's last pixel row, where a scrolled form is cut off,
+        // differed in 52 pixels between two runs of the same commit (run 45850364894).
         let failure = verifySnapshot(
             of: image,
-            as: .image(precision: 1, perceptualPrecision: 0.98),
+            as: .image(precision: 0.9998, perceptualPrecision: 0.98),
             named: name,
             snapshotDirectory: directory.path,
             file: file,
