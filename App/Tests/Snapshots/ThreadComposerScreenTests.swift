@@ -1,0 +1,91 @@
+import DistrictL10n
+@testable import DistrictMac
+import DistrictModel
+import XCTest
+
+/// An Inbox thread with its reply box: on each channel the thread can answer on, with the
+/// recorded draft restored into it (its text, its subject and its image, held where the
+/// channel cannot carry one), a closed WhatsApp window, and a draft that could not be read.
+///
+/// See ``ScreenSnapshotCase`` for how the images are recorded and compared.
+final class ThreadComposerScreenTests: ScreenSnapshotCase {
+    /// The thread in `district-conversations.json` and the stored draft in `district-draft.json`.
+    private static let threadKey = "contact:contact_contract_1"
+    private static let sms = ReplyTarget(to: "14165551234", channel: MessageChannel.sms)
+    private static let email = ReplyTarget(to: "ada@contract.test", channel: MessageChannel.email)
+    private static let whatsApp = ReplyTarget(to: "+14165551234", channel: MessageChannel.whatsapp)
+
+    /// The recorded draft for this thread, in place of the shared rules' empty one.
+    private static let draft: [FixtureTransport.Rule] = [
+        .get("/api/district/messages/draft", .fixture("mobile/district-draft.json")),
+    ]
+
+    /// ⚠️ THE RECORDING'S WINDOW IS OPEN; the closed one is the same answer with `open` false.
+    private static let closedWindow: [FixtureTransport.Rule] = [
+        .get("/api/district/workspace/whatsapp/window", .edited("mobile/district-whatsapp-window.json") { body in
+            body["window"] = ["open": false, "expiresAt": NSNull()]
+        }),
+    ]
+
+    func testSmsAndEmail() async throws {
+        // Two channels: the channel strip over an empty box.
+        for locale in [L10nLocale.en, .frCA] {
+            try await thread(Self.named("two-channels", locale), [Self.sms, Self.email], locale: locale)
+        }
+    }
+
+    func testDraftRestored() async throws {
+        // On SMS: the draft's text and its image, staged.
+        for locale in [L10nLocale.en, .frCA] {
+            try await thread(Self.named("sms", locale), [Self.sms, Self.email], rules: Self.draft, locale: locale)
+        }
+        // On email: the subject field, and the image held, since email carries none.
+        try await thread("email-en", [Self.email, Self.sms], rules: Self.draft)
+    }
+
+    func testDraftUnreadable() async throws {
+        let failed: [FixtureTransport.Rule] = [.get("/api/district/messages/draft", .status(500))]
+        try await thread("failed-en", [Self.sms, Self.email], rules: failed)
+    }
+
+    func testWhatsApp() async throws {
+        // The recorded window, open: free text.
+        try await thread("open-en", [Self.whatsApp])
+        // Closed: only a template, and the draft's image held under it.
+        for locale in [L10nLocale.en, .frCA] {
+            try await thread(
+                Self.named("closed", locale),
+                [Self.whatsApp, Self.sms],
+                rules: Self.closedWindow + Self.draft,
+                locale: locale
+            )
+        }
+    }
+
+    private func thread(
+        _ name: String,
+        _ targets: [ReplyTarget],
+        rules: [FixtureTransport.Rule] = [],
+        locale: L10nLocale = .en,
+        file: StaticString = #filePath,
+        testName: String = #function,
+        line: UInt = #line
+    ) async throws {
+        try await assertScreen(
+            name,
+            item: .inbox,
+            route: .thread(
+                workspaceId: Self.workspaceId,
+                role: .agency,
+                threadKey: Self.threadKey,
+                replyTargets: targets,
+                title: "Contract Test Caller"
+            ),
+            rules: rules + ScreenRules.loaded,
+            locale: locale,
+            file: file,
+            testName: testName,
+            line: line
+        )
+    }
+}
