@@ -66,7 +66,10 @@ extension NumberProvisioningModel {
             numberWrite = .done(
                 warnings.isEmpty
                     ? MarketplaceCopy.releaseDone
-                    : ([MarketplaceCopy.releaseWarningEyebrow] + warnings).joined(separator: " ")
+                    // ⚠️ ONE LINE EACH: the eyebrow is a label above the warnings, and each
+                    // warning is the service's own sentence with its own capital. Joined with
+                    // spaces it read "Released, but The number was released" (issue #129).
+                    : ([MarketplaceCopy.releaseWarningEyebrow] + warnings).joined(separator: "\n")
             )
         case let .failure(error):
             numberWrite = .failed(FailureText.from(error), .after(error, .once))
