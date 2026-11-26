@@ -10,6 +10,9 @@ import XCTest
 /// ⚠️ THE TWO REVEALS ARE DRAWN ON THEIR OWN. Each is a sheet the create sheet presents over
 /// itself, which a window drawn in-process does not show, so the create is run against the
 /// recorded answer and the reveal is built from what the model kept.
+///
+/// ⚠️ THE WEBHOOK EDITOR'S OUTCOME LINE SITS UNDER ITS 26 SWITCHES, below the sheet's fold, so its
+/// failed and saved images show the form as it stood when the write answered.
 final class SchedulingDeveloperSheetTests: SchedulingSheetSnapshotCase {
     // MARK: - API key
 

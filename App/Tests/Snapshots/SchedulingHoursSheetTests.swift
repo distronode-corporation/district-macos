@@ -7,7 +7,9 @@ import XCTest
 /// reading its own copy of the recorded rules and overrides when it opens.
 ///
 /// ⚠️ THE ADD-A-DAY-OFF FORM IS NOT DRAWN: it is a sheet the days-off sheet presents over
-/// itself, private to it, which a window drawn in-process does not show.
+/// itself, private to it, which a window drawn in-process does not show. Nor is the week's
+/// failed save: its line sits under all seven days, below the sheet's fold, and a failed save
+/// reads the rules again, so the image would be the loaded week.
 final class SchedulingHoursSheetTests: SchedulingSheetSnapshotCase {
     /// ⚠️ THE OPERATOR'S DAY, PINNED before the two recorded overrides (24 and 25 September
     /// 2026), so both are upcoming on every run.
@@ -19,23 +21,15 @@ final class SchedulingHoursSheetTests: SchedulingSheetSnapshotCase {
         try await sheetInBothLanguages("loaded") { app in
             AnyView(SchedulingAvailabilityRulesSheet(model: Self.rules(app)))
         }
-        // An end before its start on Monday, the recorded day with a range, drawn under it.
+        // An end before its start on the recorded workspace-wide day (Wednesday; the Monday rule
+        // belongs to one event type, which this editor leaves out), drawn under that range.
         try await sheet("end-before-start") { app in
             let model = Self.rules(app)
             afterLoad(!model.stored.isEmpty) {
-                if let range = model.week[0].first {
-                    model.setEnd("08:00", for: range.id, inRow: 0)
+                if let row = model.week.firstIndex(where: { !$0.isEmpty }), let range = model.week[row].first {
+                    model.setEnd("08:00", for: range.id, inRow: row)
                 }
             }
-            return AnyView(SchedulingAvailabilityRulesSheet(model: model))
-        }
-        try await sheet("failed", rules: [Self.failing("availability.rules.patch")]) { app in
-            let model = Self.rules(app)
-            await model.load()
-            if let range = model.week[0].first {
-                model.setEnd("18:00", for: range.id, inRow: 0)
-            }
-            await model.save()
             return AnyView(SchedulingAvailabilityRulesSheet(model: model))
         }
         try await sheet("load-failed", rules: [Self.failing("availability.rules.list")]) { app in

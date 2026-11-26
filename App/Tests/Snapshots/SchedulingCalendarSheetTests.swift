@@ -93,9 +93,10 @@ final class SchedulingCalendarSheetTests: SchedulingSheetSnapshotCase {
         SchedulingCaldavConnectModel(repository: app.container.schedulingAdmin, workspaceId: app.workspaceId) {}
     }
 
-    /// The iCloud preset with the recorded account's address and a made-up app password.
+    /// The Fastmail preset with the recorded connection's address and a made-up app password.
     private static func filledCaldav(_ app: SignedInApp) -> SchedulingCaldavConnectModel {
         let model = caldav(app)
+        model.preset = .fastmail
         model.username = "contract@fastmail.test"
         model.appPassword = "abcd-efgh-ijkl-mnop"
         return model

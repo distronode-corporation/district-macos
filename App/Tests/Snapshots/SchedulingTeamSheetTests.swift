@@ -63,14 +63,13 @@ final class SchedulingTeamSheetTests: SchedulingSheetSnapshotCase {
             await model.savePriority(for: "sched-user-rotation")
             return AnyView(SchedulingTeamMembersSheet(model: model) {})
         }
+        // ⚠️ THE FAILURE LINE SITS UNDER THE ROSTER, below the sheet's fold; the image shows the
+        // priority as it was typed when the write failed.
         try await sheet("priority-failed", rules: [Self.failing("teams.members.patch")]) { app in
             let model = try await Self.members(app, team: 0)
             model.editPriority("1", for: "sched-user-rotation")
             await model.savePriority(for: "sched-user-rotation")
             return AnyView(SchedulingTeamMembersSheet(model: model) {})
-        }
-        try await sheet("users-failed", rules: [Self.failing("users.list")]) { app in
-            try await AnyView(SchedulingTeamMembersSheet(model: Self.members(app, team: 0)) {})
         }
     }
 
@@ -83,6 +82,10 @@ final class SchedulingTeamSheetTests: SchedulingSheetSnapshotCase {
             let model = try await Self.members(app, team: 1)
             model.pick("sched-user-contract")
             return AnyView(SchedulingTeamMembersSheet(model: model) {})
+        }
+        // On the empty team, so the user list's failure is not pushed below the fold by a roster.
+        try await sheet("users-failed", rules: [Self.failing("users.list")]) { app in
+            try await AnyView(SchedulingTeamMembersSheet(model: Self.members(app, team: 1)) {})
         }
         try await sheet("add-failed", rules: [Self.failing("teams.members.add")]) { app in
             let model = try await Self.members(app, team: 1)

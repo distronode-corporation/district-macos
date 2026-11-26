@@ -7,6 +7,10 @@ import XCTest
 /// The scheduling settings' four write sheets: the booking page's branding, the booking
 /// assistant, the caller's own profile and their email notifications, each filled from the
 /// recorded read its tab hands it.
+///
+/// ⚠️ BRANDING, PROFILE AND NOTIFICATIONS ARE TALLER THAN THE SHEET, and their refusal and outcome
+/// lines sit below its fold, so those images show the form as it stood when the save answered:
+/// the edited field, and the values the service echoed back.
 final class SchedulingSettingsSheetTests: SchedulingSheetSnapshotCase {
     // MARK: - Branding
 
