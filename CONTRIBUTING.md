@@ -50,14 +50,6 @@ when it can live there and in `App/Tests` when it cannot.
 that adds coverage raises it, and it is never lowered to let a change pass. The target is
 80 percent; [ROADMAP.md](ROADMAP.md) has the plan.
 
-**Accessibility.** A control that shows no text, or whose meaning is not its text, gets an
-`accessibilityLabel`, and a purely decorative symbol is hidden from VoiceOver. Colours come
-from the design system's tokens, and `App/Tests/DistrictContrastTests.swift` holds them to
-WCAG 2.1: 4.5:1 for text, filled controls and badges on every surface (badges under
-Increase Contrast too) and 3:1 for a text field's edge. Strings that exist only to be spoken, such as a chart bar's value,
-are pinned in `App/Tests/A11ySpokenFormTests.swift`. A new colour pair or spoken string gets
-its test there.
-
 **The project is `project.yml`.** Never commit a `.xcodeproj`; it is generated. The two
 `.entitlements` files are generated from it too: edit the spec.
 
@@ -85,6 +77,19 @@ missing or is not listed. `release.yml` runs it on a tag, never on pull requests
 catalogs change between releases. A release whose catalogs changed (French, or English the
 French follows) needs the manager's review of the French and a new `signoff.json` before
 it is tagged.
+
+## Accessibility
+
+Two parts are tests CI runs with `DistrictMacTests`. Colours come from the design system's
+tokens, and `App/Tests/DistrictContrastTests.swift` holds them to WCAG 2.1: 4.5:1 for text,
+filled controls and badges on every surface (badges under Increase Contrast too) and 3:1
+for a text field's edge. Strings that exist only to be spoken, such as a chart bar's value,
+are pinned in `App/Tests/A11ySpokenFormTests.swift`. A new colour pair or spoken string gets
+its test there.
+
+The rest is checked in review, not by CI: a control that shows no text, or whose meaning is
+not its text, gets an `accessibilityLabel`, and a purely decorative symbol is hidden from
+VoiceOver.
 
 ## Pull requests
 
