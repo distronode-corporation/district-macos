@@ -1,10 +1,11 @@
 # Roadmap
 
 The near-term plan for District AI for Mac. This repository has no open issues, so the list is
-taken from its open pull request and its own unfinished items, each named with where it comes
-from. It has no dates: an item is done when the change that does it is merged and released, and
-it then leaves this list for [CHANGELOG.md](CHANGELOG.md). Anything here can change; open an
-issue to discuss an item or to propose a new one.
+taken from its open pull requests and its own unfinished items, each named with where it comes
+from. This roadmap covers the next twelve months, to November 2027. Items have no dates of
+their own: an item is done when the change that does it is merged and released, and it then
+leaves this list for [CHANGELOG.md](CHANGELOG.md). Anything here can change; open an issue to
+discuss an item or to propose a new one.
 
 ## Near term
 
@@ -17,11 +18,15 @@ issue to discuss an item or to propose a new one.
 - **DistrictCore 9.0.0.** One open pull request moves the app to the shared core's 9.0.0 release,
   with its sign-in fixes and the server's updated contracts
   ([#119](https://github.com/distronode-corporation/district-macos/pull/119)).
-- **A repeatable build.** CI's `repeatable` job builds the store app unsigned twice from clean and
-  compares every file. On `main` two files still differ (the Sentry framework's binary and two
-  cells of the app binary's x86_64 slice), so the job does not block yet. One open pull request
-  fixes both and makes it blocking
-  ([#120](https://github.com/distronode-corporation/district-macos/pull/120)).
+- **A repeatable build.** CI's `repeatable` job ([`ci/repeatable-build.sh`](ci/repeatable-build.sh),
+  on pushes to `main`) builds the store app unsigned, in Release, twice from clean and compares
+  every file in the two bundles. On `main` two files differ, the Sentry framework's binary and
+  the app binary, so the job does not block yet. An open pull request
+  ([#120](https://github.com/distronode-corporation/district-macos/pull/120)) links Sentry as its
+  dynamic framework, which makes Sentry's binary identical. The app binary still differs, in a
+  different place on each run, while every object file it is linked from is identical, so the
+  difference comes from the linker; that is the part still being worked on. The plan is to make
+  the two builds identical, then make the job blocking.
 - **Line coverage of the app's own code to 80 percent.** `main` measures about 26 percent of
   `App/Sources` (xccov, CI's `app` job). The plan is snapshot tests of every screen in its real
   states, drawn from the service's recorded responses, plus unit tests for the logic they do not

@@ -17,7 +17,9 @@ The native Mac app for District AI, the AI voice receptionist from
 
 <!-- HERO: a screenshot of the app, captured on the iMac, goes here (see docs/screenshots.md). -->
 
-**Quick start** on macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
+## Quick start
+
+On macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
 [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) is the same
 build):
 
@@ -293,7 +295,14 @@ the one that applies translates the live English subtitle.
 ## Contributing, security and conduct
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): the local gate and the rules CI enforces.
+- [ARCHITECTURE.md](ARCHITECTURE.md): the layers and targets, and where each part of the app
+  lives.
 - [SECURITY.md](SECURITY.md): report vulnerabilities privately, not in an issue.
+- [SECURITY-MODEL.md](SECURITY-MODEL.md): what the app protects, from whom, and the tests
+  that hold each control.
+- [ROADMAP.md](ROADMAP.md): the near-term plan.
+- [GOVERNANCE.md](https://github.com/distronode-corporation/.github/blob/main/GOVERNANCE.md):
+  how the project is run, its roles, and how it continues, for every Distronode repository.
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - [SUPPORT](.github/SUPPORT.md): where questions, bugs and account problems go.
 - [CHANGELOG.md](CHANGELOG.md).
