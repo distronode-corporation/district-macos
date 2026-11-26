@@ -123,7 +123,17 @@ enum ScreenRules {
     /// The same reads with their rows taken out (``FixtureTransport/Reply/emptied(_:)``): each
     /// screen as a new tenant sees it. The workspace list, the account and the workspace's own
     /// configuration keep their recorded answers, which a new tenant has too.
-    static let empty: [FixtureTransport.Rule] = workspaces + loaded.dropFirst(workspaces.count).map { rule in
+    static let empty: [FixtureTransport.Rule] = workspaces + [
+        // The Overview's recording is `.edited` (its workspace id), so it is emptied here by hand:
+        // no recent calls and every count 0, for the workspace on screen.
+        .get("\(api)/overview", .edited("mobile/district-overview.json") { body in
+            body["workspaceId"] = ScreenSnapshotCase.workspaceId
+            body["recentCalls"] = [Any]()
+            if let metrics = body["metrics"] as? [String: Any] {
+                body["metrics"] = metrics.mapValues { $0 is NSNumber ? 0 as Any : $0 }
+            }
+        }),
+    ] + loaded.dropFirst(workspaces.count).map { rule in
         guard case let .fixture(name) = rule.reply, !kept.contains(name) else { return rule }
         return FixtureTransport.Rule(method: rule.method, pattern: rule.pattern, op: rule.op, reply: .emptied(name))
     }
