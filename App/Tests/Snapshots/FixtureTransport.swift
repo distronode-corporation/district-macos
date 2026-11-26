@@ -22,6 +22,9 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         case json(String)
         /// A status with the service's error envelope.
         case status(Int)
+        /// One recording for an English request and another for a French one, chosen by the
+        /// request's `Accept-Language`, where the service records both.
+        case localized(en: String, fr: String)
     }
 
     /// ⚠️ THE PATTERN IS KEPT AS TEXT AND COMPILED PER MATCH: a compiled `Regex` is not
@@ -86,7 +89,7 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
             lock.withLock { unanswered.append(line) }
             return Self.envelope(404, code: "not_found")
         }
-        return try Self.response(rule.reply)
+        return try Self.response(rule.reply, french: Self.isFrench(request))
     }
 
     fileprivate static func compile(_ pattern: String) -> Regex<AnyRegexOutput> {
@@ -105,8 +108,15 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         return object["op"] as? String
     }
 
-    private static func response(_ reply: Reply) throws -> HTTPResponse {
+    private static func isFrench(_ request: HTTPRequest) -> Bool {
+        let language = request.headers.first { $0.key.caseInsensitiveCompare("Accept-Language") == .orderedSame }?.value
+        return language?.lowercased().hasPrefix("fr") == true
+    }
+
+    private static func response(_ reply: Reply, french: Bool) throws -> HTTPResponse {
         switch reply {
+        case let .localized(en, fr):
+            return try ok(Fixtures.data(french ? fr : en))
         case let .fixture(name):
             return try ok(Fixtures.data(name))
         case let .edited(name, edit):

@@ -489,15 +489,19 @@ jobs:
           grep -Eq 'Executed 2 tests, with (1 test skipped and )?0 failures' xcodebuild-launch-smoke.log
 
       # ⚠️ THE SCREEN SNAPSHOTS' NEW AND FAILING IMAGES, from the test host's sandbox container,
-      # where ScreenSnapshotCase writes them (the host cannot write the checkout). A new screen's
-      # images are reviewed and committed from this artifact into
-      # App/Tests/Snapshots/__Snapshots__/<suite>/; see that folder's README.
+      # where they are written (the host cannot write the checkout). Every PNG in the temporary
+      # directory that holds `DistrictSnapshots`, with its path: `DistrictSnapshots/<suite>/` has
+      # new images (and the staged references), and SnapshotTesting writes the image that
+      # FAILED a comparison beside it, under `<test file name>/`. A new screen's images are
+      # reviewed and committed from this artifact into App/Tests/Snapshots/__Snapshots__/<suite>/.
       - name: Collect the snapshot images
         if: always()
         run: |
           mkdir -p snapshots
           find "$HOME/Library/Containers" "${TMPDIR:-/tmp}" -type d -name DistrictSnapshots -prune 2>/dev/null \
-            | while IFS= read -r dir; do cp -R "$dir/." snapshots/; done
+            | while IFS= read -r dir; do
+                (cd "$dir/.." && find . -name '*.png' -print0 | xargs -0 -I{} rsync -R "{}" "$GITHUB_WORKSPACE/snapshots/")
+              done
           find snapshots -type f | sort | head -n 400
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

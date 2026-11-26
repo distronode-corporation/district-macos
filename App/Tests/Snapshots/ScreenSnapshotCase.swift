@@ -107,6 +107,10 @@ class ScreenSnapshotCase: XCTestCase {
     ) async throws {
         L10nRuntime.locale = locale
         let transport = FixtureTransport(rules: rules)
+        // ⚠️ THE SHELL'S WORKSPACE MODEL READS THE SELECTION FROM THE STANDARD DEFAULTS (it builds
+        // its own `WorkspaceSelectionStore()`), so a workspace another test chose is forgotten
+        // there first; every screen then opens on the list's default, the agency workspace.
+        WorkspaceSelectionStore().setSelectedWorkspaceId(nil)
         let app = await SignedInApp(transport: transport, defaults: Self.scratchDefaults())
         host(build(app), size: size)
         await settle(transport)
@@ -229,7 +233,7 @@ class ScreenSnapshotCase: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("DistrictSnapshots", isDirectory: true)
             .appendingPathComponent(suite, isDirectory: true)
-        Self.copyReferences(of: suite, to: directory)
+        Self.stageReference(of: suite, file: "\(Self.sanitized(testName)).\(Self.sanitized(name)).png", in: directory)
         // ⚠️ 98% PERCEPTUAL: a pixel counts as the same when a person could not tell the
         // difference (anti-aliasing that moves by a fraction), and every pixel must pass it.
         let failure = verifySnapshot(
@@ -250,20 +254,30 @@ class ScreenSnapshotCase: XCTestCase {
         String(describing: type(of: test))
     }
 
-    /// Copy the committed references for `suite` from the bundle next to where SnapshotTesting
-    /// looks for them.
-    private static func copyReferences(of suite: String, to directory: URL) {
+    /// SnapshotTesting's file-name rule: every run of non-word characters becomes one `-`, and
+    /// none is left at either end.
+    private static func sanitized(_ component: String) -> String {
+        component
+            .replacingOccurrences(of: "\\W+", with: "-", options: .regularExpression)
+            .replacingOccurrences(of: "^-|-$", with: "", options: .regularExpression)
+    }
+
+    /// Put this one image's committed reference where SnapshotTesting looks for it, or nothing.
+    ///
+    /// ⛔ THE FILE IS DELETED FIRST, so an image an earlier run RECORDED there (a missing
+    /// reference) can never pass as a reference on a retry. Only this image's file is touched:
+    /// the images other tests in the suite recorded in this run stay for the `app` job to collect.
+    private static func stageReference(of suite: String, file: String, in directory: URL) {
         let manager = FileManager.default
         try? manager.createDirectory(at: directory, withIntermediateDirectories: true)
+        let target = directory.appendingPathComponent(file)
+        try? manager.removeItem(at: target)
         guard let source = Bundle(for: ScreenSnapshotCase.self).resourceURL?
             .appendingPathComponent("__Snapshots__", isDirectory: true)
-            .appendingPathComponent(suite, isDirectory: true),
-            let names = try? manager.contentsOfDirectory(atPath: source.path)
+            .appendingPathComponent(suite, isDirectory: true)
+            .appendingPathComponent(file),
+            manager.fileExists(atPath: source.path)
         else { return }
-        for name in names where name.hasSuffix(".png") {
-            let target = directory.appendingPathComponent(name)
-            try? manager.removeItem(at: target)
-            try? manager.copyItem(at: source.appendingPathComponent(name), to: target)
-        }
+        try? manager.copyItem(at: source, to: target)
     }
 }

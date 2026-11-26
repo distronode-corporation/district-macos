@@ -30,7 +30,12 @@ enum ScreenRules {
         .get("\(api)/workspace/usage/history", .fixture("mobile/district-usage-history.json")),
         .get("\(api)/workspace/usage", .fixture("mobile/district-usage.json")),
         .get("\(api)/workspace/billing", .fixture("mobile/district-workspace-billing.json")),
-        .get("\(api)/workspace/persona/options", .fixture("mobile/district-persona-options.json")),
+        .get("\(api)/workspace/persona/options", .localized(
+            en: "mobile/district-persona-options.json",
+            fr: "mobile/district-persona-options-fr.json"
+        )),
+        // ⚠️ ENGLISH IN THE FRENCH SNAPSHOTS TOO: the service records this catalogue in English
+        // only (no `-fr` fixture), so its labels are the recorded English on both.
         .get("\(api)/workspace/persona/voice-studio", .fixture("mobile/district-voice-studio.json")),
         .get("\(api)/workspace/knowledge-mode", .fixture("mobile/district-knowledge-mode.json")),
         .get("\(api)/workspace/knowledge", .fixture("mobile/district-knowledge.json")),
