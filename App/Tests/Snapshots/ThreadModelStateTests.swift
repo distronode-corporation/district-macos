@@ -7,8 +7,8 @@ import XCTest
 /// autosave and restore are pinned in ``ThreadModelDraftWriteTests``.
 ///
 /// ⚠️ THE WRITES ARE ANSWERED AFTER `ScreenRules.loaded`: the reads keep their recorded `.get`
-/// rules there, which match first. The send and the AI draft are told apart by the AI draft
-/// rule naming its path, and every other write (the send, the draft delete after it) is
+/// rules there, which match first. The AI draft is a POST to the draft path (its GET is the
+/// saved draft's read), and every other write (the send, the draft delete after it) is
 /// answered by the messages rule.
 @MainActor
 final class ThreadModelStateTests: XCTestCase {
@@ -21,7 +21,7 @@ final class ThreadModelStateTests: XCTestCase {
         draft: FixtureTransport.Reply = .fixture("mobile/district-ai-draft.json")
     ) -> [FixtureTransport.Rule] {
         (timeline.map { [.get("\(api)/timeline", $0)] } ?? []) + ScreenRules.loaded + [
-            .any("\(api)/.*(ai-draft|generate).*", draft),
+            FixtureTransport.Rule(method: .post, pattern: "\(api)/messages/draft", op: nil, reply: draft),
             .any("\(api)/messages(/.*)?", send),
         ]
     }
