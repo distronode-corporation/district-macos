@@ -12,6 +12,14 @@ final class SetupWizardScreenTests: ScreenSnapshotCase {
     /// MacSheetFit.maxHeight)`).
     private static let sheet = CGSize(width: 640, height: MacSheetFit.maxHeight)
 
+    /// ⚠️ NO BUSINESS DRAFT LEFT BY ANOTHER TEST. The wizard keeps step 1's unsaved draft in the
+    /// standard defaults per workspace and restores it over the service's answer, so a test
+    /// elsewhere that saved one for this workspace changed this screen (run 45862905442).
+    override func setUp() async throws {
+        try await super.setUp()
+        SetupDraftStore(defaults: .standard).clear(workspaceId: Self.workspaceId)
+    }
+
     func testBusiness() async throws {
         try await step(.business)
     }
