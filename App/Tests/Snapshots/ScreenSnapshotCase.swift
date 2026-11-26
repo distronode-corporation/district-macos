@@ -32,7 +32,7 @@ import XCTest
 class ScreenSnapshotCase: XCTestCase {
     /// The agency workspace from `district-workspace-list.json`, made the default so every
     /// section is drawn as a role that may see it.
-    static let workspaceId = "ws-contract-active"
+    nonisolated static let workspaceId = "ws-contract-active"
 
     /// The window the screens are drawn in: wide enough for the three columns, the size the
     /// window opens at on a 13-inch display.
@@ -73,9 +73,42 @@ class ScreenSnapshotCase: XCTestCase {
         testName: String = #function,
         line: UInt = #line
     ) async throws {
+        try await assertView(
+            name,
+            rules: rules,
+            locale: locale,
+            size: size,
+            file: file,
+            testName: testName,
+            line: line
+        ) { app in
+            var paths = ShellPaths()
+            paths.select(item)
+            if let route {
+                paths.open(route)
+            }
+            return AnyView(
+                ShellView(container: app.container, session: app.session, push: app.push, live: app.live, paths: paths)
+            )
+        }
+    }
+
+    /// Draw whatever `build` returns (a sheet, a single screen) in a window of `size`, signed in
+    /// and answered by `rules`, and compare it with its reference image.
+    func assertView(
+        _ name: String,
+        rules: [FixtureTransport.Rule],
+        locale: L10nLocale = .en,
+        size: CGSize,
+        file: StaticString = #filePath,
+        testName: String = #function,
+        line: UInt = #line,
+        build: (SignedInApp) -> AnyView
+    ) async throws {
         L10nRuntime.locale = locale
         let transport = FixtureTransport(rules: rules)
-        try await host(item: item, route: route, transport: transport, size: size)
+        let app = await SignedInApp(transport: transport, defaults: Self.scratchDefaults())
+        host(build(app), size: size)
         await settle(transport)
         let unanswered = transport.unansweredRequests
         if !unanswered.isEmpty {
@@ -87,39 +120,48 @@ class ScreenSnapshotCase: XCTestCase {
 
     // MARK: - Harness
 
-    private func host(item: SidebarItem, route: Route?, transport: FixtureTransport, size: CGSize) async throws {
-        let container = AppContainer(
-            baseURL: URL(string: "https://api.invalid")!,
-            microphone: FakeMicrophoneAccess(status: .denied),
-            transport: transport,
-            tokenStore: InMemoryTokenStore()
-        )
-        // ⚠️ A SESSION IN MEMORY ONLY, as `MacListSectionLoadTests` adopts it: the access token
-        // is fresh so no request waits on a refresh, and nothing reaches the keychain.
-        let hour: Int64 = 3_600_000
-        let now = Int64(Date().timeIntervalSince1970 * 1000)
-        await container.coordinator.adopt(
-            NativeTokens(
-                accessToken: "access",
-                accessTokenExpiresAt: now + hour,
-                refreshToken: "refresh",
-                refreshTokenExpiresAt: now + 24 * hour
-            ),
-            deviceId: container.deviceId
-        )
-        let push = PushRegistrar(container: container, system: .silent)
-        // ⛔ NO LIVE SESSION: the factory builds nothing, so no socket is opened.
-        let live = DesktopLive(calls: container.callStack) { _ in nil }
-        let selection = WorkspaceSelectionStore(defaults: Self.scratchDefaults())
-        let session = SessionModel(container: container, push: push, live: live, selection: selection)
-        var paths = ShellPaths()
-        paths.select(item)
-        if let route {
-            paths.open(route)
-        }
-        let shell = ShellView(container: container, session: session, push: push, live: live, paths: paths)
-            .frame(width: size.width, height: size.height)
+    /// The app's object graph, signed in, with every request going to the fixture transport.
+    @MainActor
+    struct SignedInApp {
+        let container: AppContainer
+        let push: PushRegistrar
+        let live: DesktopLive
+        let session: SessionModel
+        let workspaceId = ScreenSnapshotCase.workspaceId
 
+        init(transport: FixtureTransport, defaults: UserDefaults) async {
+            container = AppContainer(
+                baseURL: URL(string: "https://api.invalid")!,
+                microphone: FakeMicrophoneAccess(status: .denied),
+                transport: transport,
+                tokenStore: InMemoryTokenStore()
+            )
+            // ⚠️ A SESSION IN MEMORY ONLY, as `MacListSectionLoadTests` adopts it: the access
+            // token is fresh so no request waits on a refresh, and nothing reaches the keychain.
+            let hour: Int64 = 3_600_000
+            let now = Int64(Date().timeIntervalSince1970 * 1000)
+            await container.coordinator.adopt(
+                NativeTokens(
+                    accessToken: "access",
+                    accessTokenExpiresAt: now + hour,
+                    refreshToken: "refresh",
+                    refreshTokenExpiresAt: now + 24 * hour
+                ),
+                deviceId: container.deviceId
+            )
+            push = PushRegistrar(container: container, system: .silent)
+            // ⛔ NO LIVE SESSION: the factory builds nothing, so no socket is opened.
+            live = DesktopLive(calls: container.callStack) { _ in nil }
+            session = SessionModel(
+                container: container,
+                push: push,
+                live: live,
+                selection: WorkspaceSelectionStore(defaults: defaults)
+            )
+        }
+    }
+
+    private func host(_ view: AnyView, size: CGSize) {
         let window = NSWindow(
             contentRect: NSRect(x: -20000, y: -20000, width: size.width, height: size.height),
             styleMask: [.titled],
@@ -128,7 +170,7 @@ class ScreenSnapshotCase: XCTestCase {
         )
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: .aqua)
-        window.contentView = NSHostingView(rootView: shell)
+        window.contentView = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
         window.contentView?.layoutSubtreeIfNeeded()
         self.window = window
     }

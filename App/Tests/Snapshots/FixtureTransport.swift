@@ -13,7 +13,7 @@ import Foundation
 /// it is going to draw.
 final class FixtureTransport: HTTPTransport, @unchecked Sendable {
     /// What a matched request is answered with.
-    enum Reply {
+    enum Reply: Sendable {
         /// A file under `contracts/`, e.g. `mobile/district-calls.json`, sent as it is.
         case fixture(String)
         /// A fixture's JSON object, changed by `edit` before it is sent.
@@ -24,9 +24,11 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         case status(Int)
     }
 
-    struct Rule {
+    /// ⚠️ THE PATTERN IS KEPT AS TEXT AND COMPILED PER MATCH: a compiled `Regex` is not
+    /// `Sendable`, and the rule tables are shared static values.
+    struct Rule: Sendable {
         let method: HTTPMethod?
-        let pattern: Regex<AnyRegexOutput>
+        let pattern: String
         /// The `op` a JSON body must carry, for the scheduling admin proxy, which sends every
         /// read and write to one path and names the operation in the body.
         var op: String?
@@ -79,12 +81,21 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
         guard let rule = rules.first(where: { rule in
             (rule.method == nil || rule.method == request.method)
                 && (rule.op == nil || rule.op == op)
-                && path.wholeMatch(of: rule.pattern) != nil
+                && path.wholeMatch(of: Self.compile(rule.pattern)) != nil
         }) else {
             lock.withLock { unanswered.append(line) }
             return Self.envelope(404, code: "not_found")
         }
         return try Self.response(rule.reply)
+    }
+
+    fileprivate static func compile(_ pattern: String) -> Regex<AnyRegexOutput> {
+        // A pattern is a literal in a test file, so a typo is a programming error.
+        do {
+            return try Regex(pattern)
+        } catch {
+            preconditionFailure("not a regular expression: \(pattern) (\(error))")
+        }
     }
 
     private static func op(of request: HTTPRequest) -> String? {
@@ -125,25 +136,16 @@ final class FixtureTransport: HTTPTransport, @unchecked Sendable {
 extension FixtureTransport.Rule {
     /// A rule for a path matched whole by `pattern`, a regular expression (`[^/]+` for an id).
     static func get(_ pattern: String, _ reply: FixtureTransport.Reply) -> Self {
-        Self(method: .get, pattern: compile(pattern), op: nil, reply: reply)
+        Self(method: .get, pattern: pattern, op: nil, reply: reply)
     }
 
     static func any(_ pattern: String, _ reply: FixtureTransport.Reply) -> Self {
-        Self(method: nil, pattern: compile(pattern), op: nil, reply: reply)
+        Self(method: nil, pattern: pattern, op: nil, reply: reply)
     }
 
     /// The scheduling admin proxy's `op`, answered with `reply`.
     static func scheduling(_ op: String, _ reply: FixtureTransport.Reply) -> Self {
-        Self(method: .post, pattern: compile("/api/district/scheduling/admin"), op: op, reply: reply)
-    }
-
-    private static func compile(_ pattern: String) -> Regex<AnyRegexOutput> {
-        // A pattern is a literal in a test file, so a typo is a programming error.
-        do {
-            return try Regex(pattern)
-        } catch {
-            preconditionFailure("not a regular expression: \(pattern) (\(error))")
-        }
+        Self(method: .post, pattern: "/api/district/scheduling/admin", op: op, reply: reply)
     }
 }
 
