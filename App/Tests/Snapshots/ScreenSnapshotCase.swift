@@ -124,8 +124,30 @@ class ScreenSnapshotCase: XCTestCase {
         if !unanswered.isEmpty {
             print("SNAPSHOT-UNANSWERED \(Self.suite(self)).\(name): \(unanswered.joined(separator: ", "))")
         }
-        let image = try render(size: size)
+        let image = try await stableFrame(size: size)
         compare(image, named: name, file: file, testName: testName, line: line)
+    }
+
+    /// The window drawn until two drawings a quarter of a second apart are pixel for pixel the
+    /// same, or for at most three seconds.
+    ///
+    /// ⚠️ WHY: some screens finish drawing a moment after the last answer, a table's alternating
+    /// row backgrounds or a toggle settling into place, and a single drawing caught that moment
+    /// on one run and not on the next (run 45842857065: the call detail's list stripes, the
+    /// Account toggle). Two identical drawings in a row are the screen at rest.
+    private func stableFrame(size: CGSize) async throws -> NSImage {
+        var (image, bytes) = try render(size: size)
+        for _ in 0 ..< 12 {
+            try? await Task.sleep(for: .milliseconds(250))
+            window?.contentView?.layoutSubtreeIfNeeded()
+            window?.displayIfNeeded()
+            let (next, nextBytes) = try render(size: size)
+            if nextBytes == bytes {
+                return next
+            }
+            (image, bytes) = (next, nextBytes)
+        }
+        return image
     }
 
     // MARK: - Harness
@@ -210,7 +232,7 @@ class ScreenSnapshotCase: XCTestCase {
         window?.contentView?.layoutSubtreeIfNeeded()
     }
 
-    private func render(size: CGSize) throws -> NSImage {
+    private func render(size: CGSize) throws -> (NSImage, Data) {
         guard let view = window?.contentView,
               let bitmap = NSBitmapImageRep(
                   bitmapDataPlanes: nil,
@@ -231,7 +253,8 @@ class ScreenSnapshotCase: XCTestCase {
         view.cacheDisplay(in: view.bounds, to: bitmap)
         let image = NSImage(size: view.bounds.size)
         image.addRepresentation(bitmap)
-        return image
+        let bytes = bitmap.bitmapData.map { Data(bytes: $0, count: bitmap.bytesPerRow * bitmap.pixelsHigh) } ?? Data()
+        return (image, bytes)
     }
 
     private func compare(_ image: NSImage, named name: String, file: StaticString, testName: String, line: UInt) {
@@ -241,10 +264,13 @@ class ScreenSnapshotCase: XCTestCase {
             .appendingPathComponent(suite, isDirectory: true)
         Self.stageReference(of: suite, file: "\(Self.sanitized(testName)).\(Self.sanitized(name)).png", in: directory)
         // ⚠️ 98% PERCEPTUAL: a pixel counts as the same when a person could not tell the
-        // difference (anti-aliasing that moves by a fraction), and every pixel must pass it.
+        // difference (anti-aliasing that moves by a fraction). ⚠️ AND 99.98% OF PIXELS MUST PASS:
+        // at most 1 in 5,000 may differ (192 in the regular window), far fewer than any changed
+        // word draws. The Account screen's last pixel row, where a scrolled form is cut off,
+        // differed in 52 pixels between two runs of the same commit (run 45850364894).
         let failure = verifySnapshot(
             of: image,
-            as: .image(precision: 1, perceptualPrecision: 0.98),
+            as: .image(precision: 0.9998, perceptualPrecision: 0.98),
             named: name,
             snapshotDirectory: directory.path,
             file: file,
