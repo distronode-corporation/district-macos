@@ -2,6 +2,7 @@ import DistrictData
 import DistrictL10n
 import DistrictLive
 @testable import DistrictMac
+import DistrictNetwork
 import SwiftUI
 import XCTest
 
