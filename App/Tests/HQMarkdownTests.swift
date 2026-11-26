@@ -49,6 +49,25 @@ final class HQMarkdownTests: XCTestCase {
         )
     }
 
+    /// A closing fence has at least as many backticks as its opener (CodeRabbit on #145), so a
+    /// shorter run inside a four-backtick fence is part of the block.
+    func testAShorterRunInsideALongerFenceDoesNotCloseIt() {
+        let text = "````text\n```\nTotal **19**\n````\nAfter **bold**"
+        XCTAssertEqual(
+            String(HQMarkdown.inline(text).characters),
+            "````text\n```\nTotal **19**\n````\nAfter bold"
+        )
+    }
+
+    /// A tilde fence is a fence too, and only tildes close it.
+    func testATildeFenceStaysAsSent() {
+        let text = "~~~\n```\nTotal **19**\n~~~\nAfter **bold**"
+        XCTAssertEqual(
+            String(HQMarkdown.inline(text).characters),
+            "~~~\n```\nTotal **19**\n~~~\nAfter bold"
+        )
+    }
+
     func testPlainTextIsUnchanged() {
         XCTAssertEqual(String(HQMarkdown.inline("No calls yet.").characters), "No calls yet.")
     }

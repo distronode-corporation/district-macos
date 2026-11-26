@@ -12,7 +12,8 @@ import Foundation
 ///
 /// ⛔ A FENCED BLOCK IS KEPT AS SENT, fences and all. Inline parsing alone read a ```` ``` ````
 /// fence as a code-span delimiter and swallowed both fences and the line breaks around them
-/// (CodeRabbit on #145), so the lines from a fence to its closing fence are never parsed.
+/// (CodeRabbit on #145), so the lines from a fence to its closing fence are never parsed. A
+/// fence is three or more backticks or tildes, closed by at least as many of the same.
 ///
 /// ⚠️ TEXT THAT IS NOT VALID MARKDOWN IS SHOWN AS SENT, so an answer is never lost to a
 /// parse failure.
@@ -20,23 +21,22 @@ enum HQMarkdown {
     static func inline(_ text: String) -> AttributedString {
         var rendered = AttributedString()
         var prose = ""
-        var fenced = false
+        var fence: Fence?
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
         for (index, line) in lines.enumerated() {
             let piece = String(line) + (index < lines.count - 1 ? "\n" : "")
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            // An opening fence's info string cannot hold a backtick (CommonMark 4.5), so
-            // "```value```" is an inline code span, not a fence (CodeRabbit on #145);
-            // a closing fence is backticks only.
-            let isFence = trimmed.hasPrefix("```") && (fenced
-                ? trimmed.allSatisfy { $0 == "`" }
-                : !trimmed.drop { $0 == "`" }.contains("`"))
-            if isFence || fenced {
+            let candidate = Fence(line)
+            let isFence: Bool = if let open = fence {
+                candidate?.closes(open) ?? false
+            } else {
+                candidate?.canOpen ?? false
+            }
+            if isFence || fence != nil {
                 rendered += parsed(prose)
                 prose = ""
                 rendered += AttributedString(piece)
                 if isFence {
-                    fenced.toggle()
+                    fence = fence == nil ? candidate : nil
                 }
             } else {
                 prose += piece
@@ -44,6 +44,36 @@ enum HQMarkdown {
         }
         rendered += parsed(prose)
         return rendered
+    }
+
+    /// A line that starts with three or more backticks or tildes: a code fence by CommonMark's
+    /// rules (4.5), if it opens or closes one.
+    private struct Fence {
+        let marker: Character
+        let length: Int
+        /// What follows the run: an opening fence's info string, nothing on a closing fence.
+        let rest: Substring
+
+        init?(_ line: Substring) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard let marker = trimmed.first, marker == "`" || marker == "~" else { return nil }
+            let length = trimmed.prefix { $0 == marker }.count
+            guard length >= 3 else { return nil }
+            self.marker = marker
+            self.length = length
+            rest = trimmed.dropFirst(length)
+        }
+
+        /// A backtick fence's info string cannot hold a backtick, so "```value```" is an inline
+        /// code span, not a fence (CodeRabbit on #145).
+        var canOpen: Bool {
+            !(marker == "`" && rest.contains("`"))
+        }
+
+        /// The opening fence's character only, at least as many of it (CodeRabbit on #145).
+        func closes(_ open: Fence) -> Bool {
+            marker == open.marker && length >= open.length && rest.isEmpty
+        }
     }
 
     private static func parsed(_ text: String) -> AttributedString {
