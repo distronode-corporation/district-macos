@@ -62,3 +62,19 @@ condition = "AND"
 paths = ['''(^|/)App/Tests/PersonaPreviewStateTests\.swift$''']
 regexTarget = "secret"
 regexes = ['''^YfxKDUkaaGp2WrLLGHCHbe2nn5ArCWBd\+x\+k7EzDr/8=$''']
+
+# LiveKit end-to-end-encryption keys in the server's contract fixtures, copied unchanged from
+# district-core-swift (contracts/README.md) with the same allowlist that repository carries.
+# Each is base64(HMAC-SHA256("contract-e2ee-master-secret", roomName)), the server contract
+# suite's fixed test secret, so they protect no real room.
+[[allowlists]]
+description = "LiveKit E2EE keys in contract fixtures (test data, as in district-core-swift)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|/)contracts/mobile/district-(room-token|room-token-viewer|persona-preview-token|hq-voice-token)\.json$''']
+regexTarget = "secret"
+regexes = [
+  '''^cUwBK6pBSbabCBfQZ8VZW\+bW5dOg2dwb3JG8q7E4Jc4=$''',
+  '''^YfxKDUkaaGp2WrLLGHCHbe2nn5ArCWBd\+x\+k7EzDr/8=$''',
+  '''^YFT\+/ceW4bhgizPFpeX9E5a3PVZ9T07aWRQq4uwQwW0=$''',
+]
