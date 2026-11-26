@@ -19,6 +19,9 @@ excluded:
   # The Swift `l10n.py gen` writes from l10n/macos.toml: one table of a thousand strings,
   # checked against the catalog by `l10n.py check` rather than linted.
   - App/Sources/L10n/Generated
+  # The test scripts/gen-copy-tests.py writes from the same catalog: one assertion per entry,
+  # checked against the catalog by `gen-copy-tests.py --check` rather than linted.
+  - App/Tests/Generated
 
 line_length:
   warning: 120

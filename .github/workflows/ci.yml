@@ -182,6 +182,11 @@ jobs:
       - name: The catalog is valid and the generated Swift is current
         run: python3 scripts/gen-l10n.py --check
 
+      # The test that every Copy accessor answers its entry's English and French at run time
+      # (App/Tests/Generated/CopyCatalogTests.swift) is written from the same catalog.
+      - name: The generated Copy catalog test is current
+        run: python3 scripts/gen-copy-tests.py --check
+
       # frcheck's French rules (typography, terms, sentence case, one French version of an
       # English string across catalogs) over every catalog, as district-core-swift and
       # district-linux run them. No term base or memory here. Warnings print; an error fails.
