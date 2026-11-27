@@ -52,6 +52,35 @@ final class MacMarketplaceTests: XCTestCase {
         XCTAssertFalse(transport.paths.contains { $0.contains("search") }, "\(transport.paths)")
     }
 
+    /// Issue #129: the release warning read "Released, but The number was released ...", the
+    /// eyebrow and the service's sentences run together on one line.
+    func test_MAC_NUMBERS_4_aReleaseWithWarningsPutsEachOnItsOwnLine() async throws {
+        let warning = "The number was released, but its monthly charge could not be ended."
+        let transport = RecordingTransport(status: 200, body: #"{"success":true,"warnings":["\#(warning)"]}"#)
+        let container = try AppContainer(
+            baseURL: XCTUnwrap(URL(string: "https://api.invalid")),
+            microphone: FakeMicrophoneAccess(status: .denied),
+            transport: transport,
+            tokenStore: InMemoryTokenStore()
+        )
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        await container.coordinator.adopt(
+            NativeTokens(
+                accessToken: "access",
+                accessTokenExpiresAt: now + 3_600_000,
+                refreshToken: "refresh",
+                refreshTokenExpiresAt: now + 86_400_000
+            ),
+            deviceId: container.deviceId
+        )
+        let model = NumberProvisioningModel(container: container, workspaceId: "ws_1", role: .agency)
+        await model.release(phoneNumber: "+14165550100")
+        guard case let .done(notice) = model.numberWrite else {
+            return XCTFail("the release did not finish: \(model.numberWrite)")
+        }
+        XCTAssertEqual(notice, "Released, but\n\(warning)")
+    }
+
     private static func container() async -> (AppContainer, FailingTransport) {
         let transport = FailingTransport()
         let container = AppContainer(
