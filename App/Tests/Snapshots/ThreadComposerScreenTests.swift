@@ -1,3 +1,4 @@
+import AppKit
 import DistrictL10n
 @testable import DistrictMac
 import DistrictModel
@@ -66,6 +67,49 @@ final class ThreadComposerScreenTests: ScreenSnapshotCase {
         }
     }
 
+    /// A conversation opens at its newest message (#159): the thread's history, taller than
+    /// the window, is scrolled to its end. With a lazy stack the bottom anchor saw estimated row
+    /// heights, and on most runs the thread opened at the top of its history instead.
+    func testAThreadOpensAtItsNewestMessage() async throws {
+        let root = try await settledScreen(
+            item: .inbox,
+            route: Self.route([Self.sms, Self.email]),
+            rules: Self.draft + ScreenRules.loaded
+        )
+        // The thread's history is the scroll view with the most to scroll; the list column, the
+        // sidebar and the reply box hold less than their height here.
+        let history = try XCTUnwrap(
+            Self.scrollViews(in: root)
+                .filter { ($0.documentView?.bounds.height ?? 0) > $0.contentView.bounds.height + 1 }
+                .max { ($0.documentView?.bounds.height ?? 0) < ($1.documentView?.bounds.height ?? 0) },
+            "the thread's history did not overflow the window, so this test proves nothing"
+        )
+        let document = try XCTUnwrap(history.documentView)
+        let visible = history.contentView.documentVisibleRect
+        let atEnd = document.isFlipped
+            ? visible.maxY >= document.bounds.maxY - 1
+            : visible.minY <= document.bounds.minY + 1
+        XCTAssertTrue(
+            atEnd,
+            "the thread opened with \(visible) of its \(document.bounds) history visible, not its end"
+        )
+    }
+
+    private static func route(_ targets: [ReplyTarget]) -> Route {
+        .thread(
+            workspaceId: workspaceId,
+            role: .agency,
+            threadKey: threadKey,
+            replyTargets: targets,
+            title: "Contract Test Caller"
+        )
+    }
+
+    private static func scrollViews(in view: NSView) -> [NSScrollView] {
+        let own = (view as? NSScrollView).map { [$0] } ?? []
+        return own + view.subviews.flatMap { scrollViews(in: $0) }
+    }
+
     private func thread(
         _ name: String,
         _ targets: [ReplyTarget],
@@ -78,13 +122,7 @@ final class ThreadComposerScreenTests: ScreenSnapshotCase {
         try await assertScreen(
             name,
             item: .inbox,
-            route: .thread(
-                workspaceId: Self.workspaceId,
-                role: .agency,
-                threadKey: Self.threadKey,
-                replyTargets: targets,
-                title: "Contract Test Caller"
-            ),
+            route: Self.route(targets),
             rules: rules + ScreenRules.loaded,
             locale: locale,
             file: file,
