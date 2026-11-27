@@ -30,6 +30,9 @@ packages:
   swift-asn1:
     exactVersion: "1.7.3"
     url: https://github.com/apple/swift-asn1.git
+  Quoted:
+    url: "https://github.com/example/quoted"
+    exactVersion: '2.4.0'
   Ranged:
     url: https://github.com/example/ranged
     from: 1.0.0
@@ -46,13 +49,14 @@ targets:
 
 
 class ParsePinsTests(unittest.TestCase):
-    def test_reads_exact_github_pins_under_packages_only_in_either_key_order(self):
+    def test_reads_exact_github_pins_under_packages_only_in_any_key_order_and_quoting(self):
         pins = package_pins.parse_pins(SPEC)
         self.assertEqual(
             pins,
             [
                 package_pins.Pin("DistrictCore", "distronode-corporation", "district-core-swift", "8.6.0"),
                 package_pins.Pin("swift-asn1", "apple", "swift-asn1", "1.7.3"),
+                package_pins.Pin("Quoted", "example", "quoted", "2.4.0"),
             ],
         )
 

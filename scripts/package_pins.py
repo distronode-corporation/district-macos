@@ -16,7 +16,7 @@ request, because some pins move together (district-ios and district-macos name t
 DistrictCore and WebRTC, and a test package's dependencies are pinned to the versions its
 own Package.resolved records).
 
-Needs `gh`, authenticated (GH_TOKEN in CI), and the network.
+Needs PyYAML, `gh` authenticated (GH_TOKEN in CI), and the network.
 """
 
 from __future__ import annotations
@@ -28,6 +28,11 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+try:
+    import yaml
+except ImportError:  # the workflows install python3-yaml first when it is missing
+    sys.exit("FATAL - PyYAML is needed: apt-get install python3-yaml, or pip install pyyaml")
 
 ROOT = Path(__file__).resolve().parent.parent
 ISSUE_TITLE = "Swift package updates available"
@@ -48,29 +53,19 @@ class Pin:
 def parse_pins(spec: str) -> list[Pin]:
     """Every package under `packages:` that names a GitHub URL and an exactVersion.
 
-    A package pinned another way (`from:`, `branch:`, `revision:`) is left out: there is no
-    single version to compare.
+    ⛔ READ WITH A YAML PARSER, NOT PATTERNS: a pin may be quoted either way, and its keys
+    come in any order. A package pinned another way (`from:`, `branch:`, `revision:`) is
+    left out: there is no single version to compare.
     """
+    packages = (yaml.safe_load(spec) or {}).get("packages") or {}
     pins: list[Pin] = []
-    packages: list[dict[str, str]] = []
-    in_packages = False
-    for line in spec.splitlines():
-        if re.match(r"^\S", line):
-            in_packages = line.rstrip() == "packages:"
+    for name, fields in packages.items():
+        if not isinstance(fields, dict):
             continue
-        if not in_packages:
-            continue
-        # Each package's fields are collected first: YAML does not order a mapping's keys,
-        # so `exactVersion:` may come before `url:`.
-        if m := re.match(r"^  ([A-Za-z0-9_.-]+):\s*$", line):
-            packages.append({"name": m.group(1)})
-        elif packages and (m := re.match(r"^    (url|exactVersion):\s*\"?([^\s\"]+)\"?\s*$", line)):
-            packages[-1][m.group(1)] = m.group(2)
-    for package in packages:
-        url, version = package.get("url", ""), package.get("exactVersion")
+        url, version = str(fields.get("url", "")), fields.get("exactVersion")
         gh = re.fullmatch(r"https://github\.com/([^/]+)/(.+?)(?:\.git)?/?", url)
-        if gh and version:
-            pins.append(Pin(package["name"], gh.group(1), gh.group(2), version))
+        if gh and version is not None:
+            pins.append(Pin(str(name), gh.group(1), gh.group(2), str(version)))
     return pins
 
 
