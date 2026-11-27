@@ -49,8 +49,8 @@ So a report can say which of these it breaks:
 - **The app is sandboxed**, in both distributions: network client, microphone, camera
   and files the user picks, nothing else.
 - **Role checks in the app are a courtesy.** The service authorises every request.
-- **No crash reporting unless configured.** Sentry starts only when a DSN is supplied at
-  build time, and `project.yml` ships it empty.
+- **Crash reporting is off in this build and returns after launch** (issue #146). The
+  crash-reporting SDK is not part of the app at present.
 - **Updates are signed.** The direct download's Sparkle updates are verified against an
   EdDSA public key built into the app, and the app refuses updates while that key is
   the placeholder in `project.yml`.

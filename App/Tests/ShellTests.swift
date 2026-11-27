@@ -46,15 +46,3 @@ final class MacDeviceNameTests: XCTestCase {
         XCTAssertEqual(MacDeviceName.usable(String(repeating: "m", count: 300))?.count, 120)
     }
 }
-
-final class DistrictSentryTests: XCTestCase {
-    func testABlankOrUnsubstitutedDSNKeepsTheSDKOff() {
-        XCTAssertNil(DistrictSentry.usable(""))
-        XCTAssertNil(DistrictSentry.usable("$(SENTRY_DSN)"))
-        XCTAssertEqual(DistrictSentry.usable(" https://k@o.example.com/1 "), "https://k@o.example.com/1")
-    }
-
-    func testTheTestHostCarriesNoDSN() {
-        XCTAssertNil(DistrictSentry.configuredValue(.main, forKey: DistrictSentry.dsnInfoKey))
-    }
-}

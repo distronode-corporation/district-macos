@@ -1,0 +1,37 @@
+// Build settings for every build that ships or is checked for repeatability: the release
+// archive (scripts/archive.sh, both lanes) and CI's repeatable job (ci/repeatable-build.sh)
+// pass this file with `-xcconfig`, so the shipped app is built exactly as the repeatable check
+// builds it. ⚠️ A file passed with -xcconfig reaches the Swift package targets; a setting in
+// project.yml does not (district-ios measured it: a project-level OTHER_CFLAGS left LiveKit's
+// stubs in place).
+//
+// ⛔ NO OBJECTIVE-C SELECTOR STUBS. LiveKit's one Objective-C file (LKObjCHelpers.m) is
+// otherwise compiled to call `objc_msgSend$<selector>` stubs, and the linker writes the
+// selector references those stubs load in an order that varies between links. With every
+// intermediate object file identical (run 45793383763), the app binary still differed in
+// `__stubs` and `__objc_stubs` (run 45785542723). Without stubs, clang emits ordinary
+// objc_msgSend calls and the linker has nothing to order. district-ios made the same change
+// (its #150).
+OTHER_CFLAGS = $(inherited) -fno-objc-msgsend-selector-stubs
+
+// ⛔ AND THE LINKER IN ITS REPRODUCIBLE MODE. ld(1): `-reproducible` "instructs ld to create a
+// reproducible output binary by ignoring certain input properties or using alternative
+// algorithms". On its own it did not make the Intel slice repeatable (next setting).
+OTHER_LDFLAGS = $(inherited) -Wl,-reproducible
+
+// ⛔ AND THE INTEL SLICE LINKED BY THE CLASSIC LINKER (#153). Swift emits a source file's trivial
+// property descriptors as aliases of one constant, so DistrictModel's `RoutingRuleField.rawValue`
+// and `RoutingRuleOperator.rawValue` descriptors share an address. On x86_64 a key path reaches
+// another module's descriptor through the linker's GOT, and RoutingView's two `\.rawValue` key
+// paths ask for two GOT slots that hold that one address. The default linker (ld-1230.1, Xcode
+// 26.3) sorts the GOT by name and wrote those two equal slots in either order: with every
+// intermediate object file identical, two key path cells in `__TEXT,__const`, and so the UUID,
+// differed (dispatch run 45895684340). Relinking the same object files gave 2 different binaries
+// in 8 links, and `-no_deduplicate`, `-no_concurrent_parse`, an order file and `-no_fixup_chains`
+// did not change that; with `-ld_classic`, 28 of 28 links and two clean builds were identical.
+// arm64 keeps the default linker: there the compiler emits its own pointer slots, so the linker
+// builds no GOT entries for these. Cost: the stripped Intel slice is about 1.4 MB (8%) larger.
+// `$(inherited)` here includes the line above, so x86_64 links with `-reproducible` too.
+// ⚠️ ld warns that -ld_classic is deprecated. When an Xcode removes it, this line fails the
+// build, and #153 says how to move back.
+OTHER_LDFLAGS[arch=x86_64] = $(inherited) -Wl,-ld_classic

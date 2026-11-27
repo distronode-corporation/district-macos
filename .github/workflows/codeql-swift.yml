@@ -17,7 +17,7 @@ name: CodeQL Swift
 # every compiler invocation made after `Initialize CodeQL`, and nothing compiled before it
 # is extracted. So the packages are resolved and the whole app is built once BEFORE it,
 # then the app's own sources are touched, and the traced build recompiles them and only
-# them: LiveKit, Sentry, Sparkle and DistrictCore are up to date and stay out of the
+# them: LiveKit, Sparkle and DistrictCore are up to date and stay out of the
 # database (DistrictCore is analysed in its own repository, district-core-swift). The step "Only
 # the app was traced" proves it from the traced build's log.
 on:

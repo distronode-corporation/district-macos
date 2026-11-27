@@ -202,7 +202,7 @@ anywhere in the tree. The one GitLab URL it allows is this repository's own mirr
 App/
   Sources/              The SwiftUI app, compiled into both targets: Navigation/ (the
                         sidebar, routes and menu commands), Features/<Name>/,
-                        DesignSystem/, Session/, Platform/ (push, Sentry, AppKit,
+                        DesignSystem/, Session/, Platform/ (push, AppKit,
                         Calls/ for the LiveKit engine and audio devices, Live/ for
                         the telemetry socket and ringing)
   Direct/               Sparkle. Compiled into DistrictMacDirect only
@@ -235,6 +235,10 @@ every pull request, and uses no secrets:
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
   store target for testing and runs `DistrictMacTests`.
+- **repeatable** (macOS, pushes to `main` and dispatches): builds the store app unsigned,
+  in Release, twice from clean, and fails unless every file in the two bundles is byte for
+  byte the same ([`ci/repeatable-build.sh`](ci/repeatable-build.sh), which is also the
+  recipe for repeating a build yourself).
 - **dependency graph** (Linux): submits the Swift packages **app** resolved to GitHub's dependency graph,
   which cannot see them on its own; on pushes to `main` and pull requests from this
   repository.
@@ -244,7 +248,7 @@ every pull request, and uses no secrets:
 
 [`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows on every
 pull request, and [`codeql-swift.yml`](.github/workflows/codeql-swift.yml) over the app's
-own Swift build nightly and on demand (LiveKit, Sentry, Sparkle and DistrictCore are built
+own Swift build nightly and on demand (LiveKit, Sparkle and DistrictCore are built
 before the trace starts, so they are not analysed here; DistrictCore is analysed in its own
 repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the OpenSSF Scorecard result behind the badge above.
 
@@ -272,8 +276,8 @@ bundle (`.intoto.jsonl`), and adds it to the Sparkle appcast at
 [distronode-corporation/updates](https://github.com/distronode-corporation/updates). Its
 `dry_run` does all of that except the Release and the appcast push. Verify a download
 with `gh attestation verify DistrictAI-<version>-<build>.dmg --repo distronode-corporation/district-macos`.
-Builds from a fork report no crashes: crash reporting (Sentry) starts only when a DSN is supplied at build
-time, and `project.yml` ships it empty.
+Crash reporting is off in this build and returns after launch
+([#146](https://github.com/distronode-corporation/district-macos/issues/146)).
 
 What's New is the version's `CHANGELOG.md` section for English and
 `release-notes/<locale>/<version>.txt` (for example `release-notes/fr-CA/2.0.txt`, plain text

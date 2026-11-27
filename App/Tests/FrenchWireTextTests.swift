@@ -147,7 +147,8 @@ final class FrenchWireTextTests: XCTestCase {
     }
 
     func testAMeteredAmountUsesFrenchSeparators() {
-        XCTAssertEqual(AnalyticsFormat.amount(1204.25), "1204.25")
+        // Issue #129: English printed "1204.25", with no digit grouping.
+        XCTAssertEqual(AnalyticsFormat.amount(1204.25), "1,204.25")
         XCTAssertEqual(french { AnalyticsFormat.amount(1204.25) }, "1\(Self.nbsp)204,25")
         XCTAssertEqual(french { AnalyticsFormat.amount(318.5) }, "318,5")
         XCTAssertEqual(french { AnalyticsFormat.amount(412) }, "412")
@@ -168,8 +169,8 @@ final class FrenchWireTextTests: XCTestCase {
             "Minutes utilisées\(Self.nbsp): 1\(Self.nbsp)522,75 sur 1\(Self.nbsp)500 incluses"
         )
         XCTAssertEqual(
-            BillingCopy.meterUsedOf(AnalyticsFormat.amount(1522.75), included: AppWire.count(1500)),
-            "1522.75 of 1500 included minutes used"
+            BillingCopy.meterUsedOf(AnalyticsFormat.amount(1522.75), included: L10nFormat.integer(1500)),
+            "1,522.75 of 1,500 included minutes used"
         )
     }
 
@@ -203,8 +204,9 @@ final class FrenchWireTextTests: XCTestCase {
         )
     }
 
-    func testAMonthIsAsSentInEnglishAndWrittenOutInFrench() {
-        XCTAssertEqual(AnalyticsFormat.sentMonth("2026-08"), "2026-08")
+    /// Issue #129: English printed the wire's "2026-08" where French wrote the month out.
+    func testAMonthIsWrittenOutInBothLanguages() {
+        XCTAssertEqual(AnalyticsFormat.sentMonth("2026-08"), "Aug 2026")
         XCTAssertEqual(french { AnalyticsFormat.sentMonth("2026-08") }, "août 2026")
         XCTAssertEqual(french { AnalyticsFormat.sentMonth("soon") }, "soon")
     }

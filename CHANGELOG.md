@@ -109,6 +109,20 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
 
 ### Changed
 
+- Crash reporting is off in this build and returns after launch
+  ([#146](https://github.com/distronode-corporation/district-macos/issues/146)): the Sentry SDK
+  is removed from both builds. Its static XCFramework made two clean builds of the same commit
+  differ at the link, and its dynamic one adds about 47 MB.
+- Release builds are built with `Reproducible.xcconfig`, which turns off Objective-C selector
+  stubs (`-fno-objc-msgsend-selector-stubs`) for every target, LiveKit's included, and links the
+  Intel slice with the classic linker
+  ([#153](https://github.com/distronode-corporation/district-macos/issues/153)). With stubs, the
+  linker ordered LiveKit's selector references differently from one link to the next; with the
+  default linker, the Intel slice's table of pointers to other modules came out in either order.
+  The release archive (`scripts/archive.sh`, both lanes) and CI's `repeatable` job pass the same
+  file. The `repeatable` job builds the Mac App Store app twice from clean, compares every file,
+  and now blocks; the direct download adds `App/Direct` and Sparkle on the same settings, and
+  that build is not checked.
 - The contact block confirmation's accessibility identifier is `district-contact-block-confirm`,
   Android's and iOS's string, so one test plan addresses the same button in all three apps
   (#103). It was `district-contact-confirm-block` through 3.3.0; the unblock confirmation keeps

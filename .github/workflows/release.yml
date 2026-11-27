@@ -64,13 +64,12 @@ defaults:
     shell: bash
 
 env:
-  # ⛔ THE MAC APP'S OWN SENTRY PROJECT (EU org, platform apple-macos), as district-ios
-  # names its own. With it set, both lanes read MACOS_SENTRY_DSN from Secret Manager, bake
-  # it into the build (`SENTRY_DSN`, which project.yml carries into the Info.plist) and
-  # upload the dSYMs; a missing or empty DSN fails the run (scripts/gsm-secret.sh) rather
-  # than shipping a build with Sentry off. Blanking it again switches both builds' Sentry
-  # off, and each run says so.
-  SENTRY_PROJECT: district-macos
+  # ⛔ BLANK: CRASH REPORTING IS OFF IN THIS BUILD AND RETURNS AFTER LAUNCH (issue #146).
+  # The Sentry SDK is out of project.yml, so there is no DSN to bake in and no dSYM to upload;
+  # with this blank both lanes skip the DSN read and sentry-cli, and each run says so. To
+  # bring it back: the SDK in project.yml, then `district-macos` here (the Mac app's own
+  # Sentry project, EU org), which makes both lanes read MACOS_SENTRY_DSN again.
+  SENTRY_PROJECT: ""
   SENTRY_ORG: distronode-corporation-eu
   SENTRY_CLI_VERSION: 3.8.0
   SENTRY_CLI_SHA256: 2c26914636c47ab9bf9e710484ad7b44d371cbec8bd29cafb36b3cf877bf4285
