@@ -17,7 +17,9 @@ The native Mac app for District AI, the AI voice receptionist from
 
 <!-- HERO: a screenshot of the app, captured on the iMac, goes here (see docs/screenshots.md). -->
 
-**Quick start** on macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
+## Quick start
+
+On macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
 [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) is the same
 build):
 
@@ -232,11 +234,15 @@ every pull request, and uses no secrets:
 - **gitleaks** (Linux): the full git history, with [`.gitleaks.toml`](.gitleaks.toml).
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
-  store target for testing and runs `DistrictMacTests`.
+  store target for testing and runs `DistrictMacTests`, and fails below the app's line
+  coverage floor ([CONTRIBUTING.md](CONTRIBUTING.md)).
 - **repeatable** (macOS, pushes to `main` and dispatches): builds the store app unsigned,
   in Release, twice from clean, and fails unless every file in the two bundles is byte for
   byte the same ([`ci/repeatable-build.sh`](ci/repeatable-build.sh), which is also the
-  recipe for repeating a build yourself).
+  recipe for repeating a build yourself). It blocks. The settings it needs are in
+  [`Reproducible.xcconfig`](Reproducible.xcconfig), which the release archive passes too;
+  they link the Intel slice with the classic linker
+  ([#153](https://github.com/distronode-corporation/district-macos/issues/153)).
 - **dependency graph** (Linux): submits the Swift packages **app** resolved to GitHub's dependency graph,
   which cannot see them on its own; on pushes to `main` and pull requests from this
   repository.
@@ -297,7 +303,14 @@ the one that applies translates the live English subtitle.
 ## Contributing, security and conduct
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): the local gate and the rules CI enforces.
+- [ARCHITECTURE.md](ARCHITECTURE.md): the layers and targets, and where each part of the app
+  lives.
 - [SECURITY.md](SECURITY.md): report vulnerabilities privately, not in an issue.
+- [SECURITY-MODEL.md](SECURITY-MODEL.md): what the app protects, from whom, and the tests
+  that hold each control.
+- [ROADMAP.md](ROADMAP.md): the near-term plan.
+- [GOVERNANCE.md](https://github.com/distronode-corporation/.github/blob/main/GOVERNANCE.md):
+  how the project is run, its roles, and how it continues, for every Distronode repository.
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - [SUPPORT](.github/SUPPORT.md): where questions, bugs and account problems go.
 - [CHANGELOG.md](CHANGELOG.md).

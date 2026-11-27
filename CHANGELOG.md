@@ -136,6 +136,18 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   screen; this one does not, so `AppLinkRouting.outcome(for:)` keeps sending it to the browser,
   as before (`test_MAC_STUDIOLINK_05`).
 
+### Fixed
+
+From [#129](https://github.com/distronode-corporation/district-macos/issues/129):
+
+- Phone numbers: a release's warnings each sit on their own line under the eyebrow (#143).
+- Reschedule: in French, the calendar's month and day names are in French, whatever the Mac's
+  region format (#138, merged in #155).
+- Analytics and billing: in English, the usage month is written out ("Aug 2026", not
+  "2026-08") and minutes are grouped ("1,204.25"), as in French (#144, merged in #155).
+- HQ: the console's inline Markdown is rendered (bold, italics, code), with no link to click,
+  instead of showing its asterisks. A fenced block is kept as sent (#145).
+
 ## [3.3.0] - 2026-11-06
 
 - Live calls: see your receptionist's calls in progress and listen in. The caller does not
