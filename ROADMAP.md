@@ -34,17 +34,19 @@ discuss an item or to propose a new one.
   differently from one link to the next. The classic linker is deprecated; the plan is to move
   back once a new Xcode's linker passes the repeatable job twice in a row
   ([#153](https://github.com/distronode-corporation/district-macos/issues/153)).
-- **Snapshot tests that settle before they draw.** Three snapshot tests can catch a screen
+- **Snapshot tests that settle before they draw.** Four snapshot tests can catch a screen
   before it settles: the supervise note box
   ([#149](https://github.com/distronode-corporation/district-macos/issues/149)), the
   authenticator code sheet's verifying state
-  ([#154](https://github.com/distronode-corporation/district-macos/issues/154)) and the ring's
+  ([#154](https://github.com/distronode-corporation/district-macos/issues/154)), the ring's
   end racing its caller lookup
-  ([#156](https://github.com/distronode-corporation/district-macos/issues/156)). The plan is to
-  make each one wait for its state, so a red run always means a changed screen.
+  ([#156](https://github.com/distronode-corporation/district-macos/issues/156)) and a thread's
+  scroll position ([#159](https://github.com/distronode-corporation/district-macos/issues/159)).
+  The plan is to draw with no animation and wait until the drawing stops changing, as
+  district-ios does, so a red run always means a changed screen.
 - **Coverage kept at 80 percent or more.** The app's own code measures 81.57 percent line
   coverage (xccov, [#155](https://github.com/distronode-corporation/district-macos/pull/155)),
-  and CI's floor is raised to 80
+  and CI's floor is 80
   ([#157](https://github.com/distronode-corporation/district-macos/pull/157)). The screens and
   paths still untested are filed as issues #133 to #136, #139 to #141 and #151, and two limits of
   the snapshot harness as #137 and #147.
