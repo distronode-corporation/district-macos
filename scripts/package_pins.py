@@ -38,8 +38,10 @@ ROOT = Path(__file__).resolve().parent.parent
 ISSUE_TITLE = "Swift package updates available"
 
 # A release version: digits separated by dots, with an optional leading "v". Anything with a
-# suffix (-beta.1, -rc2, -alpha) is a pre-release and never counts as newer.
+# suffix (-beta.1, -rc2, -alpha) is a pre-release: never an update candidate upstream, but a
+# pin may be one, and a release at or above its numbers is newer (semantic versioning).
 VERSION = re.compile(r"v?(\d+(?:\.\d+)*)")
+PRE_RELEASE = re.compile(r"v?(\d+(?:\.\d+)*)-[0-9A-Za-z.-]+")
 
 
 @dataclass(frozen=True)
@@ -77,13 +79,28 @@ def version_key(text: str) -> tuple[int, ...] | None:
     return tuple(int(part) for part in m.group(1).split("."))
 
 
+def comparable(pinned: str) -> bool:
+    """Whether a pin can be compared at all: a release version or a pre-release of one."""
+    return version_key(pinned) is not None or PRE_RELEASE.fullmatch(pinned.strip()) is not None
+
+
 def newer(latest: str, pinned: str) -> bool:
-    """Whether `latest` is a higher release than `pinned`, comparing 1.2 as 1.2.0."""
-    a, b = version_key(latest), version_key(pinned)
-    if a is None or b is None:
+    """Whether release `latest` is newer than `pinned`, comparing 1.2 as 1.2.0.
+
+    A pre-release pin (2.0.0-beta.1) is behind any release at or above its numbers (2.0.0).
+    """
+    a = version_key(latest)
+    if a is None:
+        return False
+    if (b := version_key(pinned)) is not None:
+        strictly = True
+    elif m := PRE_RELEASE.fullmatch(pinned.strip()):
+        b, strictly = tuple(int(part) for part in m.group(1).split(".")), False
+    else:
         return False
     width = max(len(a), len(b))
-    return a + (0,) * (width - len(a)) > b + (0,) * (width - len(b))
+    a, b = a + (0,) * (width - len(a)), b + (0,) * (width - len(b))
+    return a > b if strictly else a >= b
 
 
 def highest(tags: list[str]) -> str | None:
@@ -156,7 +173,7 @@ def issue_body(rows: list[tuple[Pin, str]], unknown: list[Pin]) -> str:
     ]
     if unknown:
         names = ", ".join(p.name for p in unknown)
-        parts += ["", f"No release or version tag could be read for: {names}."]
+        parts += ["", f"No release or version tag could be read, or the pin is not a comparable version, for: {names}."]
     return "\n".join(parts)
 
 
@@ -193,6 +210,10 @@ def main() -> int:
     rows: list[tuple[Pin, str]] = []
     unknown: list[Pin] = []
     for pin in pins:
+        if not comparable(pin.version):
+            unknown.append(pin)
+            print(f"{pin.name}: pinned {pin.version}, not a version this check can compare")
+            continue
         latest = latest_release(pin)
         if latest is None:
             unknown.append(pin)

@@ -76,6 +76,13 @@ class VersionTests(unittest.TestCase):
         self.assertFalse(package_pins.newer("2.17.0", "2.17.0"))
         self.assertFalse(package_pins.newer("2.16.9", "2.17.0"))
 
+    def test_a_release_is_newer_than_a_pre_release_pin_of_its_numbers(self):
+        self.assertTrue(package_pins.newer("2.0.0", "2.0.0-beta.1"))
+        self.assertTrue(package_pins.newer("2.1.0", "2.0.0-rc.2"))
+        self.assertFalse(package_pins.newer("1.9.0", "2.0.0-beta.1"))
+        self.assertTrue(package_pins.comparable("2.0.0-beta.1"))
+        self.assertFalse(package_pins.comparable("main"))
+
     def test_a_pre_release_is_never_newer(self):
         self.assertFalse(package_pins.newer("3.0.0-beta.1", "2.17.0"))
         self.assertFalse(package_pins.newer("release-candidate", "2.17.0"))
@@ -128,13 +135,13 @@ class IssueBodyTests(unittest.TestCase):
         other = package_pins.Pin("Sparkle", "sparkle-project", "Sparkle", "2.10.0")
         body = package_pins.issue_body([], [other])
         self.assertIn("found no `project.yml` pin behind among those it could read", body)
-        self.assertIn("No release or version tag could be read for: Sparkle.", body)
+        self.assertIn("No release or version tag could be read, or the pin is not a comparable version, for: Sparkle.", body)
 
     def test_names_packages_with_nothing_readable(self):
         pin = package_pins.Pin("LiveKit", "livekit", "client-sdk-swift", "2.17.0")
         other = package_pins.Pin("Sparkle", "sparkle-project", "Sparkle", "2.10.0")
         body = package_pins.issue_body([(pin, "2.18.0")], [other])
-        self.assertIn("No release or version tag could be read for: Sparkle.", body)
+        self.assertIn("No release or version tag could be read, or the pin is not a comparable version, for: Sparkle.", body)
 
 
 class MainTests(unittest.TestCase):
@@ -150,7 +157,7 @@ class MainTests(unittest.TestCase):
         pins = package_pins.parse_pins((ROOT / "project.yml").read_text())
         self.assertIsNone(self.run_main(lambda pin: pin.version))
         body = self.run_main(lambda pin: None if pin.name == "LiveKit" else pin.version)
-        self.assertIn("No release or version tag could be read for: LiveKit.", body)
+        self.assertIn("No release or version tag could be read, or the pin is not a comparable version, for: LiveKit.", body)
         self.assertGreater(len(pins), 1)
 
 

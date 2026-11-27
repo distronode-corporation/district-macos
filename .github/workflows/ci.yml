@@ -261,9 +261,11 @@ jobs:
           annotations: true
 
   # On a push to main: the merge queue's run of this workflow for this exact commit, if it
-  # had one. `app` and `repeatable` are skipped when it did (they ran on this commit there),
-  # and `dependency graph` reads that run's resolved packages. Not run on other events. If
-  # this job fails, its output is empty and everything runs, which is the safe side.
+  # had one AND its `app (macOS)` and `repeatable` both succeeded there. Then `app` and
+  # `repeatable` are skipped here (they passed on this commit), and `dependency graph`
+  # reads that run's resolved packages. A queue run that failed, was cancelled or has not
+  # finished them counts as none. Not run on other events. If this job fails, its output
+  # is empty and everything runs, which is the safe side.
   queue-lookup:
     name: queue lookup
     if: ${{ github.event_name == 'push' }}
@@ -283,12 +285,20 @@ jobs:
           set -euo pipefail
           run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=merge_group&head_sha=$SHA&per_page=1" \
             --jq '.workflow_runs[0].id // empty')"
-          echo "run_id=$run_id" >>"$GITHUB_OUTPUT"
-          if [ -n "$run_id" ]; then
-            echo "The merge queue ran $SHA in run $run_id: app and repeatable are not run again here."
-          else
+          if [ -z "$run_id" ]; then
             echo "No merge queue run of $SHA: every job runs."
+            echo "run_id=" >>"$GITHUB_OUTPUT"
+            exit 0
           fi
+          passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" \
+            --jq '[.jobs[] | select((.name == "app (macOS)" or .name == "repeatable") and .conclusion == "success")] | length')"
+          if [ "$passed" != "2" ]; then
+            echo "The merge queue's run $run_id of $SHA has not passed both app (macOS) and repeatable: every job runs."
+            echo "run_id=" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "The merge queue's run $run_id passed app (macOS) and repeatable on $SHA: they are not run again here."
+          echo "run_id=$run_id" >>"$GITHUB_OUTPUT"
 
   app:
     name: app (macOS)
