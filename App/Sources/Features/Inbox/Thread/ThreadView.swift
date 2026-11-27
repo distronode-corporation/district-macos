@@ -155,6 +155,10 @@ private struct ThreadContentView: View {
     let content: ThreadContent
     let isEmpty: Bool
 
+    /// The history's visible height and where its end sits in it, for ``keepsItsEnd(_:proxy:)``.
+    @State private var historyHeight: CGFloat = 0
+    @State private var endY: CGFloat = 0
+
     @Environment(\.colorScheme) private var colorScheme
 
     private var colors: DistrictColors {
@@ -193,29 +197,63 @@ private struct ThreadContentView: View {
         }
     }
 
-    /// ⚠️ `defaultScrollAnchor(.bottom)` RATHER THAN A `ScrollViewReader` AND AN
-    /// `onAppear` SCROLL. A conversation opens at its newest message; doing that by
-    /// scrolling after layout means one visible frame at the top of the history,
-    /// which reads as the screen jumping away from where the operator was looking.
+    /// ⚠️ `defaultScrollAnchor(.bottom)` RATHER THAN AN `onAppear` SCROLL. A conversation
+    /// opens at its newest message; doing that by scrolling after layout means one visible
+    /// frame at the top of the history, which reads as the screen jumping away from where the
+    /// operator was looking. The `ScrollViewReader` only puts the end back when the history
+    /// gets shorter (``keepsItsEnd(_:proxy:)``).
     ///
-    /// ⛔ A `VStack`, NOT A `LazyVStack` (#159). A lazy stack lays out rows as they come into
-    /// view and sizes the rest by estimate, so the bottom anchor was placed against a guessed
-    /// height and the thread opened at the top of its history on most runs. A thread holds the
-    /// newest page of its history, plus each older page only when "Older messages" is pressed,
-    /// so laying out every row stays cheap, and the anchor then sees the real height.
+    /// ⚠️ A `VStack`, NOT A `LazyVStack` (#159). A lazy stack sizes the rows it has not laid
+    /// out by estimate, so the same thread's history measured 676 or 686 points from one run
+    /// to the next. A thread holds the newest page of its history, plus each older page only
+    /// when "Older messages" is pressed, so laying out every row stays cheap.
     private var events: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
-                olderControl
-                incompleteCaption
-                ForEach(content.events) { event in
-                    ThreadEventRow(event: event)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
+                    olderControl
+                    incompleteCaption
+                    ForEach(content.events) { event in
+                        ThreadEventRow(event: event)
+                    }
+                }
+                .padding(.vertical, DistrictSpacing.row)
+                // The end of the history, in an overlay so it takes no room in the stack.
+                .overlay(alignment: .bottom) {
+                    Color.clear
+                        .frame(height: 1)
+                        .id(Self.end)
+                        .onGeometryChange(for: CGFloat.self) { geometry in
+                            geometry.frame(in: .named(Self.history)).maxY
+                        } action: { endY = $0 }
                 }
             }
-            .padding(.vertical, DistrictSpacing.row)
+            .coordinateSpace(.named(Self.history))
+            .defaultScrollAnchor(.bottom)
+            .onGeometryChange(for: CGFloat.self) { geometry in
+                geometry.size.height
+            } action: { height in
+                keepsItsEnd(height, proxy: proxy)
+            }
         }
-        .defaultScrollAnchor(.bottom)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private static let history = "thread.history"
+    private static let end = "thread.history.end"
+
+    /// ⛔ THE END OF THE HISTORY STAYS IN VIEW WHEN THE HISTORY GETS SHORTER (#159). The draft
+    /// is read after the timeline (``ThreadModel/open()``), so the composer grows under a history
+    /// already at its end, and macOS keeps the TOP edge when the history shrinks, even with
+    /// `defaultScrollAnchor(.bottom, for: .sizeChanges)`: the thread opened near the top of its
+    /// history (run 45976889332). A history at its end is put back there; one the operator has
+    /// scrolled up is left alone.
+    private func keepsItsEnd(_ height: CGFloat, proxy: ScrollViewProxy) {
+        let wasAtEnd = endY <= historyHeight + 1
+        historyHeight = height
+        if wasAtEnd {
+            proxy.scrollTo(Self.end, anchor: .bottom)
+        }
     }
 
     /// "Older messages", the top of the thread, where the history keeps going.
