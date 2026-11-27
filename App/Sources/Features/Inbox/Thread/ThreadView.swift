@@ -197,9 +197,15 @@ private struct ThreadContentView: View {
     /// `onAppear` SCROLL. A conversation opens at its newest message; doing that by
     /// scrolling after layout means one visible frame at the top of the history,
     /// which reads as the screen jumping away from where the operator was looking.
+    ///
+    /// ⛔ A `VStack`, NOT A `LazyVStack` (#159). A lazy stack lays out rows as they come into
+    /// view and sizes the rest by estimate, so the bottom anchor was placed against a guessed
+    /// height and the thread opened at the top of its history on most runs. A thread holds the
+    /// newest page of its history, plus each older page only when "Older messages" is pressed,
+    /// so laying out every row stays cheap, and the anchor then sees the real height.
     private var events: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
+            VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
                 olderControl
                 incompleteCaption
                 ForEach(content.events) { event in
