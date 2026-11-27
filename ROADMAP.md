@@ -9,11 +9,14 @@ discuss an item or to propose a new one.
 ## Near term
 
 - **Release what is merged.** Account deletion in the app, two-step verification settings,
-  the setup wizard and the hardening from the deep security scan (ending a room join that a
-  leave or an audio yield lands inside,
-  [#115](https://github.com/distronode-corporation/district-macos/pull/115)) are merged and
-  listed under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md). The plan is to ship them in the
-  next release, on Releases, Homebrew and the Mac App Store.
+  the setup wizard, the hardening from the deep security scan (ending a room join that a leave
+  or an audio yield lands inside,
+  [#115](https://github.com/distronode-corporation/district-macos/pull/115)), the fixes from
+  [#129](https://github.com/distronode-corporation/district-macos/issues/129) (the reschedule
+  calendar in French, the month and minutes written out in English, HQ's Markdown, a release's
+  warnings) and the repeatable build are merged and listed under `[Unreleased]` in
+  [CHANGELOG.md](CHANGELOG.md). The plan is to ship them in the next release, on Releases,
+  Homebrew and the Mac App Store.
 - **DistrictCore 9.0.0.** One open pull request moves the app to the shared core's 9.0.0 release,
   with its sign-in fixes and the server's updated contracts
   ([#119](https://github.com/distronode-corporation/district-macos/pull/119)).
@@ -21,20 +24,30 @@ discuss an item or to propose a new one.
   operations, which the shared core's `TokenStore` contract requires, so two writes can reach
   the keychain out of order. The plan is to put one serialisation around every member
   ([#118](https://github.com/distronode-corporation/district-macos/issues/118)).
-- **A repeatable build.** CI's `repeatable` job ([`ci/repeatable-build.sh`](ci/repeatable-build.sh),
-  on pushes to `main`) builds the store app unsigned, in Release, twice from clean and compares
-  every file in the two bundles. On `main` two files differ, the Sentry framework's binary and
-  the app binary, so the job does not block yet. An open pull request
-  ([#120](https://github.com/distronode-corporation/district-macos/pull/120)) links Sentry as its
-  dynamic framework, which makes Sentry's binary identical. The app binary still differs, in a
-  different place on each run, while every object file it is linked from is identical, so the
-  difference comes from the linker; that is the part still being worked on. The plan is to make
-  the two builds identical, then make the job blocking.
-- **Line coverage of the app's own code to 80 percent.** `main` measures about 26 percent of
-  `App/Sources` (xccov, CI's `app` job). The plan is snapshot tests of every screen in its real
-  states, drawn from the service's recorded responses, plus unit tests for the logic they do not
-  reach, with a floor in CI raised as each batch lands. The first batch is open
-  ([#121](https://github.com/distronode-corporation/district-macos/pull/121)).
+- **Crash reporting after launch.** Crash reporting is off in this build: the Sentry SDK could
+  not be made repeatable (its static framework changed the app binary from one link to the next,
+  and its dynamic one adds about 47 MB), so it was removed until after launch. The plan and the
+  options for bringing it back are in
+  [#146](https://github.com/distronode-corporation/district-macos/issues/146).
+- **The Intel slice on the default linker again.** The repeatable build links the Intel slice
+  with the classic linker, because the default one (Xcode 26.3) ordered two equal GOT entries
+  differently from one link to the next. The classic linker is deprecated; the plan is to move
+  back once a new Xcode's linker passes the repeatable job twice in a row
+  ([#153](https://github.com/distronode-corporation/district-macos/issues/153)).
+- **Snapshot tests that settle before they draw.** Three snapshot tests can catch a screen
+  before it settles: the supervise note box
+  ([#149](https://github.com/distronode-corporation/district-macos/issues/149)), the
+  authenticator code sheet's verifying state
+  ([#154](https://github.com/distronode-corporation/district-macos/issues/154)) and the ring's
+  end racing its caller lookup
+  ([#156](https://github.com/distronode-corporation/district-macos/issues/156)). The plan is to
+  make each one wait for its state, so a red run always means a changed screen.
+- **Coverage kept at 80 percent or more.** The app's own code measures 81.57 percent line
+  coverage (xccov, [#155](https://github.com/distronode-corporation/district-macos/pull/155)),
+  and CI's floor is raised to 80
+  ([#157](https://github.com/distronode-corporation/district-macos/pull/157)). The screens and
+  paths still untested are filed as issues #133 to #136, #139 to #141 and #151, and two limits of
+  the snapshot harness as #137 and #147.
 - **Screenshots in the README.** The README has a marked place for a screenshot of the app; it
   is to be captured on a Mac the way [docs/screenshots.md](docs/screenshots.md) describes.
 

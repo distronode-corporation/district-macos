@@ -47,8 +47,10 @@ when it can live there and in `App/Tests` when it cannot.
 **Line coverage has a floor.** CI's `app` job measures the app target's line coverage from
 `DistrictMacTests` with xccov (all of `App/Sources`; nothing is excluded) and fails below
 `COVERAGE_FLOOR` in `.github/workflows/ci.yml`. The floor is a ratchet: the pull request
-that adds coverage raises it, and it is never lowered to let a change pass. The target is
-80 percent; [ROADMAP.md](ROADMAP.md) has the plan.
+that adds coverage raises it, and it is never lowered to let a change pass. It is 80 percent,
+the OpenSSF Best Practices silver target
+([#157](https://github.com/distronode-corporation/district-macos/pull/157)); the app measures
+81.57 percent.
 
 **The project is `project.yml`.** Never commit a `.xcodeproj`; it is generated. The two
 `.entitlements` files are generated from it too: edit the spec.

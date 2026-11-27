@@ -234,11 +234,15 @@ every pull request, and uses no secrets:
 - **gitleaks** (Linux): the full git history, with [`.gitleaks.toml`](.gitleaks.toml).
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
-  store target for testing and runs `DistrictMacTests`.
+  store target for testing and runs `DistrictMacTests`, and fails below the app's line
+  coverage floor ([CONTRIBUTING.md](CONTRIBUTING.md)).
 - **repeatable** (macOS, pushes to `main` and dispatches): builds the store app unsigned,
   in Release, twice from clean, and fails unless every file in the two bundles is byte for
   byte the same ([`ci/repeatable-build.sh`](ci/repeatable-build.sh), which is also the
-  recipe for repeating a build yourself).
+  recipe for repeating a build yourself). It blocks. The settings it needs are in
+  [`Reproducible.xcconfig`](Reproducible.xcconfig), which the release archive passes too;
+  they link the Intel slice with the classic linker
+  ([#153](https://github.com/distronode-corporation/district-macos/issues/153)).
 - **dependency graph** (Linux): submits the Swift packages **app** resolved to GitHub's dependency graph,
   which cannot see them on its own; on pushes to `main` and pull requests from this
   repository.

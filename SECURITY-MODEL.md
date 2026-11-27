@@ -36,7 +36,7 @@ Where a test lives there, the table says "core:" before its path.
 | A tampered download or update | Install code this project did not build. | The `.dmg` is Developer ID signed and notarised, with checksums and a build provenance attestation; Sparkle verifies each update against the EdDSA key built into the app, and the app refuses updates while that key is the placeholder. |
 | Other programs on the Mac | Read the app's files. | The app is sandboxed in both builds; its files are in its own container. |
 | A hostile or compromised server response | Return any shape. | Strict decoding against the server's recorded responses. |
-| Someone who reads crash reports | Read whatever the app sent. | Crash reporting is off in any build without a DSN; when on, `sendDefaultPii` is false and tracing is off. |
+| Someone who reads crash reports | Read whatever the app sent. | Crash reporting is off in this build and returns after launch (issue #146); the crash-reporting SDK is not linked, so the app sends no crash report. |
 | Someone who ships a modified release | Sign and publish a build as Distronode. | No signing key or store credential in this repository or in GitHub; each release run borrows them for its own length; publishing and submission run only with the maintainers' approval. |
 
 Out of scope, as [SECURITY.md](SECURITY.md#scope) lists: the District AI service itself, and an
