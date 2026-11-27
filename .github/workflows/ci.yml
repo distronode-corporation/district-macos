@@ -464,13 +464,14 @@ jobs:
       # Best Practices silver). Every target is printed for context; only `District AI.app`,
       # the code in App/Sources, is held to the floor. Nothing is excluded from it.
       # Floor history: 25 on 2026-11-26 (measured 25.89% on main run 45003646554); 58 with the
-      # screen snapshot tests and the Copy catalog test (58.43% on run 45838890995).
+      # screen snapshot tests and the Copy catalog test (58.43% on run 45838890995); 80 with #155
+      # (81.57% on run 45935548938), the silver target itself, so main cannot drop below silver.
       - name: DistrictMacTests line coverage (xccov)
         # Also after a red test run, so a run that records new snapshot images still reports
         # the number they reach.
         if: ${{ !cancelled() && steps.unit-tests.outcome != 'skipped' }}
         env:
-          COVERAGE_FLOOR: "58"
+          COVERAGE_FLOOR: "80"
         run: |
           set -euo pipefail
           xcrun xccov view --report --only-targets --json DistrictMacTests.xcresult > coverage.json
