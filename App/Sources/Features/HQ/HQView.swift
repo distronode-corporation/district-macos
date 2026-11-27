@@ -214,10 +214,12 @@ struct HQView: View {
 /// ⚠️ ALIGNMENT CARRIES WHO SPOKE, the same way the Inbox thread does it: the operator
 /// sits right on a tint of the accent, the console sits left on the muted fill.
 ///
-/// ⛔ THE CONSOLE'S ANSWERS ARE MARKDOWN AND ARE RENDERED AS PLAIN TEXT, DELIBERATELY. A
-/// half-implemented renderer that dropped a table row or mangled a list would misreport
-/// the workspace's own data, which is the one thing this screen exists to state
-/// accurately.
+/// ⛔ THE CONSOLE'S ANSWERS ARE MARKDOWN, AND ONLY THEIR INLINE SPANS ARE RENDERED
+/// (``HQMarkdown``): bold, italics and code. Every line, list marker and table row stays as
+/// sent, because a renderer that dropped a row or mangled a list would misreport the
+/// workspace's own data, the one thing this screen exists to state accurately. Before, the
+/// answers showed their asterisks ("You had **19 calls**", issue #129). The person's own
+/// words are shown exactly as typed.
 private struct HQBubble: View {
     let message: HQMessage
 
@@ -232,7 +234,7 @@ private struct HQBubble: View {
             if fromPerson {
                 Spacer(minLength: DistrictSpacing.section)
             }
-            Text(message.text)
+            Text(fromPerson ? AttributedString(message.text) : HQMarkdown.inline(message.text))
                 .font(DistrictType.bodySmall)
                 .foregroundStyle(colors.foreground)
                 .textSelection(.enabled)
