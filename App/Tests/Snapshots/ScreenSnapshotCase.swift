@@ -110,6 +110,41 @@ class ScreenSnapshotCase: XCTestCase {
         line: UInt = #line,
         build: (SignedInApp) async throws -> AnyView
     ) async throws {
+        let image = try await drawn(name, rules: rules, locale: locale, size: size, build: build)
+        compare(image, named: name, file: file, testName: testName, line: line)
+    }
+
+    /// The shell on `item` (and `route` pushed on it, if any), drawn and settled exactly as
+    /// ``assertScreen`` draws it, for a test that checks the window's geometry rather than its
+    /// pixels. The window stays open until the test ends.
+    func settledScreen(
+        item: SidebarItem,
+        route: Route? = nil,
+        rules: [FixtureTransport.Rule],
+        size: CGSize = ScreenSnapshotCase.regular
+    ) async throws -> NSView {
+        _ = try await drawn("geometry", rules: rules, locale: .en, size: size) { app in
+            var paths = ShellPaths()
+            paths.select(item)
+            if let route {
+                paths.open(route)
+            }
+            return AnyView(
+                ShellView(container: app.container, session: app.session, push: app.push, live: app.live, paths: paths)
+            )
+        }
+        return try XCTUnwrap(window?.contentView, "no window was drawn")
+    }
+
+    /// Host whatever `build` returns, signed in and answered by `rules`, wait until every read
+    /// has answered and the drawing is at rest, and return that drawing.
+    private func drawn(
+        _ name: String,
+        rules: [FixtureTransport.Rule],
+        locale: L10nLocale,
+        size: CGSize,
+        build: (SignedInApp) async throws -> AnyView
+    ) async throws -> NSImage {
         L10nRuntime.locale = locale
         let transport = FixtureTransport(rules: rules)
         // ⚠️ THE SHELL'S WORKSPACE MODEL READS THE SELECTION FROM THE STANDARD DEFAULTS (it builds
@@ -124,8 +159,7 @@ class ScreenSnapshotCase: XCTestCase {
         if !unanswered.isEmpty {
             print("SNAPSHOT-UNANSWERED \(Self.suite(self)).\(name): \(unanswered.joined(separator: ", "))")
         }
-        let image = try await stableFrame(size: size)
-        compare(image, named: name, file: file, testName: testName, line: line)
+        return try await stableFrame(size: size)
     }
 
     /// The window drawn until two drawings a quarter of a second apart are pixel for pixel the
