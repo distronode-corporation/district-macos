@@ -113,10 +113,22 @@ def highest(tags: list[str]) -> str | None:
     return best[1] if best else None
 
 
+class Unreadable(Exception):
+    """The API answered with an error other than "not found"."""
+
+
 def gh_json(*args: str) -> object | None:
+    """The JSON at `args`, None when it does not exist (HTTP 404), Unreadable on any other error.
+
+    ⚠️ A 404 AND A FAILED READ ARE DIFFERENT ANSWERS: a repository with no release falls back
+    to its tags, but a release lookup that failed must not, or an unpublished tag above the
+    published release would be reported as an update.
+    """
     result = subprocess.run(["gh", "api", *args], capture_output=True, text=True, check=False)
     if result.returncode != 0:
-        return None
+        if "HTTP 404" in result.stderr:
+            return None
+        raise Unreadable(result.stderr.strip())
     return json.loads(result.stdout)
 
 
@@ -132,8 +144,14 @@ def tag_names(pin: Pin) -> list[str] | None:
 
 
 def latest_release(pin: Pin) -> str | None:
-    """The repository's latest release tag, or its highest version tag when it has no release."""
-    release = gh_json(f"repos/{pin.owner}/{pin.repo}/releases/latest")
+    """The repository's latest release tag, or its highest version tag when it has no release.
+
+    None when the release lookup failed for any reason but "no release".
+    """
+    try:
+        release = gh_json(f"repos/{pin.owner}/{pin.repo}/releases/latest")
+    except Unreadable:
+        return None
     if isinstance(release, dict) and release.get("tag_name"):
         tag = str(release["tag_name"])
         if version_key(tag) is not None:

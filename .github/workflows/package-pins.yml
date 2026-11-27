@@ -38,8 +38,16 @@ jobs:
       - name: Script tests
         run: python3 scripts/package_pins_test.py
 
+      # ⚠️ ONLY MAIN'S PINS WRITE THE ISSUE: a dispatch on another branch would close or rewrite
+      # it from that branch's project.yml, so there the check only prints what it finds.
       - name: Compare the pins with upstream releases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: python3 scripts/package_pins.py --issue
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" = refs/heads/main ]; then
+            python3 scripts/package_pins.py --issue
+          else
+            python3 scripts/package_pins.py
+          fi

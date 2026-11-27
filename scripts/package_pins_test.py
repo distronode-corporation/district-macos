@@ -112,6 +112,24 @@ class LatestReleaseTests(unittest.TestCase):
                 mock.patch.object(package_pins, "tag_names", return_value=["1.1.0"]):
             self.assertEqual(package_pins.latest_release(self.pin), "1.1.0")
 
+    def test_a_failed_release_lookup_is_unknown_not_a_tag(self):
+        with mock.patch.object(package_pins, "gh_json", side_effect=package_pins.Unreadable("HTTP 502")), \
+                mock.patch.object(package_pins, "tag_names", return_value=["1.1.0"]) as tags:
+            self.assertIsNone(package_pins.latest_release(self.pin))
+        tags.assert_not_called()
+
+    def test_gh_json_is_none_only_for_a_404(self):
+        missing = mock.Mock(returncode=1, stdout="", stderr="gh: Not Found (HTTP 404)")
+        with mock.patch.object(package_pins.subprocess, "run", return_value=missing):
+            self.assertIsNone(package_pins.gh_json("repos/o/r/releases/latest"))
+        failed = mock.Mock(returncode=1, stdout="", stderr="gh: Server Error (HTTP 502)")
+        with mock.patch.object(package_pins.subprocess, "run", return_value=failed), \
+                self.assertRaises(package_pins.Unreadable):
+            package_pins.gh_json("repos/o/r/releases/latest")
+        found = mock.Mock(returncode=0, stdout='{"tag_name": "1.0.0"}', stderr="")
+        with mock.patch.object(package_pins.subprocess, "run", return_value=found):
+            self.assertEqual(package_pins.gh_json("repos/o/r/releases/latest"), {"tag_name": "1.0.0"})
+
     def test_none_when_nothing_is_readable(self):
         with mock.patch.object(package_pins, "gh_json", return_value=None), \
                 mock.patch.object(package_pins, "tag_names", return_value=None):

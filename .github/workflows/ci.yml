@@ -723,8 +723,11 @@ jobs:
   # require `repeatable`, so the queued commit is held until its two builds match; a required
   # check must report on the pull request too, and without one a pull request could never be
   # queued. This job tests nothing and says so, like district-ios's `app (iPad)` stand-in.
+  # ⛔ NAMED `repeatable` ON A PULL REQUEST ONLY: elsewhere it is skipped, a skipped job
+  # reports success, and a second `repeatable` check on the queued commit could let the queue
+  # pass it before the real build finishes.
   repeatable-pr-stand-in:
-    name: repeatable
+    name: ${{ github.event_name == 'pull_request' && 'repeatable' || 'repeatable (pull request stand-in, not run)' }}
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
