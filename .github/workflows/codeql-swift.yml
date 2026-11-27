@@ -10,9 +10,10 @@ name: CodeQL Swift
 # of the five macOS jobs the free plan runs at once for the whole organisation for about 54
 # to 96 minutes. A scan per push to main was what the apps' CI and release lanes queued
 # behind (2026-10-06), and the nightly scan that replaced it still overlapped pull request
-# work, which queued 10 to 87 minutes for a runner (2026-11-27). One scan a week covers
-# every commit of that week; a new alert arrives up to a week after the push that caused
-# it. Dispatch this workflow to scan a commit sooner.
+# work, which queued 10 to 87 minutes for a runner (2026-11-27). Each scan analyses main as
+# it stands that Sunday, not every commit since the last one: a change merged and reverted
+# within the week is never scanned, and an alert for a change that stays arrives up to a
+# week after its push. Dispatch this workflow to scan a commit sooner.
 #
 # ⛔ THE APP'S OWN CODE ONLY (2026-10-06). CodeQL's Swift extractor runs beside
 # every compiler invocation made after `Initialize CodeQL`, and nothing compiled before it

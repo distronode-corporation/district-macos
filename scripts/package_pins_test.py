@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import unittest
 from pathlib import Path
@@ -26,8 +28,8 @@ packages:
     url: https://github.com/distronode-corporation/district-core-swift
     exactVersion: 8.6.0
   swift-asn1:
-    url: https://github.com/apple/swift-asn1.git
     exactVersion: "1.7.3"
+    url: https://github.com/apple/swift-asn1.git
   Ranged:
     url: https://github.com/example/ranged
     from: 1.0.0
@@ -44,7 +46,7 @@ targets:
 
 
 class ParsePinsTests(unittest.TestCase):
-    def test_reads_exact_github_pins_under_packages_only(self):
+    def test_reads_exact_github_pins_under_packages_only_in_either_key_order(self):
         pins = package_pins.parse_pins(SPEC)
         self.assertEqual(
             pins,
@@ -83,22 +85,32 @@ class LatestReleaseTests(unittest.TestCase):
     pin = package_pins.Pin("X", "o", "r", "1.0.0")
 
     def test_uses_the_latest_release_when_it_is_a_version(self):
-        with mock.patch.object(package_pins, "gh_json", side_effect=[{"tag_name": "v1.4.0"}]):
+        with mock.patch.object(package_pins, "gh_json", return_value={"tag_name": "v1.4.0"}), \
+                mock.patch.object(package_pins, "tag_names") as tags:
             self.assertEqual(package_pins.latest_release(self.pin), "v1.4.0")
+            tags.assert_not_called()
 
-    def test_falls_back_to_tags_without_a_release(self):
-        with mock.patch.object(package_pins, "gh_json", side_effect=[None, [{"name": "1.2.0"}, {"name": "1.3.0"}]]):
+    def test_falls_back_to_every_tag_without_a_release(self):
+        names = [f"2.0.0-beta.{i}" for i in range(150)] + ["1.2.0", "1.3.0"]
+        with mock.patch.object(package_pins, "gh_json", return_value=None), \
+                mock.patch.object(package_pins, "tag_names", return_value=names):
             self.assertEqual(package_pins.latest_release(self.pin), "1.3.0")
 
     def test_falls_back_to_tags_when_the_release_is_not_a_version(self):
-        with mock.patch.object(
-            package_pins, "gh_json", side_effect=[{"tag_name": "nightly-2026"}, [{"name": "1.1.0"}]]
-        ):
+        with mock.patch.object(package_pins, "gh_json", return_value={"tag_name": "nightly-2026"}), \
+                mock.patch.object(package_pins, "tag_names", return_value=["1.1.0"]):
             self.assertEqual(package_pins.latest_release(self.pin), "1.1.0")
 
     def test_none_when_nothing_is_readable(self):
-        with mock.patch.object(package_pins, "gh_json", side_effect=[None, None]):
+        with mock.patch.object(package_pins, "gh_json", return_value=None), \
+                mock.patch.object(package_pins, "tag_names", return_value=None):
             self.assertIsNone(package_pins.latest_release(self.pin))
+
+    def test_tag_names_reads_every_page(self):
+        done = mock.Mock(returncode=0, stdout="1.0.0\n1.1.0\n2.0.0\n")
+        with mock.patch.object(package_pins.subprocess, "run", return_value=done) as run:
+            self.assertEqual(package_pins.tag_names(self.pin), ["1.0.0", "1.1.0", "2.0.0"])
+            self.assertIn("--paginate", run.call_args.args[0])
 
 
 class IssueBodyTests(unittest.TestCase):
@@ -108,11 +120,34 @@ class IssueBodyTests(unittest.TestCase):
         self.assertIn("| LiveKit | 2.17.0 | 2.18.0 | https://github.com/livekit/client-sdk-swift/releases |", body)
         self.assertNotIn("could be read", body)
 
+    def test_an_unreadable_pin_keeps_the_issue_open_with_no_updates(self):
+        other = package_pins.Pin("Sparkle", "sparkle-project", "Sparkle", "2.10.0")
+        body = package_pins.issue_body([], [other])
+        self.assertIn("found no `project.yml` pin behind among those it could read", body)
+        self.assertIn("No release or version tag could be read for: Sparkle.", body)
+
     def test_names_packages_with_nothing_readable(self):
         pin = package_pins.Pin("LiveKit", "livekit", "client-sdk-swift", "2.17.0")
         other = package_pins.Pin("Sparkle", "sparkle-project", "Sparkle", "2.10.0")
         body = package_pins.issue_body([(pin, "2.18.0")], [other])
         self.assertIn("No release or version tag could be read for: Sparkle.", body)
+
+
+class MainTests(unittest.TestCase):
+    def run_main(self, latest):
+        with mock.patch.object(sys, "argv", ["package_pins.py", "--issue"]), \
+                mock.patch.object(package_pins, "latest_release", side_effect=latest), \
+                mock.patch.object(package_pins, "sync_issue") as sync, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(package_pins.main(), 0)
+        return sync.call_args.args[0]
+
+    def test_closes_the_issue_only_when_every_pin_was_read_and_is_current(self):
+        pins = package_pins.parse_pins((ROOT / "project.yml").read_text())
+        self.assertIsNone(self.run_main(lambda pin: pin.version))
+        body = self.run_main(lambda pin: None if pin.name == "LiveKit" else pin.version)
+        self.assertIn("No release or version tag could be read for: LiveKit.", body)
+        self.assertGreater(len(pins), 1)
 
 
 if __name__ == "__main__":

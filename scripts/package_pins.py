@@ -52,23 +52,25 @@ def parse_pins(spec: str) -> list[Pin]:
     single version to compare.
     """
     pins: list[Pin] = []
+    packages: list[dict[str, str]] = []
     in_packages = False
-    name = url = None
     for line in spec.splitlines():
         if re.match(r"^\S", line):
             in_packages = line.rstrip() == "packages:"
-            name = url = None
             continue
         if not in_packages:
             continue
+        # Each package's fields are collected first: YAML does not order a mapping's keys,
+        # so `exactVersion:` may come before `url:`.
         if m := re.match(r"^  ([A-Za-z0-9_.-]+):\s*$", line):
-            name, url = m.group(1), None
-        elif m := re.match(r"^    url:\s*\"?(\S+?)\"?\s*$", line):
-            url = m.group(1)
-        elif (m := re.match(r"^    exactVersion:\s*\"?([^\s\"]+)\"?\s*$", line)) and name and url:
-            gh = re.fullmatch(r"https://github\.com/([^/]+)/(.+?)(?:\.git)?/?", url)
-            if gh:
-                pins.append(Pin(name, gh.group(1), gh.group(2), m.group(1)))
+            packages.append({"name": m.group(1)})
+        elif packages and (m := re.match(r"^    (url|exactVersion):\s*\"?([^\s\"]+)\"?\s*$", line)):
+            packages[-1][m.group(1)] = m.group(2)
+    for package in packages:
+        url, version = package.get("url", ""), package.get("exactVersion")
+        gh = re.fullmatch(r"https://github\.com/([^/]+)/(.+?)(?:\.git)?/?", url)
+        if gh and version:
+            pins.append(Pin(package["name"], gh.group(1), gh.group(2), version))
     return pins
 
 
@@ -106,6 +108,17 @@ def gh_json(*args: str) -> object | None:
     return json.loads(result.stdout)
 
 
+def tag_names(pin: Pin) -> list[str] | None:
+    """Every tag of the repository, all pages, or None when the API cannot be read."""
+    result = subprocess.run(
+        ["gh", "api", "--paginate", f"repos/{pin.owner}/{pin.repo}/tags?per_page=100", "--jq", ".[].name"],
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        return None
+    return [line for line in result.stdout.splitlines() if line]
+
+
 def latest_release(pin: Pin) -> str | None:
     """The repository's latest release tag, or its highest version tag when it has no release."""
     release = gh_json(f"repos/{pin.owner}/{pin.repo}/releases/latest")
@@ -113,10 +126,8 @@ def latest_release(pin: Pin) -> str | None:
         tag = str(release["tag_name"])
         if version_key(tag) is not None:
             return tag
-    tags = gh_json(f"repos/{pin.owner}/{pin.repo}/tags?per_page=100")
-    if isinstance(tags, list):
-        return highest([str(t.get("name", "")) for t in tags])
-    return None
+    tags = tag_names(pin)
+    return highest(tags) if tags is not None else None
 
 
 def table(rows: list[tuple[Pin, str]]) -> str:
@@ -128,16 +139,25 @@ def table(rows: list[tuple[Pin, str]]) -> str:
 
 
 def issue_body(rows: list[tuple[Pin, str]], unknown: list[Pin]) -> str:
+    if rows:
+        found = [
+            "The weekly package pin check (`.github/workflows/package-pins.yml`) found these "
+            "`project.yml` pins behind their newest upstream release:",
+            "",
+            table(rows),
+        ]
+    else:
+        found = [
+            "The weekly package pin check (`.github/workflows/package-pins.yml`) found no "
+            "`project.yml` pin behind among those it could read.",
+        ]
     parts = [
-        "The weekly package pin check (`.github/workflows/package-pins.yml`) found these "
-        "`project.yml` pins behind their newest upstream release:",
-        "",
-        table(rows),
+        *found,
         "",
         "Each bump is its own reviewed pull request. Some pins move together: DistrictCore and "
         "WebRTC match district-ios and district-macos, and a test package's dependencies "
         "follow the versions its own Package.resolved records. This issue is rewritten each "
-        "week and closed when every pin is current.",
+        "week and closed only when every pin was read and is current.",
     ]
     if unknown:
         names = ", ".join(p.name for p in unknown)
@@ -188,7 +208,9 @@ def main() -> int:
         else:
             print(f"{pin.name}: pinned {pin.version}, current")
     if args.issue:
-        sync_issue(issue_body(rows, unknown) if rows else None)
+        # ⛔ CLOSED ONLY WHEN EVERY PIN WAS READ AND IS CURRENT: a pin the API could not
+        # answer for keeps the issue open and is named in it.
+        sync_issue(issue_body(rows, unknown) if rows or unknown else None)
     return 0
 
 
