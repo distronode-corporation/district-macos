@@ -124,29 +124,39 @@ class ScreenSnapshotCase: XCTestCase {
         if !unanswered.isEmpty {
             print("SNAPSHOT-UNANSWERED \(Self.suite(self)).\(name): \(unanswered.joined(separator: ", "))")
         }
-        let image = try await stableFrame(size: size)
+        let image = try await steadyFrame(size: size, name: name)
         compare(image, named: name, file: file, testName: testName, line: line)
     }
 
-    /// The window drawn until two drawings a quarter of a second apart are pixel for pixel the
-    /// same, or for at most three seconds.
+    /// The window drawn once three drawings in a row, 200 ms apart, are pixel for pixel the same,
+    /// or as it stands after six seconds.
     ///
     /// ⚠️ WHY: some screens finish drawing a moment after the last answer, a table's alternating
     /// row backgrounds or a toggle settling into place, and a single drawing caught that moment
     /// on one run and not on the next (run 45842857065: the call detail's list stripes, the
-    /// Account toggle). Two identical drawings in a row are the screen at rest.
-    private func stableFrame(size: CGSize) async throws -> NSImage {
+    /// Account toggle). Two identical drawings a quarter of a second apart were not enough: a
+    /// thread's scroll position (#159), the code sheet's busy layout (#154) and the supervise
+    /// note box (#149) still moved after them on some runs. district-ios waits for three
+    /// identical drawings in a row; so does this, over 400 ms of stillness rather than 200.
+    ///
+    /// ⚠️ A SCREEN THAT NEVER STOPS CHANGING (a spinning progress indicator) is drawn as it
+    /// stands after the cap, and the log says so (`SNAPSHOT-UNSETTLED`); the comparison's
+    /// tolerance is unchanged.
+    private func steadyFrame(size: CGSize, name: String) async throws -> NSImage {
         var (image, bytes) = try render(size: size)
-        for _ in 0 ..< 12 {
-            try? await Task.sleep(for: .milliseconds(250))
+        var same = 0
+        for _ in 0 ..< 30 {
+            try? await Task.sleep(for: .milliseconds(200))
             window?.contentView?.layoutSubtreeIfNeeded()
             window?.displayIfNeeded()
             let (next, nextBytes) = try render(size: size)
-            if nextBytes == bytes {
-                return next
-            }
+            same = nextBytes == bytes ? same + 1 : 0
             (image, bytes) = (next, nextBytes)
+            if same >= 2 {
+                return image
+            }
         }
+        print("SNAPSHOT-UNSETTLED \(Self.suite(self)).\(name): still changing after 6 s")
         return image
     }
 
@@ -193,6 +203,9 @@ class ScreenSnapshotCase: XCTestCase {
         }
     }
 
+    /// ⚠️ NO ANIMATION ANYWHERE IN THE DRAWN TREE, as district-ios draws its screens: a change
+    /// lands in one step, so no drawing is taken halfway through a move, and the steady drawing
+    /// is the screen's resting state rather than one frame of a transition.
     private func host(_ view: AnyView, size: CGSize) {
         let window = NSWindow(
             contentRect: NSRect(x: -20000, y: -20000, width: size.width, height: size.height),
@@ -202,7 +215,15 @@ class ScreenSnapshotCase: XCTestCase {
         )
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: .aqua)
-        window.contentView = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+        window.animationBehavior = .none
+        window.contentView = NSHostingView(
+            rootView: view
+                .frame(width: size.width, height: size.height)
+                .transaction { transaction in
+                    transaction.animation = nil
+                    transaction.disablesAnimations = true
+                }
+        )
         window.contentView?.layoutSubtreeIfNeeded()
         self.window = window
     }
