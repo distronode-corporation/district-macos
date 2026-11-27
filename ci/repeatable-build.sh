@@ -12,17 +12,29 @@
 # signature to strip before comparing (CI's other builds sign ad hoc; this one does not
 # sign at all), and no Apple account needed.
 #
-# Expected differences: none yet listed. This has not run on a runner yet; if a file
-# must be accepted as differing, list it here with the reason and skip it below.
+# Expected differences: none. Every file is compared byte for byte; nothing is skipped.
 #
-# On a difference it prints each differing file and keeps both products under
-# $RUNNER_TEMP/repeatable (or /tmp/repeatable) for the job to upload.
+# ⛔ SWIFT_DETERMINISTIC_HASHING=1 IS PART OF THE RECIPE. Parts of the Swift toolchain are
+# written in Swift (the driver, the App Intents metadata extractor, optimizer passes),
+# and a Swift Dictionary's iteration order follows a hash seed that is random per process
+# unless this variable is set. district-ios's two clean builds differed in a version.json
+# for that reason. The variable changes no source and no build setting; it only fixes the
+# seed of the Swift tools the build runs.
+#
+# ⛔ Reproducible.xcconfig IS PART OF THE RECIPE, passed with -xcconfig, as the release archive
+# (scripts/archive.sh) passes it: the one place the build settings for repeatability live (it
+# says why there are no Objective-C selector stubs).
+#
+# On a difference it prints each differing file and each differing intermediate object file,
+# and keeps both products and those object files under $RUNNER_TEMP/repeatable (or
+# /tmp/repeatable) for the job to upload.
 set -euo pipefail
 
 scheme=$1
 destination=$2
 product=$3
 OUT=${RUNNER_TEMP:-/tmp}/repeatable
+export SWIFT_DETERMINISTIC_HASHING=1
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
@@ -36,6 +48,7 @@ for n in 1 2; do
     -destination "$destination" \
     -derivedDataPath DerivedData \
     -clonedSourcePackagesDirPath SourcePackages \
+    -xcconfig Reproducible.xcconfig \
     CODE_SIGNING_ALLOWED=NO > "$OUT/build-$n.log" 2>&1 || {
       tail -n 100 "$OUT/build-$n.log"
       exit 1
@@ -50,13 +63,31 @@ for n in 1 2; do
     printf 'link  %s -> %s\n' "$l" "$(readlink "$l")"
   done) >> "$OUT/$n.sha256"
   echo "$(wc -l < "$OUT/$n.sha256" | tr -d ' ') files in build $n"
+  # Every intermediate object file too, for the diagnosis below: a product that differs
+  # names the object files it was linked from that differ.
+  (cd DerivedData/Build/Intermediates.noindex && find . -type f -name '*.o' -print0 | sort -z | xargs -0 shasum -a 256) \
+    > "$OUT/$n.objects.sha256"
+  mkdir -p "$OUT/$n.objects"
+  (cd DerivedData/Build/Intermediates.noindex && find . -type f -name '*.o' -print0 | xargs -0 -I{} rsync -R "{}" "$OUT/$n.objects/")
 done
 
 if diff -u "$OUT/1.sha256" "$OUT/2.sha256" > "$OUT/sha256.diff"; then
+  rm -rf "$OUT/1.objects" "$OUT/2.objects"
   echo "PASS: both unsigned builds of $(basename "$product") are byte for byte identical"
   exit 0
 fi
 
 echo "FAIL: the two builds differ in these files:"
 grep -E '^[-+]([0-9a-f]{64}|link) ' "$OUT/sha256.diff" | sed -E 's/^[-+]([0-9a-f]{64}|link)  //; s/ -> .*$//' | sort -u | tee "$OUT/differing.txt"
+# The object files that differ, kept from both builds for the artifact; the rest are dropped.
+echo "Intermediate object files that differ:"
+# ⚠️ `|| true`: diff exits 1 on a difference and grep exits 1 on none, and either would end the
+# script here under `set -euo pipefail` before the objects are kept.
+{ diff "$OUT/1.objects.sha256" "$OUT/2.objects.sha256" || true; } | { grep -E '^[<>] ' || true; } \
+  | sed -E 's/^[<>] [0-9a-f]{64}  //' | sort -u | tee "$OUT/differing-objects.txt"
+for n in 1 2; do
+  mkdir -p "$OUT/objects-$n"
+  (cd "$OUT/$n.objects" && xargs -I{} rsync -R "{}" "$OUT/objects-$n/" < "$OUT/differing-objects.txt") || true
+  rm -rf "$OUT/$n.objects"
+done
 exit 1

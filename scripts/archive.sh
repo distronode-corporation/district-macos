@@ -104,6 +104,9 @@ AUTH=(-allowProvisioningUpdates
   -authenticationKeyID "$ASC_KEY_ID"
   -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 
+# ⚠️ DORMANT WHILE CRASH REPORTING IS OFF (issue #146): the SDK is out of project.yml and
+# release.yml leaves SENTRY_PROJECT blank, so the DSN is unset and the dSYM upload is
+# skipped below. Kept for its return after launch.
 # ⛔ NEVER ECHOED. A blank DSN switches Sentry off entirely, and the notice says so,
 # because "no reports" and "unsymbolicated reports" look the same from outside.
 SENTRY_DSN="${SENTRY_DSN:-}"
@@ -127,10 +130,14 @@ xcodegen generate --spec project.yml
 # ⛔ `generic/platform=macOS` builds every architecture in ARCHS (arm64 and x86_64 in
 # Release), not just the host's. Packages go to SourcePackages/ (gitignored), as in
 # ci.yml, which is where scripts/sparkle-sign.sh takes Sparkle's sign_update from.
-xcodebuild archive \
+# ⛔ Reproducible.xcconfig and SWIFT_DETERMINISTIC_HASHING=1: the same build settings and
+# environment CI's repeatable job builds with, so the shipped app is built exactly as that check
+# proves repeatable (ci/repeatable-build.sh and the xcconfig say why).
+SWIFT_DETERMINISTIC_HASHING=1 xcodebuild archive \
   -project DistrictMac.xcodeproj \
   -scheme "$SCHEME" \
   -configuration Release \
+  -xcconfig Reproducible.xcconfig \
   -destination "generic/platform=macOS" \
   -archivePath "$ARCHIVE_PATH" \
   -clonedSourcePackagesDirPath SourcePackages \

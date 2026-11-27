@@ -80,12 +80,12 @@ packages:
     url: https://github.com/pointfreeco/xctest-dynamic-overlay
     exactVersion: 1.6.1
 
-  # ⛔ THE SAME EXACT VERSIONS AS district-ios's project.yml. One WebRTC and one Sentry SDK
-  # across both apps, bumped together and deliberately. `exactVersion:` is XcodeGen's
-  # spelling, not SwiftPM's `exact:`.
-  Sentry:
-    url: https://github.com/getsentry/sentry-cocoa
-    exactVersion: 9.30.1
+  # ⛔ THE SAME EXACT VERSION AS district-ios's project.yml. One WebRTC across both apps,
+  # bumped together and deliberately. `exactVersion:` is XcodeGen's spelling, not SwiftPM's
+  # `exact:`.
+  # ⚠️ NO CRASH REPORTING IN THIS BUILD (Sean, 2026-11-26): the Sentry SDK is removed until
+  # after launch. Its static XCFramework made two clean builds differ at the link, and the
+  # dynamic one adds about 47 MB (issue linked from CHANGELOG.md `[Unreleased]`).
   LiveKit:
     url: https://github.com/livekit/client-sdk-swift
     exactVersion: 2.17.0
@@ -136,8 +136,6 @@ targetTemplates:
           - DistrictCall
           - DistrictLive
           - DistrictL10n
-      - package: Sentry
-        product: Sentry
       - package: LiveKit
         product: LiveKit
     # ⚠️ GENERATED, NOT AUTHORED. xcodegen writes the plist at `path` from these
@@ -192,11 +190,6 @@ targetTemplates:
         # silent: the capture session simply delivers nothing.
         NSMicrophoneUsageDescription: "District AI uses the microphone for calls you place and answer, live calls you take over, meeting rooms you join, and persona previews you start."
         NSCameraUsageDescription: "District AI uses the camera only in meeting rooms you join, never on phone calls."
-        # ⛔ THE SENTRY DSN REACHES THE APP THROUGH THIS KEY, NEVER A SOURCE LITERAL, and
-        # `SENTRY_DSN` is blank in `settings.base` below, so every CI and local build ships
-        # with the SDK inert. Only the release lane supplies a real one.
-        DistrictSentryDSN: "$(SENTRY_DSN)"
-        DistrictSentryEnvironment: "$(CONFIGURATION)"
     # ⛔ GENERATED FROM `properties`, LIKE `info`. `xcodegen generate` OVERWRITES the
     # .entitlements file on every run, so entitlements are edited here and never in the
     # file. The file is committed anyway, because it is what a signing identity is
@@ -274,8 +267,6 @@ targetTemplates:
         # image ("Missing required icon" at the export). `App/Resources/Assets.xcassets`
         # holds every Mac size, drawn from the iOS app's artwork on Apple's 824 pt grid.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # ⛔ BLANK, AND BLANK MEANS SENTRY IS OFF. Never put the real DSN here.
-        SENTRY_DSN: ""
         CODE_SIGN_STYLE: Automatic
       configs:
         Debug:

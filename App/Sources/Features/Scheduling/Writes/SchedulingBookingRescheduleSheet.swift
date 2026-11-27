@@ -56,6 +56,9 @@ struct SchedulingBookingRescheduleSheet: View {
             // READS IT IN. Left on the device zone, a device ahead of the profile
             // would list the day before the one shown.
             .environment(\.timeZone, model.displayTimeZone)
+            // ⛔ THE CALENDAR'S MONTH AND DAY NAMES IN THE APP'S LANGUAGE, not the system's:
+            // under French it drew English names on an English-configured Mac (issue #129).
+            .environment(\.locale, AppL10n.displayLocale())
             .disabled(model.busy)
             .accessibilityIdentifier(A11yID.SchedulingWritesB.bookingRescheduleDay)
             // ⛔ THE RELOAD IS DRIVEN BY THE RESOLVED `dayKey`, NOT BY THE `Date`.

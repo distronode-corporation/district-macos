@@ -6,7 +6,7 @@ name: CI
 # licence files, no secrets anywhere in the history, and workflows that pass static
 # analysis. `app` builds both app targets with Xcode, runs the unit tests and prints the
 # app target's line coverage. `repeatable` (main and dispatches) builds the store app
-# unsigned twice and compares the two products.
+# unsigned twice and fails unless the two products are byte for byte the same.
 # `dependency graph` submits the packages Xcode resolved to GitHub's dependency graph,
 # which cannot see them in an XcodeGen project.
 #
@@ -573,16 +573,15 @@ jobs:
 
   # Repeatable build: the store app (`DistrictMac`) built UNSIGNED, in Release, twice from
   # clean on one runner, and every file in the two bundles compared (ci/repeatable-build.sh,
-  # which lists the expected differences; none yet).
+  # which says why nothing is skipped and why SWIFT_DETERMINISTIC_HASHING is set).
   # ⚠️ PUSHES TO MAIN AND DISPATCHES ONLY: two Release builds would hold one of the
   # organisation's five macOS slots on every pull request.
-  # ⚠️ NON-BLOCKING until a first run on the runner has shown what, if anything, differs.
+  # ⛔ BLOCKING: a file that differs between the two builds fails the run.
   repeatable:
     name: repeatable
     if: ${{ github.event_name != 'pull_request' && (!github.event.repository.private || inputs.run_mac) }}
     runs-on: macos-26
     timeout-minutes: 60
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
