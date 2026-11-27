@@ -227,7 +227,11 @@ scripts/                The release toolchain (archive, Developer ID packaging,
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and
-every pull request, and uses no secrets:
+every pull request, and uses no secrets. It is ready for a merge queue (`merge_group`): a
+queued pull request's commit runs every job, `repeatable` included, and the push to `main`
+that follows skips the two macOS jobs, which already ran on that commit.
+
+The jobs:
 
 - **lint** (Linux): SwiftFormat and SwiftLint.
 - **hygiene** (Linux): the public-hygiene check and its self-test, and the licence files.
@@ -252,9 +256,12 @@ every pull request, and uses no secrets:
 
 [`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows on every
 pull request, and [`codeql-swift.yml`](.github/workflows/codeql-swift.yml) over the app's
-own Swift build nightly and on demand (LiveKit, Sparkle and DistrictCore are built
+own Swift build weekly and on demand (LiveKit, Sparkle and DistrictCore are built
 before the trace starts, so they are not analysed here; DistrictCore is analysed in its own
 repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the OpenSSF Scorecard result behind the badge above.
+[`package-pins.yml`](.github/workflows/package-pins.yml) compares the Swift package pins in
+`project.yml` with their upstream releases every Monday and keeps one issue listing the
+updates, since Dependabot cannot read an XcodeGen project.
 
 ## Releases
 
