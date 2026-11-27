@@ -1,3 +1,4 @@
+import DistrictL10n
 import DistrictModel
 import Foundation
 import SwiftUI
@@ -193,8 +194,9 @@ struct BillingUsageMeterCard: View {
     private func usedText(_ used: Double) -> String {
         let amount = AnalyticsFormat.amount(used)
         guard let included else { return BillingCopy.meterUsed(amount) }
-        // ⚠️ GROUPED IN FRENCH (« 1 500 »), plain in English as it always was.
-        return BillingCopy.meterUsedOf(amount, included: AppWire.count(included))
+        // ⚠️ GROUPED IN BOTH LANGUAGES (« 1 500 », "1,500"), as the used minutes beside it
+        // now are (issue #129): "1,522.75 of 1500" would group one figure and not the other.
+        return BillingCopy.meterUsedOf(amount, included: L10nFormat.integer(included))
     }
 
     /// ⚠️ A `GeometryReader` INSIDE A FIXED-HEIGHT FRAME, which is the one shape that
