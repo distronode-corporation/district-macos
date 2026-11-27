@@ -203,14 +203,11 @@ private struct ThreadContentView: View {
     /// operator was looking. The `ScrollViewReader` only puts the end back when the history
     /// gets shorter (``keepsItsEnd(_:proxy:)``).
     ///
-    /// ⚠️ A `VStack`, NOT A `LazyVStack` (#159). A lazy stack sizes the rows it has not laid
-    /// out by estimate, so the same thread's history measured 676 or 686 points from one run
-    /// to the next. A thread holds the newest page of its history, plus each older page only
-    /// when "Older messages" is pressed, so laying out every row stays cheap.
+    /// ⚠️ A `LazyVStack`, so an attachment's thumbnail loads only when its row comes into view.
     private var events: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
+                LazyVStack(alignment: .leading, spacing: DistrictSpacing.hairline) {
                     olderControl
                     incompleteCaption
                     ForEach(content.events) { event in
