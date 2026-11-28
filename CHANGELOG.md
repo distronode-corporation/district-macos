@@ -109,6 +109,20 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
 
 ### Changed
 
+- Crash reporting is off in this build and returns after launch
+  ([#146](https://github.com/distronode-corporation/district-macos/issues/146)): the Sentry SDK
+  is removed from both builds. Its static XCFramework made two clean builds of the same commit
+  differ at the link, and its dynamic one adds about 47 MB.
+- Release builds are built with `Reproducible.xcconfig`, which turns off Objective-C selector
+  stubs (`-fno-objc-msgsend-selector-stubs`) for every target, LiveKit's included, and links the
+  Intel slice with the classic linker
+  ([#153](https://github.com/distronode-corporation/district-macos/issues/153)). With stubs, the
+  linker ordered LiveKit's selector references differently from one link to the next; with the
+  default linker, the Intel slice's table of pointers to other modules came out in either order.
+  The release archive (`scripts/archive.sh`, both lanes) and CI's `repeatable` job pass the same
+  file. The `repeatable` job builds the Mac App Store app twice from clean, compares every file,
+  and now blocks; the direct download adds `App/Direct` and Sparkle on the same settings, and
+  that build is not checked.
 - The contact block confirmation's accessibility identifier is `district-contact-block-confirm`,
   Android's and iOS's string, so one test plan addresses the same button in all three apps
   (#103). It was `district-contact-confirm-block` through 3.3.0; the unblock confirmation keeps
@@ -121,6 +135,18 @@ to a `## x.y in detail` section under it, as earlier releases' entries have.
   (`/dashboard/district/studio/integrations`) to a Studio destination, for an app that draws that
   screen; this one does not, so `AppLinkRouting.outcome(for:)` keeps sending it to the browser,
   as before (`test_MAC_STUDIOLINK_05`).
+
+### Fixed
+
+From [#129](https://github.com/distronode-corporation/district-macos/issues/129):
+
+- Phone numbers: a release's warnings each sit on their own line under the eyebrow (#143).
+- Reschedule: in French, the calendar's month and day names are in French, whatever the Mac's
+  region format (#138, merged in #155).
+- Analytics and billing: in English, the usage month is written out ("Aug 2026", not
+  "2026-08") and minutes are grouped ("1,204.25"), as in French (#144, merged in #155).
+- HQ: the console's inline Markdown is rendered (bold, italics, code), with no link to click,
+  instead of showing its asterisks. A fenced block is kept as sent (#145).
 
 ## [3.3.0] - 2026-11-06
 

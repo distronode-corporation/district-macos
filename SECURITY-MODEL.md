@@ -36,7 +36,7 @@ Where a test lives there, the table says "core:" before its path.
 | A tampered download or update | Install code this project did not build. | The `.dmg` is Developer ID signed and notarised, with checksums and a build provenance attestation; Sparkle verifies each update against the EdDSA key built into the app, and the app refuses updates while that key is the placeholder. |
 | Other programs on the Mac | Read the app's files. | The app is sandboxed in both builds; its files are in its own container. |
 | A hostile or compromised server response | Return any shape. | Strict decoding against the server's recorded responses. |
-| Someone who reads crash reports | Read whatever the app sent. | Crash reporting is off in any build without a DSN; when on, `sendDefaultPii` is false and tracing is off. |
+| Someone who reads crash reports | Read whatever the app sent. | Crash reporting is off in this build and returns after launch (issue #146); the crash-reporting SDK is not linked, so the app sends no crash report. |
 | Someone who ships a modified release | Sign and publish a build as Distronode. | No signing key or store credential in this repository or in GitHub; each release run borrows them for its own length; publishing and submission run only with the maintainers' approval. |
 
 Out of scope, as [SECURITY.md](SECURITY.md#scope) lists: the District AI service itself, and an
@@ -87,7 +87,7 @@ says so. Weaknesses are mapped to the CWE Top 25 and the OWASP Top 10.
 | Debug code in a release (CWE-489) | The UI-test session hook compiles in Debug only, needs both its launch argument and a session payload, and `scripts/archive.sh` refuses an archive whose binary carries it. | `App/Tests/UITestSessionTests.swift` (`testTheArgumentAloneIsNotEnough`, `testNoArgumentMeansNoSessionEvenWithAValidPayloadPresent`) |
 | A server shape the client does not expect (CWE-20) | Strict decoding of the server's recorded responses. | core: `Tests/ContractFixtureTests/ContractFixtureTests.swift` (`testEveryImplementedFixturePassesTheStrictGate`) |
 | A request that misnames the client (CWE-20) | Every request that names the platform says `.macos`, pinned byte for byte. | `App/Tests/MacClientPlatformTests.swift` (`testCodeExchangeSendsMacosToTheTokenRoute`) |
-| Personal data in crash reports (CWE-532, OWASP A09) | No DSN, no reporting; `sendDefaultPii` false; tracing off. | Mechanism only: `App/Sources/Platform/DistrictSentry.swift`; `project.yml` ships the DSN empty. |
+| Personal data in crash reports (CWE-532, OWASP A09) | Crash reporting is off in this build and returns after launch (issue #146); the crash-reporting SDK is not linked. | `project.yml` (no crash-reporting package) |
 | Committed secrets (CWE-798) | gitleaks over the full history on every push to `main` and every pull request, with `.gitleaks.toml`. | `.github/workflows/ci.yml` (**gitleaks**) |
 | Vulnerable and outdated components (OWASP A06) | Every package pinned `exactVersion`; dependency review on pull requests (for a pull request from a fork, the Swift packages are not submitted to the dependency graph, so dependency review cannot see a change to them there); the dependency graph; CodeQL over the workflows and the app's Swift; zizmor over the workflows. | `.github/workflows/ci.yml`, `codeql.yml`, `codeql-swift.yml` |
 | Release credential theft (CWE-522) | No stored credential; per-run borrowing; publishing and submission need the maintainers' approval. | Mechanism only: `.github/workflows/release.yml`, `publish.yml` and `submit.yml`. |

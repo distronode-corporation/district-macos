@@ -1,4 +1,5 @@
 import AppKit
+import DistrictL10n
 @testable import DistrictMac
 import DistrictModel
 import SwiftUI
@@ -24,6 +25,7 @@ final class SchedulingRescheduleDayZoneTests: XCTestCase {
     override func tearDown() async throws {
         window?.close()
         window = nil
+        L10nRuntime.locale = .en
         if let savedZone {
             NSTimeZone.default = savedZone
         }
@@ -60,6 +62,36 @@ final class SchedulingRescheduleDayZoneTests: XCTestCase {
         XCTAssertEqual(shownDay, "2026-10-04")
         XCTAssertEqual(params["from"] as? String, shownDay)
         XCTAssertEqual(params["to"] as? String, shownDay)
+    }
+
+    /// Issue #129: the French app's calendar named its months and days in English, because the
+    /// picker followed the system's locale. The `NSDatePicker` SwiftUI draws is asked directly.
+    func testTheFrenchAppDrawsTheCalendarInFrench() async throws {
+        L10nRuntime.locale = .frCA
+        let picker = try await hostedDatePicker(SchedulingBookingRescheduleSheet(model: model(), onClose: {}))
+        XCTAssertEqual(picker.locale?.identifier, "fr_CA")
+    }
+
+    func testTheEnglishAppKeepsAnEnglishMacsOwnLocale() {
+        let british = Locale(identifier: "en_GB")
+        XCTAssertEqual(AppL10n.displayLocale(current: british).identifier, "en_GB")
+        XCTAssertEqual(AppL10n.displayLocale(current: Locale(identifier: "de_DE")).identifier, "en_US")
+        L10nRuntime.locale = .frCA
+        XCTAssertEqual(AppL10n.displayLocale(current: british).identifier, "fr_CA")
+    }
+
+    private func model() -> SchedulingBookingRescheduleModel {
+        SchedulingBookingRescheduleModel(
+            admin: SchedulingWritesBFixtures.repository(SettingsTransport(Array(
+                repeating: SchedulingWritesBFixtures.ok("{\"slots\":[]}"),
+                count: 4
+            ))),
+            workspaceId: SchedulingWritesBFixtures.workspaceId,
+            bookingId: "bk-1",
+            eventTypeSlug: "intro",
+            timezone: "America/Toronto",
+            onSaved: { _ in }
+        )
     }
 
     // MARK: - Hosting

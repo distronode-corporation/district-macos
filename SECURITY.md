@@ -18,6 +18,17 @@ are yours.
 Expect an acknowledgement within a few working days. There is no paid bug bounty; what
 you get is credit in the changelog entry for the fix, if you want it.
 
+## After you report
+
+The steps are the organization's
+[vulnerability response](https://github.com/distronode-corporation/.github/blob/main/GOVERNANCE.md#vulnerability-response):
+acknowledgement within a few working days; an assessment against this file and
+[SECURITY-MODEL.md](SECURITY-MODEL.md) (whether it is in scope, how bad it is, which
+versions it affects), with you kept informed in the private advisory or by email; a fix,
+developed privately while the report is undisclosed, with a test that fails without it, in a
+new release; then a GitHub security advisory and a CHANGELOG entry that credit you, unless
+you ask to stay anonymous.
+
 ## Supported versions
 
 Only the current release receives security fixes: the direct download on
@@ -38,8 +49,8 @@ So a report can say which of these it breaks:
 - **The app is sandboxed**, in both distributions: network client, microphone, camera
   and files the user picks, nothing else.
 - **Role checks in the app are a courtesy.** The service authorises every request.
-- **No crash reporting unless configured.** Sentry starts only when a DSN is supplied at
-  build time, and `project.yml` ships it empty.
+- **Crash reporting is off in this build and returns after launch** (issue #146). The
+  crash-reporting SDK is not part of the app at present.
 - **Updates are signed.** The direct download's Sparkle updates are verified against an
   EdDSA public key built into the app, and the app refuses updates while that key is
   the placeholder in `project.yml`.

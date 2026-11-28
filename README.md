@@ -17,7 +17,9 @@ The native Mac app for District AI, the AI voice receptionist from
 
 <!-- HERO: a screenshot of the app, captured on the iMac, goes here (see docs/screenshots.md). -->
 
-**Quick start** on macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
+## Quick start
+
+On macOS 14 Sonoma or later, with Homebrew (the signed, notarised `.dmg` from
 [Releases](https://github.com/distronode-corporation/district-macos/releases/latest) is the same
 build):
 
@@ -200,7 +202,7 @@ anywhere in the tree. The one GitLab URL it allows is this repository's own mirr
 App/
   Sources/              The SwiftUI app, compiled into both targets: Navigation/ (the
                         sidebar, routes and menu commands), Features/<Name>/,
-                        DesignSystem/, Session/, Platform/ (push, Sentry, AppKit,
+                        DesignSystem/, Session/, Platform/ (push, AppKit,
                         Calls/ for the LiveKit engine and audio devices, Live/ for
                         the telemetry socket and ringing)
   Direct/               Sparkle. Compiled into DistrictMacDirect only
@@ -225,14 +227,26 @@ scripts/                The release toolchain (archive, Developer ID packaging,
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and
-every pull request, and uses no secrets:
+every pull request, and uses no secrets. It is ready for a merge queue (`merge_group`): a
+queued pull request's commit runs every job, `repeatable` included, and the push to `main`
+that follows skips the two macOS jobs, which already ran on that commit.
+
+The jobs:
 
 - **lint** (Linux): SwiftFormat and SwiftLint.
 - **hygiene** (Linux): the public-hygiene check and its self-test, and the licence files.
 - **gitleaks** (Linux): the full git history, with [`.gitleaks.toml`](.gitleaks.toml).
 - **zizmor** (Linux): static analysis of the workflows.
 - **app** (macOS, Xcode 26.3): generates the project, builds both targets, builds the
-  store target for testing and runs `DistrictMacTests`.
+  store target for testing and runs `DistrictMacTests`, and fails below the app's line
+  coverage floor ([CONTRIBUTING.md](CONTRIBUTING.md)).
+- **repeatable** (macOS, pushes to `main` and dispatches): builds the store app unsigned,
+  in Release, twice from clean, and fails unless every file in the two bundles is byte for
+  byte the same ([`ci/repeatable-build.sh`](ci/repeatable-build.sh), which is also the
+  recipe for repeating a build yourself). It blocks. The settings it needs are in
+  [`Reproducible.xcconfig`](Reproducible.xcconfig), which the release archive passes too;
+  they link the Intel slice with the classic linker
+  ([#153](https://github.com/distronode-corporation/district-macos/issues/153)).
 - **dependency graph** (Linux): submits the Swift packages **app** resolved to GitHub's dependency graph,
   which cannot see them on its own; on pushes to `main` and pull requests from this
   repository.
@@ -242,9 +256,12 @@ every pull request, and uses no secrets:
 
 [`codeql.yml`](.github/workflows/codeql.yml) runs CodeQL over the workflows on every
 pull request, and [`codeql-swift.yml`](.github/workflows/codeql-swift.yml) over the app's
-own Swift build nightly and on demand (LiveKit, Sentry, Sparkle and DistrictCore are built
+own Swift build weekly and on demand (LiveKit, Sparkle and DistrictCore are built
 before the trace starts, so they are not analysed here; DistrictCore is analysed in its own
 repository). [`scorecard.yml`](.github/workflows/scorecard.yml) publishes the OpenSSF Scorecard result behind the badge above.
+[`package-pins.yml`](.github/workflows/package-pins.yml) compares the Swift package pins in
+`project.yml` with their upstream releases every Monday and keeps one issue listing the
+updates, since Dependabot cannot read an XcodeGen project.
 
 ## Releases
 
@@ -270,8 +287,8 @@ bundle (`.intoto.jsonl`), and adds it to the Sparkle appcast at
 [distronode-corporation/updates](https://github.com/distronode-corporation/updates). Its
 `dry_run` does all of that except the Release and the appcast push. Verify a download
 with `gh attestation verify DistrictAI-<version>-<build>.dmg --repo distronode-corporation/district-macos`.
-Builds from a fork report no crashes: crash reporting (Sentry) starts only when a DSN is supplied at build
-time, and `project.yml` ships it empty.
+Crash reporting is off in this build and returns after launch
+([#146](https://github.com/distronode-corporation/district-macos/issues/146)).
 
 What's New is the version's `CHANGELOG.md` section for English and
 `release-notes/<locale>/<version>.txt` (for example `release-notes/fr-CA/2.0.txt`, plain text
@@ -293,7 +310,14 @@ the one that applies translates the live English subtitle.
 ## Contributing, security and conduct
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): the local gate and the rules CI enforces.
+- [ARCHITECTURE.md](ARCHITECTURE.md): the layers and targets, and where each part of the app
+  lives.
 - [SECURITY.md](SECURITY.md): report vulnerabilities privately, not in an issue.
+- [SECURITY-MODEL.md](SECURITY-MODEL.md): what the app protects, from whom, and the tests
+  that hold each control.
+- [ROADMAP.md](ROADMAP.md): the near-term plan.
+- [GOVERNANCE.md](https://github.com/distronode-corporation/.github/blob/main/GOVERNANCE.md):
+  how the project is run, its roles, and how it continues, for every Distronode repository.
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - [SUPPORT](.github/SUPPORT.md): where questions, bugs and account problems go.
 - [CHANGELOG.md](CHANGELOG.md).

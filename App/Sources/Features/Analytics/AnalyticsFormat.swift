@@ -61,22 +61,11 @@ enum AnalyticsFormat {
     static func amount(_ value: Double) -> String {
         guard value.isFinite else { return absent }
         let rounded = (value * 100).rounded() / 100
-        // ⚠️ FRENCH WRITES ITS OWN SEPARATORS (« 1 204,25 »); the `.` below is English's.
-        if AppL10n.copyLocale == .frCA {
-            return L10nFormat.number(rounded)
-        }
-        // ⚠️ `String(format:)` WITH NO `locale:` FORMATS WITHOUT LOCALISATION, so the
-        // separator is always a `.`, which is what the web console shows and what a
-        // decimal comma here would quietly disagree with.
-        guard rounded.truncatingRemainder(dividingBy: 1) != 0 else {
-            return String(format: "%.0f", rounded)
-        }
-        // ⚠️ THE SECOND DECIMAL IS DROPPED WHEN IT IS A ZERO, which is what makes
-        // 318.5 minutes read as "318.5" here and on Android rather than "318.50".
-        // Two clients disagreeing on the rendering of one metered figure is the kind
-        // of difference an operator reports as a billing discrepancy.
-        let text = String(format: "%.2f", rounded)
-        return text.hasSuffix("0") ? String(text.dropLast()) : text
+        // ⛔ THROUGH THE CORE'S NUMBER FORMAT IN BOTH LANGUAGES, with its digit grouping:
+        // « 1 204,25 » in French and "1,204.25" in English, where English used to print
+        // "1204.25" (issue #129). Two decimals at most, and a trailing zero decimal dropped
+        // ("318.5"), as before.
+        return L10nFormat.number(rounded)
     }
 
     /// What an ABSENT metric renders as.
@@ -160,10 +149,11 @@ enum AnalyticsFormat {
         return L10nFormat.date(day, timezone: "UTC")
     }
 
-    /// A `YYYY-MM` month for a sentence: as sent in English, as it always was, and
-    /// ``monthLabel(_:)`` in French (« août 2026 »).
+    /// A `YYYY-MM` month for a sentence, written out in both languages: "Aug 2026" in
+    /// English and « août 2026 » in French (``monthLabel(_:)``). English used to print the
+    /// wire's "2026-08" (issue #129).
     static func sentMonth(_ month: String) -> String {
-        AppL10n.copyLocale == .frCA ? monthLabel(month) : month
+        monthLabel(month)
     }
 
     /// Parse a server-supplied hex colour, or nil if it cannot be read.
