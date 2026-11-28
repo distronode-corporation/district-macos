@@ -123,7 +123,11 @@ final class RoomAndRingScreenTests: ScreenSnapshotCase {
             held.append(model)
             model.sessionChanged(.signedIn)
             model.ringStarted(workspaceId: app.workspaceId, callId: Self.callId, workspaceName: "Zulu Agency")
-            Self.once({ model.isRinging }, { action(model) })
+            // ⛔ THE RING ENDS ONLY AFTER ITS CALLER LOOKUP HAS ANSWERED (#156). The lookup starts
+            // with the ring, and the recorded call detail names its caller, so a ring ended on
+            // `isRinging` alone was drawn with or without the caller depending on which finished
+            // first. A ring is long enough in practice for its lookup to answer.
+            Self.once({ model.isRinging && model.caller != nil }, { action(model) })
             return AnyView(IncomingCallView(model: model, devices: app.container.callStack.devices)
                 .frame(minWidth: 340, minHeight: 320)
                 .sheetPage()
